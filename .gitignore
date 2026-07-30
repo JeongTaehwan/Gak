@@ -1,0 +1,29 @@
+# 모노레포 루트 공통 무시 목록.
+# backend/, frontend/ 는 각자의 .gitignore 도 함께 가진다.
+
+# OS / 에디터
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.iml
+
+# 로그 / 임시
+*.log
+*.tmp
+
+# 환경/시크릿 (하위 프로젝트에서도 별도로 무시하지만 루트에서도 방어)
+.env
+.env*.local
+**/application-local.yml
+**/application-secret.yml
+
+# Spring
+build/
+.gradle/
+out/
+
+# Next
+node_modules/
+.next/
+.vercel/

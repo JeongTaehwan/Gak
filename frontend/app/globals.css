@@ -1,0 +1,13 @@
+@import "tailwindcss";
+@import "@usetaehwan/ui/tokens.css";
+
+/* Tailwind v4는 node_modules를 스캔하지 않는다. @usetaehwan/ui 컴포넌트가 쓰는
+   유틸리티 클래스가 생성되도록 배포 패키지의 dist를 스캔 대상에 포함시킨다.
+   이 @source 디렉티브가 없으면 UI 컴포넌트가 무스타일로 렌더된다. (필수) */
+@source "../node_modules/@usetaehwan/ui/dist";
+
+body {
+  font-family: "Pretendard Variable", ui-sans-serif, system-ui, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-fg-body);
+}

@@ -1,0 +1,23 @@
+# =============================================================================
+# 로컬 개발용 설정 템플릿.
+#   1) 이 파일을 같은 폴더에 application-local.yml 로 복사한다.
+#   2) 아래 빈 자리에 로컬 값을 채운다.
+#   3) SPRING_PROFILES_ACTIVE=local 로 앱을 구동한다.
+#        예) ./gradlew bootRun --args='--spring.profiles.active=local'
+#
+# application-local.yml 은 .gitignore 되어 있어 커밋되지 않는다.
+# ※ 여기(.example)에도 실제 키/비밀번호를 적지 말 것 — 자리 표시만.
+# =============================================================================
+
+spring:
+  datasource:
+    # 로컬 PostgreSQL JDBC URL. 예: jdbc:postgresql://localhost:5432/gak
+    url: jdbc:postgresql://localhost:5432/gak
+    username: ""      # 로컬 DB 사용자
+    password: ""      # 로컬 DB 비밀번호
+
+gak:
+  api-football:
+    key: ""           # API-Football 키 (v3.football.api-sports.io)
+  anthropic:
+    key: ""           # Anthropic API 키 (진단용)

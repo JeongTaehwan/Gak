@@ -1,0 +1,26 @@
+{
+  "_comment": "API-Football 팀 영문명(team.name) → 한글 표기. nameKo(정식 한글명), shortNameKo(짧은 표기), code(3글자, API code 보정용). code 가 비면 서비스에서 팀명 첫 3자음으로 자동 생성한다. 여기 없는 팀은 화면에서 영문 원본으로 fallback.",
+  "teams": {
+    "Manchester United": { "nameKo": "맨체스터 유나이티드", "shortNameKo": "맨유", "code": "MUN" },
+    "Manchester City": { "nameKo": "맨체스터 시티", "shortNameKo": "맨시티", "code": "MCI" },
+    "Liverpool": { "nameKo": "리버풀", "shortNameKo": "리버풀", "code": "LIV" },
+    "Arsenal": { "nameKo": "아스날", "shortNameKo": "아스날", "code": "ARS" },
+    "Chelsea": { "nameKo": "첼시", "shortNameKo": "첼시", "code": "CHE" },
+    "Tottenham": { "nameKo": "토트넘 홋스퍼", "shortNameKo": "토트넘", "code": "TOT" },
+    "Newcastle": { "nameKo": "뉴캐슬 유나이티드", "shortNameKo": "뉴캐슬", "code": "NEW" },
+    "Wolves": { "nameKo": "울버햄튼 원더러스", "shortNameKo": "울버햄튼", "code": "WOL" },
+    "Aston Villa": { "nameKo": "애스턴 빌라", "shortNameKo": "빌라", "code": "AVL" },
+    "Nottingham Forest": { "nameKo": "노팅엄 포레스트", "shortNameKo": "노팅엄", "code": "NFO" },
+    "Real Madrid": { "nameKo": "레알 마드리드", "shortNameKo": "레알", "code": "RMA" },
+    "Barcelona": { "nameKo": "FC 바르셀로나", "shortNameKo": "바르사", "code": "BAR" },
+    "Atletico Madrid": { "nameKo": "아틀레티코 마드리드", "shortNameKo": "아틀레티코", "code": "ATM" },
+    "Bayern Munich": { "nameKo": "바이에른 뮌헨", "shortNameKo": "바이에른", "code": "BAY" },
+    "Borussia Dortmund": { "nameKo": "보루시아 도르트문트", "shortNameKo": "도르트문트", "code": "DOR" },
+    "Bayer Leverkusen": { "nameKo": "바이엘 레버쿠젠", "shortNameKo": "레버쿠젠", "code": "B04" },
+    "Inter": { "nameKo": "인테르 밀란", "shortNameKo": "인테르", "code": "INT" },
+    "AC Milan": { "nameKo": "AC 밀란", "shortNameKo": "밀란", "code": "MIL" },
+    "Juventus": { "nameKo": "유벤투스", "shortNameKo": "유베", "code": "JUV" },
+    "Napoli": { "nameKo": "SSC 나폴리", "shortNameKo": "나폴리", "code": "NAP" },
+    "Paris Saint Germain": { "nameKo": "파리 생제르맹", "shortNameKo": "PSG", "code": "PSG" }
+  }
+}

@@ -1,0 +1,39 @@
+# =============================================================================
+# Gak(각) 공통 설정 — 값을 하드코딩하지 않는다. 전부 환경변수 참조만 둔다.
+# 로컬 개발용 실제 값은 application-local.yml 에 넣고(그 파일은 .gitignore 됨),
+#   SPRING_PROFILES_ACTIVE=local 로 구동한다.
+# 시크릿(키/비밀번호)은 이 파일에 절대 적지 않는다.
+# =============================================================================
+
+spring:
+  application:
+    name: gak
+
+  datasource:
+    # DATABASE_URL 은 JDBC URL 형식이어야 한다. 예: jdbc:postgresql://localhost:5432/gak
+    # (배포 시 Neon 연결 문자열도 jdbc: 접두어 형태로 넣는다.)
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME:}
+    password: ${DATABASE_PASSWORD:}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      # 개발 편의를 위한 기본값. 스키마를 손으로 만들 필요 없이 엔티티에서 생성된다.
+      # 운영/공유 DB에서는 마이그레이션 도구로 전환하고 validate 로 낮춘다(다음 단계).
+      ddl-auto: ${JPA_DDL_AUTO:update}
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+
+# 외부 API / 앱 전용 설정 — 값은 환경변수로만 주입.
+gak:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+  api-football:
+    base-url: ${API_FOOTBALL_BASE_URL:https://v3.football.api-sports.io}
+    key: ${API_FOOTBALL_KEY:}
+  anthropic:
+    base-url: ${ANTHROPIC_BASE_URL:https://api.anthropic.com}
+    key: ${ANTHROPIC_API_KEY:}
