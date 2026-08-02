@@ -19,5 +19,30 @@ spring:
 gak:
   api-football:
     key: ""           # API-Football 키 (v3.football.api-sports.io)
+
+    # 로컬은 replay 로 둔다. 실 호출은 필요할 때만 한 번씩 켠다.
+    #   ./gradlew bootRun --args='--spring.profiles.active=local --gak.api-football.mode=real'
+    mode: replay
+
+    # real 로 켤 때만 의미가 있다. 받은 원본이 여기 쌓여 다음부터 replay 로 재생된다.
+    # capture-dir: "src/test/resources/apifootball"
+
+  sync:
+    # 로컬에서 스케줄러가 계속 도는 게 거슬리면 false 로.
+    enabled: true
+
+    # 한 번 깨어날 때 처리할 대회 수 상한(기본 6).
+    # 로컬은 replay(요청 0회)라 20개 전부 한 번에 처리해도 공짜다.
+    max-competitions-per-run: 20
+
+    # season-override — 왜 넣었나 / 언제 빼야 하나
+    #  [왜]  동기화는 원래 "오늘 기준 현재 시즌"을 스스로 계산한다(유럽 리그는 7월부터 새 시즌).
+    #        그런데 저장해 둔 replay 파일은 2024 시즌뿐이라, 자동 판정에 맡기면 없는 파일을
+    #        찾다 전부 실패한다. 그래서 "파일이 있는 시즌"으로 못 박아 둔 것이다.
+    #  [언제 빼나]  유료 플랜으로 현재 시즌을 받게 됐거나, real 모드로 현재 시즌 응답을
+    #        capture 해 둔 뒤. 그때 이 줄을 지우면 자동 판정으로 돌아간다.
+    #  [안 빼면]  2024 시즌만 계속 덮어쓴다. 앱은 멀쩡해 보이는데 화면엔 2년 전 일정이 나온다.
+    season-override: 2024
+
   anthropic:
     key: ""           # Anthropic API 키 (진단용)

@@ -34,6 +34,47 @@ gak:
   api-football:
     base-url: ${API_FOOTBALL_BASE_URL:https://v3.football.api-sports.io}
     key: ${API_FOOTBALL_KEY:}
+
+    # real  = 실제 호출. 호출마다 무료 티어 하루 100요청을 소모한다.
+    # replay= 저장해 둔 응답 파일 재생. 요청을 전혀 쓰지 않는다.
+    # 기본값이 replay 인 건 의도적이다 — 개발 중 재시작만으로 하루 예산이 사라지는 쪽이
+    # 훨씬 비싼 사고라, 실 호출은 명시적으로 켠 사람만 하게 한다.
+    mode: ${API_FOOTBALL_MODE:replay}
+
+    # 응답 없는 커넥션이 스케줄러 스레드를 붙잡지 않도록.
+    connect-timeout: 5s
+    read-timeout: 20s
+
+    # real 모드에서 받은 원본 응답을 떨어뜨릴 디렉터리(비우면 저장 안 함).
+    # 여기를 src/test/resources/apifootball 로 두면 추가 요청 없이 replay 파일이 쌓인다.
+    capture-dir: ${API_FOOTBALL_CAPTURE_DIR:}
+
+  # 주기 동기화 정책.
+  sync:
+    enabled: ${SYNC_ENABLED:true}
+
+    # 매시 10분에 깨어나, "갱신 주기가 지난 대회"만 몇 개 처리한다.
+    # 하루 한 번 몰아 치지 않는 이유는 SyncScheduler 주석 참고.
+    cron: "0 10 * * * *"
+
+    # 무료 100 중 실제로 쓸 상한. 개발·수동 호출 여유를 남긴다.
+    daily-request-budget: ${SYNC_DAILY_BUDGET:80}
+
+    # 한 번 깨어날 때 처리할 대회 수 상한(순간 버스트 방지).
+    max-competitions-per-run: 6
+
+    # 대회 성격별 최소 재동기화 간격(시간).
+    # 컵대회는 라운드 사이가 한 달씩 벌어져 매일 불러 봐야 같은 응답만 받는다.
+    interval-hours:
+      league: 24    # 리그: 매일
+      hybrid: 84    # 유럽대항전(조별+녹아웃): 주 2회
+      cup: 168      # 컵: 주 1회
+
+    # 시즌 강제 지정. 무료 플랜이 최신 시즌을 막을 때
+    # ("Free plans do not have access to this season") 접근 가능한 시즌으로 고정한다.
+    # 비워 두면 대회별 캘린더로 자동 판정한다.
+    season-override: ${SYNC_SEASON_OVERRIDE:}
+
   anthropic:
     base-url: ${ANTHROPIC_BASE_URL:https://api.anthropic.com}
     key: ${ANTHROPIC_API_KEY:}

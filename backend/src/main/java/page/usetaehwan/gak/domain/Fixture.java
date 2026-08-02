@@ -9,6 +9,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -26,7 +27,18 @@ import lombok.NoArgsConstructor;
  * 이 표의 kickoff·결과·(연결된 Venue 좌표)로부터 그때그때 계산한다.
  */
 @Entity
-@Table(name = "fixture")
+@Table(name = "fixture", indexes = {
+		// "한 팀의 전 대회 경기를 날짜순으로" — 이 앱의 대표 질의.
+		// 팀 컬럼이 home/away 둘로 나뉘어 있어 인덱스도 둘이 필요하다(OR 조건은 인덱스 두 개를
+		// 각각 타고 합치는 편이 낫다). 각 인덱스에 kickoff를 두 번째 컬럼으로 붙여
+		// "필터 + 정렬"을 인덱스 하나로 끝낸다.
+		@Index(name = "idx_fixture_home_kickoff", columnList = "home_team_id, kickoff"),
+		@Index(name = "idx_fixture_away_kickoff", columnList = "away_team_id, kickoff"),
+		// 동기화 대상 조회(대회+시즌 단위 upsert), 대회별 일정 화면.
+		@Index(name = "idx_fixture_competition_season", columnList = "competition_id, season, kickoff"),
+		// 날짜 구간 질의(밀집도 계산 입력, 오늘의 경기).
+		@Index(name = "idx_fixture_kickoff", columnList = "kickoff")
+})
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Fixture {
@@ -118,6 +130,50 @@ public class Fixture {
 		this.venue = venue;
 		this.kickoff = kickoff;
 		this.status = status;
+		this.elapsed = elapsed;
+		this.goalsHome = goalsHome;
+		this.goalsAway = goalsAway;
+		this.halftime = halftime;
+		this.fulltime = fulltime;
+		this.extratime = extratime;
+		this.penalty = penalty;
+	}
+
+	/**
+	 * 동기화가 가져온 사실로 이 경기를 갱신한다(upsert의 "update" 쪽).
+	 *
+	 * <p>거의 모든 필드가 갱신 대상이다. 일정은 연기·변경되고(kickoff, venue),
+	 * 컵대회는 대진이 나중에 확정되며(homeTeam/awayTeam), 결과는 경기 중에 계속 바뀐다.
+	 * "한 번 저장하면 끝"인 필드는 id뿐이다.
+	 *
+	 * <p>이 메서드가 멱등성의 핵심이다 — 같은 응답을 몇 번 적용해도 결과 상태가 같다.
+	 */
+	public void applyApiFacts(Competition competition, Integer season, String round,
+	                          Team homeTeam, Team awayTeam, Venue venue, Instant kickoff,
+	                          FixtureStatus status, Integer elapsed,
+	                          Integer goalsHome, Integer goalsAway,
+	                          Score halftime, Score fulltime, Score extratime, Score penalty) {
+		if (competition != null) {
+			this.competition = competition;
+		}
+		if (season != null) {
+			this.season = season;
+		}
+		this.round = round;
+		if (homeTeam != null) {
+			this.homeTeam = homeTeam;
+		}
+		if (awayTeam != null) {
+			this.awayTeam = awayTeam;
+		}
+		// venue는 null 허용 필드다. 경기장이 미정으로 바뀌는 경우도 사실이므로 그대로 반영한다.
+		this.venue = venue;
+		if (kickoff != null) {
+			this.kickoff = kickoff;
+		}
+		if (status != null) {
+			this.status = status;
+		}
 		this.elapsed = elapsed;
 		this.goalsHome = goalsHome;
 		this.goalsAway = goalsAway;

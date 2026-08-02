@@ -1,0 +1,30 @@
+# =============================================================================
+# 테스트 전용 설정. 두 가지를 보장한다.
+#   1) 실제 API를 절대 부르지 않는다 (mode: replay)
+#   2) 실제 DB를 건드리지 않는다 (인메모리 H2)
+# =============================================================================
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:gak-test;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        format_sql: false
+
+gak:
+  api-football:
+    mode: replay
+    key: ""
+  sync:
+    # 스케줄러가 테스트 도중 제멋대로 도는 걸 막는다. 동기화는 테스트가 직접 호출한다.
+    enabled: false
+    daily-request-budget: 80
+    max-competitions-per-run: 6
+    # replay 파일이 2024 시즌이므로 고정한다(오늘 날짜에 테스트 결과가 흔들리지 않게).
+    season-override: 2024
