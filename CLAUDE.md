@@ -47,8 +47,26 @@ controller → service → repository → domain(entity)
   영문 원본(`Team.name`)으로 fallback.
 - 팀 `code`가 없으면 팀명 첫 3자음으로 자동 생성(서비스 계층). 링 컬러는 `code`
   해시로 **프론트에서** 계산한다 — 저장하지 않는다.
-- 리그/컵 판별은 API가 직접 주지 않는다. `league.standings`(순위표 존재)와 round
-  문자열로 `CompetitionType`(LEAGUE/CUP/HYBRID)을 채운다.
+- `CompetitionType`(LEAGUE/CUP/HYBRID)은 **시드가 직접 정한다**
+  (`resources/seeds/competitions.json`). API의 `league.type`은 League/Cup 두 값뿐이라
+  조별리그+녹아웃인 유럽대항전(HYBRID)을 표현하지 못한다.
+- **대회는 id로만 다룬다.** 이름은 유일하지 않다 — "Serie A"는 이탈리아(135)와
+  브라질(71)에 모두 있고, 여자부·유소년·하부 리그가 거의 같은 이름을 쓴다
+  (DFB Pokal 81 / 여자 947 / 유소년 715). 시드 id는 테스트가 실제 `/leagues` 응답과
+  대조해 검증한다(`CompetitionSeedTest`).
+
+## 외부 API 동기화 — 우리 DB가 source of truth
+
+- 사용자 요청마다 API를 부르지 않는다. 백엔드가 주기 동기화하고, 프론트는 우리 DB만 본다.
+  무료 티어가 **하루 100요청**이라 이게 선택이 아니라 제약이다.
+- 계층: `service/sync/` (동기화 유스케이스) → `external/apifootball/` (외부 API 접근).
+  `external`은 인프라 계층으로, service만 의존한다.
+- **`gak.api-football.mode`의 기본값은 `replay`** — 저장해 둔 응답 파일
+  (`src/test/resources/apifootball/`)을 읽는다. 실 호출(`real`)은 명시적으로 켠 사람만 한다.
+  자세한 건 그 폴더의 `README.md`.
+- HTTP 200이어도 body에 `errors`가 올 수 있다. 상태 코드만 보고 성공으로 처리하지 말 것.
+- 동기화 이력(`SyncLog`)이 스케줄러의 입력이다 — 오늘 쓴 요청 수와 대회별 마지막 성공
+  시각을 여기서 읽는다. 메모리 카운터를 쓰지 않는다(재시작해도 유지돼야 하므로).
 
 ## ⚠️ 핵심 불변식 — 예측은 킥오프 이전에만
 

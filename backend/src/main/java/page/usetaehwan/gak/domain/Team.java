@@ -69,6 +69,38 @@ public class Team {
 	}
 
 	/**
+	 * fixture 응답이 준 사실만 갱신한다(팀명, 홈 구장).
+	 *
+	 * <p><b>한글명 계열은 절대 건드리지 않는다.</b> nameKo/shortNameKo/code는 시드가 원본이라,
+	 * 동기화가 이 값을 덮으면 매 동기화마다 한글 표기가 사라졌다 살아나기를 반복한다.
+	 * 어떤 필드의 원본이 어디인지를 메서드 단위로 갈라 두는 게 이 규칙의 강제 수단이다.
+	 *
+	 * @param name      API가 준 영문 원본명. null/공백이면 기존 값을 유지한다
+	 * @param homeVenue 이 경기의 홈 경기장. null이면 기존 값을 유지한다
+	 */
+	public void applyApiFacts(String name, Venue homeVenue) {
+		if (name != null && !name.isBlank()) {
+			this.name = name;
+		}
+		if (homeVenue != null) {
+			this.homeVenue = homeVenue;
+		}
+	}
+
+	/** 시드(team-names-ko.json)가 주는 표기 정보를 채운다. API 동기화 경로와 분리한다. */
+	public void applySeedNames(String nameKo, String shortNameKo, String code) {
+		if (nameKo != null && !nameKo.isBlank()) {
+			this.nameKo = nameKo;
+		}
+		if (shortNameKo != null && !shortNameKo.isBlank()) {
+			this.shortNameKo = shortNameKo;
+		}
+		if (code != null && !code.isBlank()) {
+			this.code = code;
+		}
+	}
+
+	/**
 	 * 화면 표기명 계산(파생값 — 저장하지 않음).
 	 * 짧은 한글명 → 한글명 → 영문 원본 순으로 fallback.
 	 */

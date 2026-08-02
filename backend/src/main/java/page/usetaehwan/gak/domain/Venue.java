@@ -55,7 +55,22 @@ public class Venue {
 		return latitude != null && longitude != null;
 	}
 
-	/** 시드 로딩(다음 단계)에서 좌표를 채울 때 사용. */
+	/**
+	 * fixture 응답이 준 사실만 갱신한다(이름, 도시).
+	 *
+	 * <p><b>좌표는 건드리지 않는다.</b> API가 좌표를 주지 않으므로, 동기화가 좌표를
+	 * 함께 쓰려 들면 시드로 채운 값을 매번 null로 되돌리게 된다.
+	 */
+	public void applyApiFacts(String name, String city) {
+		if (name != null && !name.isBlank()) {
+			this.name = name;
+		}
+		if (city != null && !city.isBlank()) {
+			this.city = city;
+		}
+	}
+
+	/** 시드 로딩에서 좌표를 채울 때 사용. */
 	public void assignCoordinates(Double latitude, Double longitude) {
 		this.latitude = latitude;
 		this.longitude = longitude;

@@ -44,4 +44,31 @@ public enum FixtureStatus {
 	public boolean isFinished() {
 		return finished;
 	}
+
+	/**
+	 * API의 {@code fixture.status.short} 코드를 우리 상태로 접는다.
+	 *
+	 * <p>API는 진행 중 국면을 1H/HT/2H/ET/BT/P/SUSP/INT로 잘게 나누지만, 이 앱은
+	 * "예정 / 진행 중 / 확정 / 무산"만 구분하면 된다. 저장하는 값이 적을수록 그 값에
+	 * 의존하는 코드도 적어진다.
+	 *
+	 * <p>모르는 코드는 {@link #ABD}(미확정)로 접는다. 파싱을 실패시키지 않는 쪽을 택한 건,
+	 * API가 새 코드를 하나 추가했다고 그날 동기화 전체가 멈추면 안 되기 때문이다.
+	 */
+	public static FixtureStatus fromApiCode(String code) {
+		if (code == null) {
+			return ABD;
+		}
+		return switch (code.toUpperCase()) {
+			case "TBD", "NS" -> NS;
+			case "1H", "HT", "2H", "ET", "BT", "P", "SUSP", "INT", "LIVE" -> LIVE;
+			case "FT" -> FT;
+			case "AET" -> AET;
+			case "PEN" -> PEN;
+			case "PST" -> PST;
+			case "CANC" -> CANC;
+			// ABD(중단), AWD(몰수승), WO(부전승), 그 외 미지의 코드
+			default -> ABD;
+		};
+	}
 }

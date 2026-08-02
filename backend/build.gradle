@@ -37,9 +37,10 @@ dependencies {
 	// PostgreSQL 드라이버 — 런타임에만 필요
 	runtimeOnly 'org.postgresql:postgresql'
 
-	// 테스트
+	// 테스트 — 동기화 테스트는 실제 API를 호출하지 않는다(replay 파일 + 인메모리 DB).
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	testRuntimeOnly 'com.h2database:h2'
 }
 
 tasks.named('test') {
