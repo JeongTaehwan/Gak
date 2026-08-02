@@ -6,8 +6,113 @@
    이 @source 디렉티브가 없으면 UI 컴포넌트가 무스타일로 렌더된다. (필수) */
 @source "../node_modules/@usetaehwan/ui/dist";
 
+/* ─────────────────────────────────────────────────────────────
+   각(Gak) 축구 테마 — @usetaehwan/ui 토큰 오버라이드 + 도메인 토큰 추가.
+
+   전략:
+   1) 패키지의 웜 브라운 팔레트(--color-bg/surface/brand/...)를 야간 중계
+      다크 팔레트로 덮어쓴다 → Button/Card/Badge 등 UI 컴포넌트가 자동으로
+      축구 색을 입는다.
+   2) 도메인 전용 토큰(comp / result / warn / text 계열)을 추가한다 → Tailwind v4가
+      각 color / radius / font 토큰에서 bg- · text- · border- · rounded- · font- 계열
+      유틸리티를 생성하므로, 컴포넌트는 색·간격을 하드코딩하지 않고 토큰만 참조한다.
+
+   시안(docs/design/Gak.dc.html 1c)의 확정 토큰값을 그대로 옮긴다.
+   ───────────────────────────────────────────────────────────── */
+@theme {
+  /* ── Surface — 야간 중계 배경 ── */
+  --color-canvas: #04060a; /* bg.canvas — 최하단 캔버스 */
+  --color-panel: #0b0f16; /* bg.panel — 패널/입력 표면 */
+  --color-card: #111722; /* bg.card — 카드 표면 */
+  --color-card-hi: #131c29; /* 강조된 카드(하이라이트) */
+  --color-line: #1f2937; /* border.default */
+  --color-line-strong: #243040; /* border.strong */
+  --color-line-dashed: #3a4a61; /* 점선 보더(빈 상태·플레이스홀더) */
+
+  /* ── Accent & Semantic ── */
+  --color-volt: #c8ff1e; /* accent.volt — 주 액센트 */
+  --color-volt-hi: #e2ff66; /* volt hover */
+  --color-win: #2fd575; /* result.win */
+  --color-loss: #ff4d5e; /* result.loss */
+  --color-draw: #8b99ad; /* result.draw */
+  --color-warn: #ffb020; /* warn — 밀집 경고 */
+  --color-rail-warm: #3a2a20; /* 밀집 구간 짧은 간격 레일 색 */
+
+  /* ── Competition — 대회 식별 ── */
+  --color-comp-league: #e8eef6; /* 리그(실버) — volt·win과 분리 */
+  --color-comp-cup: #35c7f0; /* FA컵·리그컵 */
+  --color-comp-europe: #a78bfa; /* 챔스·유로파 */
+
+  /* ── Text ── */
+  --color-text-hi: #eaf0f8;
+  --color-text-mid: #8b99ad;
+  --color-text-low: #55647a;
+
+  /* ── Radius (시안 규칙: 3 뱃지 / 8 카드 / 10 패널) ── */
+  --radius-badge: 3px;
+  --radius-card: 8px;
+  --radius-panel: 10px;
+
+  /* ── Typography ── */
+  --font-display: "Archivo", "Pretendard Variable", ui-sans-serif, sans-serif;
+
+  /* ─────────────────────────────────────────────────────────
+     @usetaehwan/ui 기본 토큰 오버라이드
+     UI 컴포넌트는 bg-brand / text-fg / bg-surface / border-border 등을 쓰므로,
+     아래 값만 축구 팔레트로 바꾸면 컴포넌트 전체가 테마를 따라온다.
+     ───────────────────────────────────────────────────────── */
+  --color-bg: #04060a; /* = canvas */
+  --color-surface: #111722; /* = card */
+  --color-border: #1f2937; /* = line */
+
+  --color-fg: #eaf0f8; /* = text.hi */
+  --color-fg-body: #8b99ad; /* = text.mid */
+  --color-fg-muted: #55647a; /* = text.low */
+
+  --color-brand: #c8ff1e; /* = volt */
+  --color-brand-hover: #e2ff66; /* = volt.hi */
+  --color-brand-subtle: #1f2937;
+  --color-on-brand: #04060a; /* volt 채움 위 글자 = canvas */
+
+  --color-success: #2fd575; /* = win */
+  --color-warning: #ffb020; /* = warn */
+  --color-danger: #ff4d5e; /* = loss */
+
+  --radius-sm: 3px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+}
+
+html,
+body {
+  background: var(--color-canvas);
+  color: var(--color-text-hi);
+}
+
 body {
   font-family: "Pretendard Variable", ui-sans-serif, system-ui, sans-serif;
-  background: var(--color-bg);
-  color: var(--color-fg-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 야간 중계 톤 스크롤바 (시안 helmet 규칙) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-line-strong);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* 로딩 스켈레톤 shimmer (시안 2a) */
+@keyframes gakShimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }

@@ -13,10 +13,20 @@ export default function RootLayout({
   return (
     <html lang="ko" suppressHydrationWarning>
       <head>
-        {/* 한글 본문용 Pretendard. 디자인 확정 시 폰트 전략은 재검토한다. */}
+        {/* 본문: Pretendard (한글) / 숫자·헤드라인: Archivo 900 (시안 폰트 규칙) */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
+        />
         <link
           rel="stylesheet"
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css"
+        />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800;900&display=swap"
         />
       </head>
       <body>{children}</body>

@@ -1,12 +1,27 @@
-// 스캐폴딩 확인용 최소 페이지. 실제 화면은 디자인 확정본으로 다음 단계에서 구현한다.
-// UI는 @usetaehwan/ui 컴포넌트와 색·간격 토큰만 재사용한다(하드코딩 금지).
-export default function Home() {
-  return (
-    <main className="mx-auto flex min-h-dvh max-w-2xl flex-col justify-center gap-4 px-6">
-      <h1 className="text-4xl font-bold tracking-tight">각 (Gak)</h1>
-      <p className="text-lg opacity-80">
-        축구 팀 진단·예측 웹앱 — 스캐폴딩 완료. 화면은 다음 단계에서 구현합니다.
-      </p>
-    </main>
-  );
+import { getTeamFixtures } from "@/lib/api/client";
+import {
+  MANCHESTER_UNITED_ID,
+  TEAM_NAME_KO,
+} from "@/lib/api/mock/manutd-2324";
+import { buildTimeline } from "@/lib/timeline/buildTimeline";
+import { MainScreen } from "@/components/MainScreen";
+
+/**
+ * 메인 페이지 (서버 컴포넌트) = 목↔실제 교체 경계.
+ *   getTeamFixtures() 가 API-Football shape 을 돌려주고(지금은 목, 나중엔 백엔드
+ *   fetch), buildTimeline() 이 뷰모델로 변환한다. 클라이언트(MainScreen)는 뷰모델만
+ *   받으므로, 데이터 소스가 바뀌어도 화면 코드는 그대로다.
+ */
+export default async function Home() {
+  const fixtures = await getTeamFixtures({
+    teamId: MANCHESTER_UNITED_ID,
+    season: 2023,
+  });
+
+  const timeline = buildTimeline(fixtures, {
+    ourTeamId: MANCHESTER_UNITED_ID,
+    koMap: TEAM_NAME_KO,
+  });
+
+  return <MainScreen timeline={timeline} />;
 }
