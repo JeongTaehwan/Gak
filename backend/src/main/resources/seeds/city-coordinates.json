@@ -1,36 +1,161 @@
 {
   "_comment": "도시명 → 좌표. API-Football은 경기장 좌표를 주지 않으므로, 주요 도시만 여기서 채운다. Venue.city 를 이 표의 키와 매칭해 latitude/longitude 를 채우고, 매칭 실패 시 좌표는 null 로 두어 이동거리 계산을 생략한다(에러 아님).",
   "cities": {
-    "London": { "latitude": 51.5074, "longitude": -0.1278 },
-    "Manchester": { "latitude": 53.4808, "longitude": -2.2426 },
-    "Liverpool": { "latitude": 53.4084, "longitude": -2.9916 },
-    "Birmingham": { "latitude": 52.4862, "longitude": -1.8904 },
-    "Newcastle upon Tyne": { "latitude": 54.9783, "longitude": -1.6178 },
-    "Leeds": { "latitude": 53.8008, "longitude": -1.5491 },
-    "Brighton": { "latitude": 50.8225, "longitude": -0.1372 },
-    "Wolverhampton": { "latitude": 52.5870, "longitude": -2.1288 },
-    "Nottingham": { "latitude": 52.9548, "longitude": -1.1581 },
-    "Madrid": { "latitude": 40.4168, "longitude": -3.7038 },
-    "Barcelona": { "latitude": 41.3874, "longitude": 2.1686 },
-    "Sevilla": { "latitude": 37.3891, "longitude": -5.9845 },
-    "Valencia": { "latitude": 39.4699, "longitude": -0.3763 },
-    "Bilbao": { "latitude": 43.2630, "longitude": -2.9350 },
-    "Munich": { "latitude": 48.1351, "longitude": 11.5820 },
-    "Dortmund": { "latitude": 51.5136, "longitude": 7.4653 },
-    "Leverkusen": { "latitude": 51.0333, "longitude": 6.9833 },
-    "Berlin": { "latitude": 52.5200, "longitude": 13.4050 },
-    "Milano": { "latitude": 45.4642, "longitude": 9.1900 },
-    "Torino": { "latitude": 45.0703, "longitude": 7.6869 },
-    "Roma": { "latitude": 41.9028, "longitude": 12.4964 },
-    "Napoli": { "latitude": 40.8518, "longitude": 14.2681 },
-    "Paris": { "latitude": 48.8566, "longitude": 2.3522 },
-    "Lyon": { "latitude": 45.7640, "longitude": 4.8357 },
-    "Marseille": { "latitude": 43.2965, "longitude": 5.3698 },
-    "Lisbon": { "latitude": 38.7223, "longitude": -9.1393 },
-    "Porto": { "latitude": 41.1579, "longitude": -8.6291 },
-    "Amsterdam": { "latitude": 52.3676, "longitude": 4.9041 },
-    "Seoul": { "latitude": 37.5665, "longitude": 126.9780 },
-    "Ulsan": { "latitude": 35.5384, "longitude": 129.3114 },
-    "Jeonju": { "latitude": 35.8242, "longitude": 127.1480 }
+    "Amsterdam": {
+      "latitude": 52.3676,
+      "longitude": 4.9041
+    },
+    "Barcelona": {
+      "latitude": 41.3874,
+      "longitude": 2.1686
+    },
+    "Berlin": {
+      "latitude": 52.52,
+      "longitude": 13.405
+    },
+    "Bilbao": {
+      "latitude": 43.263,
+      "longitude": -2.935
+    },
+    "Birmingham": {
+      "latitude": 52.4862,
+      "longitude": -1.8904
+    },
+    "Bournemouth": {
+      "latitude": 50.7192,
+      "longitude": -1.8808
+    },
+    "Brentford": {
+      "latitude": 51.489,
+      "longitude": -0.302
+    },
+    "Brighton": {
+      "latitude": 50.8225,
+      "longitude": -0.1372
+    },
+    "Burnley": {
+      "latitude": 53.789,
+      "longitude": -2.24
+    },
+    "Copenhagen": {
+      "latitude": 55.6761,
+      "longitude": 12.5683
+    },
+    "Dortmund": {
+      "latitude": 51.5136,
+      "longitude": 7.4653
+    },
+    "Falmer": {
+      "latitude": 50.862,
+      "longitude": -0.0836
+    },
+    "Jeonju": {
+      "latitude": 35.8242,
+      "longitude": 127.148
+    },
+    "Leeds": {
+      "latitude": 53.8008,
+      "longitude": -1.5491
+    },
+    "Leverkusen": {
+      "latitude": 51.0333,
+      "longitude": 6.9833
+    },
+    "Lisbon": {
+      "latitude": 38.7223,
+      "longitude": -9.1393
+    },
+    "Liverpool": {
+      "latitude": 53.4084,
+      "longitude": -2.9916
+    },
+    "London": {
+      "latitude": 51.5074,
+      "longitude": -0.1278
+    },
+    "Luton": {
+      "latitude": 51.8787,
+      "longitude": -0.42
+    },
+    "Lyon": {
+      "latitude": 45.764,
+      "longitude": 4.8357
+    },
+    "Madrid": {
+      "latitude": 40.4168,
+      "longitude": -3.7038
+    },
+    "Manchester": {
+      "latitude": 53.4808,
+      "longitude": -2.2426
+    },
+    "Marseille": {
+      "latitude": 43.2965,
+      "longitude": 5.3698
+    },
+    "Milano": {
+      "latitude": 45.4642,
+      "longitude": 9.19
+    },
+    "Munich": {
+      "latitude": 48.1351,
+      "longitude": 11.582
+    },
+    "Napoli": {
+      "latitude": 40.8518,
+      "longitude": 14.2681
+    },
+    "Newcastle upon Tyne": {
+      "latitude": 54.9783,
+      "longitude": -1.6178
+    },
+    "Nottingham": {
+      "latitude": 52.9548,
+      "longitude": -1.1581
+    },
+    "Paris": {
+      "latitude": 48.8566,
+      "longitude": 2.3522
+    },
+    "Porto": {
+      "latitude": 41.1579,
+      "longitude": -8.6291
+    },
+    "Roma": {
+      "latitude": 41.9028,
+      "longitude": 12.4964
+    },
+    "Seoul": {
+      "latitude": 37.5665,
+      "longitude": 126.978
+    },
+    "Sevilla": {
+      "latitude": 37.3891,
+      "longitude": -5.9845
+    },
+    "Sheffield": {
+      "latitude": 53.3811,
+      "longitude": -1.4701
+    },
+    "Torino": {
+      "latitude": 45.0703,
+      "longitude": 7.6869
+    },
+    "Ulsan": {
+      "latitude": 35.5384,
+      "longitude": 129.3114
+    },
+    "Valencia": {
+      "latitude": 39.4699,
+      "longitude": -0.3763
+    },
+    "Wigan": {
+      "latitude": 53.545,
+      "longitude": -2.6318
+    },
+    "Wolverhampton": {
+      "latitude": 52.587,
+      "longitude": -2.1288
+    }
   }
 }

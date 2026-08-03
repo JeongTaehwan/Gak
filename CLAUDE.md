@@ -191,23 +191,21 @@ controller → service → repository → domain(entity)
 **팀 목록·검색 화면을 만들 때 "노출 중인 대회(`competition.displayed`)에 나오는 팀"으로
 걸러야 한다.** 안 그러면 드롭다운에 8부 리그 클럽이 섞인다.
 
-### 2. 좌표 시드 — 이름이 안 맞아서 못 찾는다
+### 2. ~~좌표 시드~~ — 해결됨 (매칭 정규화 + 시드 보강)
 
-원정 27경기 중 13경기만 이동거리가 측정된다. 원인은 시드에 도시가 없어서만이 아니라
-**API 가 주는 도시명 형식이 시드 키와 다르기 때문**이다.
+원인은 도시가 없어서만이 아니라 **API 도시명 형식이 시드 키와 달라서**였다.
+`SeedCatalog.coordinates()` 가 세 단계로 찾는다: 그대로 → 쉼표 앞부분 →
+현지어 별칭(`München`→`Munich`). 도시 9곳도 시드에 넣었다.
 
-```
-API: "Nottingham, Nottinghamshire"   시드: "Nottingham"      → 못 찾음
-API: "Wolverhampton, West Midlands"  시드: "Wolverhampton"   → 못 찾음
-API: "München" / "København"          시드: "Munich"/"Copenhagen"(없음)
-```
+그리고 `FixtureUpsertService` 가 **이미 있는 경기장의 빈 좌표도 다시 채운다.**
+예전에는 신규 생성 때만 채워서, 시드를 고쳐도 저장된 경기장은 영영 비어 있었다.
+(이미 있는 좌표는 건드리지 않는다 — 시드가 실제보다 정확할 이유가 없다.)
 
-빠진 11곳 중 **2곳은 쉼표 앞부분만 잘라내면 시드에 이미 있다.** 나머지 9곳
-(Bournemouth · Brentford · Burnley · Falmer · København · Luton · München · Sheffield ·
-Wigan)은 시드에 추가해야 한다. 현지어 표기(München/København)도 함께 다뤄야 한다.
+결과: 맨유 원정 이동거리 측정이 **13/27 → 25/27 경기**. 남은 2경기는 API 가
+경기장 자체를 주지 않은 것이라 우리가 채울 수 없다.
 
-→ **매칭 정규화(쉼표 앞부분 + 현지어 별칭) + 시드 보강**을 함께 한다. 지금은
-`omissions` 가 "27경기 중 13경기만 측정, 부분합"이라고 정직하게 밝히고 있어 급하지 않다.
+**억지 유사도 매칭은 하지 않는다.** `Manchester-by-the-Sea` 를 `Manchester` 로 접으면
+엉뚱한 좌표로 이동거리를 재는데, 그건 좌표가 없는 것보다 나쁘다.
 
 ### 3. 선수 스탯 replay 확보됨 — 결장의 '무게'를 재는 재료
 
