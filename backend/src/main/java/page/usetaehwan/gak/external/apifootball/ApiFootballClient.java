@@ -4,6 +4,7 @@ import java.util.List;
 import page.usetaehwan.gak.domain.SyncSource;
 import page.usetaehwan.gak.external.apifootball.dto.FixtureItem;
 import page.usetaehwan.gak.external.apifootball.dto.InjuryItem;
+import page.usetaehwan.gak.external.apifootball.dto.StandingItem;
 
 /**
  * API-Football 접근 창구. 구현이 둘이다.
@@ -42,6 +43,14 @@ public interface ApiFootballClient {
 	InjuriesFetch fetchInjuries(long teamId, int season);
 
 	/**
+	 * 순위표. <b>호출 시점의 표</b> 하나만 온다 — 날짜를 지정할 수 없다.
+	 *
+	 * <p>경기 시점 순위는 이걸로 못 만든다. 그건 우리가 경기 결과로 계산한다
+	 * ({@code LeagueTable}). 이 응답은 순위표 화면과 <b>승점 삭감 추출</b>에 쓴다.
+	 */
+	StandingsFetch fetchStandings(long leagueId, int season);
+
+	/**
 	 * 가져온 결과 + 그 대가로 소모한 요청 수.
 	 *
 	 * @param items        경기 목록(빈 목록일 수 있다 — 시즌 시작 전 등)
@@ -55,5 +64,8 @@ public interface ApiFootballClient {
 	 * @param requestCount 실제로 소모한 요청 수(REPLAY면 0)
 	 */
 	record InjuriesFetch(List<InjuryItem> items, int requestCount) {
+	}
+
+	record StandingsFetch(List<StandingItem> items, int requestCount) {
 	}
 }

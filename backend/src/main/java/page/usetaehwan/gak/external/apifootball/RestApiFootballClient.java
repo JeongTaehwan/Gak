@@ -18,6 +18,7 @@ import page.usetaehwan.gak.domain.SyncSource;
 import page.usetaehwan.gak.external.apifootball.dto.ApiFootballEnvelope;
 import page.usetaehwan.gak.external.apifootball.dto.FixtureItem;
 import page.usetaehwan.gak.external.apifootball.dto.InjuryItem;
+import page.usetaehwan.gak.external.apifootball.dto.StandingItem;
 
 /**
  * 실제 API-Football 호출. {@code gak.api-football.mode=real} 일 때만 빈으로 올라온다.
@@ -65,6 +66,15 @@ public class RestApiFootballClient implements ApiFootballClient {
 		// errors 필드 확인은 파서가 한다(실 호출/재생 공통 경로).
 		ApiFootballEnvelope<FixtureItem> envelope = parser.parse(body, FixtureItem.class, context, 1);
 		return new FixturesFetch(envelope.responseOrEmpty(), 1);
+	}
+
+	@Override
+	public StandingsFetch fetchStandings(long leagueId, int season) {
+		String context = "standings league=" + leagueId + " season=" + season;
+		String body = get("/standings", Map.of("league", leagueId, "season", season), context,
+				ReplayResources.standingsFileName(leagueId, season));
+		ApiFootballEnvelope<StandingItem> envelope = parser.parse(body, StandingItem.class, context, 1);
+		return new StandingsFetch(envelope.responseOrEmpty(), 1);
 	}
 
 	@Override

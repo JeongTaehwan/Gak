@@ -15,6 +15,7 @@ import page.usetaehwan.gak.dto.SyncReportResponse;
 import page.usetaehwan.gak.external.apifootball.ApiFootballClient;
 import page.usetaehwan.gak.repository.SyncLogRepository;
 import page.usetaehwan.gak.service.sync.AbsenceSyncService;
+import page.usetaehwan.gak.service.sync.StandingSyncService;
 import page.usetaehwan.gak.service.sync.FixtureSyncService;
 import page.usetaehwan.gak.service.sync.RequestBudget;
 
@@ -33,17 +34,20 @@ public class SyncAdminController {
 
 	private final FixtureSyncService syncService;
 	private final AbsenceSyncService absenceSyncService;
+	private final StandingSyncService standingSyncService;
 	private final SyncLogRepository syncLogRepository;
 	private final RequestBudget requestBudget;
 	private final ApiFootballClient client;
 
 	public SyncAdminController(FixtureSyncService syncService,
+	                           StandingSyncService standingSyncService,
 	                           AbsenceSyncService absenceSyncService,
 	                           SyncLogRepository syncLogRepository,
 	                           RequestBudget requestBudget,
 	                           ApiFootballClient client) {
 		this.syncService = syncService;
 		this.absenceSyncService = absenceSyncService;
+		this.standingSyncService = standingSyncService;
 		this.syncLogRepository = syncLogRepository;
 		this.requestBudget = requestBudget;
 		this.client = client;
@@ -87,6 +91,19 @@ public class SyncAdminController {
 	 * 주기 실행에 넣기 전에 범위를 정해야 한다({@code AbsenceSyncService} 주석 참고).
 	 * real 모드에서는 호출 1회당 요청 1회를 소모한다.
 	 */
+	/**
+	 * 순위표 동기화 — <b>리그만</b>. 컵대회는 순위표가 없어 호출 자체를 하지 않는다.
+	 *
+	 * <p>이 응답은 순위표 화면과 <b>승점 삭감 추출</b>에 쓴다. 경기 시점 순위는 여기서
+	 * 오지 않는다 — 그건 경기 결과로 계산한다({@code LeagueTable}).
+	 */
+	@PostMapping("/standings/{competitionId}")
+	public StandingSyncService.SyncReport syncStandings(
+			@PathVariable Long competitionId,
+			@RequestParam int season) {
+		return standingSyncService.sync(competitionId, season);
+	}
+
 	@PostMapping("/injuries/{teamId}")
 	public AbsenceSyncService.AbsenceSyncResult syncInjuries(
 			@PathVariable Long teamId,

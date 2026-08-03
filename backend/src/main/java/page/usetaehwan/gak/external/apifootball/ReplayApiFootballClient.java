@@ -8,6 +8,7 @@ import page.usetaehwan.gak.domain.SyncSource;
 import page.usetaehwan.gak.external.apifootball.dto.ApiFootballEnvelope;
 import page.usetaehwan.gak.external.apifootball.dto.FixtureItem;
 import page.usetaehwan.gak.external.apifootball.dto.InjuryItem;
+import page.usetaehwan.gak.external.apifootball.dto.StandingItem;
 
 /**
  * 저장된 응답을 재생하는 클라이언트. <b>이쪽이 기본값이다.</b>
@@ -52,6 +53,16 @@ public class ReplayApiFootballClient implements ApiFootballClient {
 
 		// 재생은 할당량을 쓰지 않는다 → requestCount = 0.
 		return new FixturesFetch(envelope.responseOrEmpty(), 0);
+	}
+
+	@Override
+	public StandingsFetch fetchStandings(long leagueId, int season) {
+		String fileName = ReplayResources.standingsFileName(leagueId, season);
+		String body = replayResources.read(fileName);
+		String context = "replay " + fileName;
+		ApiFootballEnvelope<StandingItem> envelope = parser.parse(body, StandingItem.class, context, 0);
+		log.debug("replay {} → 순위표 {}건", fileName, envelope.responseOrEmpty().size());
+		return new StandingsFetch(envelope.responseOrEmpty(), 0);
 	}
 
 	@Override

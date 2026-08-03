@@ -8,6 +8,7 @@ import page.usetaehwan.gak.repository.CompetitionRepository;
 import page.usetaehwan.gak.repository.FixtureRepository;
 import page.usetaehwan.gak.repository.PlayerRepository;
 import page.usetaehwan.gak.repository.PredictionRepository;
+import page.usetaehwan.gak.repository.StandingRepository;
 import page.usetaehwan.gak.repository.SyncLogRepository;
 import page.usetaehwan.gak.repository.TeamRepository;
 import page.usetaehwan.gak.repository.VenueRepository;
@@ -36,6 +37,7 @@ import page.usetaehwan.gak.repository.VenueRepository;
 public class DatabaseCleaner {
 
 	private final AbsenceRepository absenceRepository;
+	private final StandingRepository standingRepository;
 	private final PredictionRepository predictionRepository;
 	private final FixtureRepository fixtureRepository;
 	private final PlayerRepository playerRepository;
@@ -45,6 +47,7 @@ public class DatabaseCleaner {
 	private final CompetitionRepository competitionRepository;
 
 	public DatabaseCleaner(AbsenceRepository absenceRepository,
+	                       StandingRepository standingRepository,
 	                       PredictionRepository predictionRepository,
 	                       FixtureRepository fixtureRepository,
 	                       PlayerRepository playerRepository,
@@ -53,6 +56,7 @@ public class DatabaseCleaner {
 	                       VenueRepository venueRepository,
 	                       CompetitionRepository competitionRepository) {
 		this.absenceRepository = absenceRepository;
+		this.standingRepository = standingRepository;
 		this.predictionRepository = predictionRepository;
 		this.fixtureRepository = fixtureRepository;
 		this.playerRepository = playerRepository;
@@ -66,6 +70,7 @@ public class DatabaseCleaner {
 	@Transactional
 	public void clearAllButCompetitions() {
 		absenceRepository.deleteAllInBatch();
+		standingRepository.deleteAllInBatch();   // team·competition 을 참조한다
 		predictionRepository.deleteAllInBatch();
 		fixtureRepository.deleteAllInBatch();
 		playerRepository.deleteAllInBatch();
