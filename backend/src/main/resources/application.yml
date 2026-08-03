@@ -75,6 +75,14 @@ gak:
     # 비워 두면 대회별 캘린더로 자동 판정한다.
     season-override: ${SYNC_SEASON_OVERRIDE:}
 
+  # 예측 채점. 끝난 경기의 결과로 적중 여부를 매긴다.
+  scoring:
+    enabled: ${SCORING_ENABLED:true}
+
+    # 매시 30분 — 동기화(매시 10분)가 경기 결과를 채워 넣은 뒤에 돈다.
+    # 외부 API를 부르지 않는 순수 DB 작업이라 요청 예산과 무관하다.
+    cron: "0 30 * * * *"
+
   anthropic:
     base-url: ${ANTHROPIC_BASE_URL:https://api.anthropic.com}
     key: ${ANTHROPIC_API_KEY:}

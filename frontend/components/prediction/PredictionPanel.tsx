@@ -36,11 +36,19 @@ export function PredictionPanel({ timeline }: { timeline: TimelineVM }) {
         <h2 className="text-xs font-extrabold tracking-[1.5px] text-text-low">
           무엇이 있고 무엇이 없나
         </h2>
-        <Row done label="예측 생성 API" detail="POST /api/predictions — 킥오프 이전 검증 포함" />
+        <Row
+          done
+          label="예측 생성 API"
+          detail="POST /api/predictions — 킥오프 이전 검증, 그 경기에 뛰는 팀인지 검증 포함"
+        />
         <Row done label="킥오프 이전 규칙" detail="서버 시계로만 판정. 위반 시 400" />
-        <Row label="채점" detail="경기 종료 후 적중 여부를 매기는 스케줄러가 없다" />
-        <Row label="적중률 집계 · 조회 API" detail="예측 목록과 적중률을 읽을 통로가 없다" />
-        <Row label="입력 · 기록 화면" detail="위 둘이 있어야 그릴 것이 생긴다" />
+        <Row
+          done
+          label="채점"
+          detail="매시 30분에 끝난 경기를 채점한다(동기화 20분 뒤). 몇 번을 돌려도 결과가 같다"
+        />
+        <Row label="적중률 집계 · 조회 API" detail="예측 목록과 적중률을 읽을 통로가 아직 없다" />
+        <Row label="입력 · 기록 화면" detail="위가 있어야 그릴 것이 생긴다" />
         <Row
           label="미래 경기 데이터"
           detail="현재 시즌을 동기화해야 예측을 걸 수 있는 경기가 생긴다"

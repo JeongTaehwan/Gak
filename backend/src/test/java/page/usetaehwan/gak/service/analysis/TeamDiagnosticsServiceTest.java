@@ -29,6 +29,7 @@ import page.usetaehwan.gak.dto.analysis.SampleConfidence;
 import page.usetaehwan.gak.dto.analysis.TeamDiagnostics;
 import page.usetaehwan.gak.repository.CompetitionRepository;
 import page.usetaehwan.gak.repository.FixtureRepository;
+import page.usetaehwan.gak.repository.PredictionRepository;
 import page.usetaehwan.gak.repository.SyncLogRepository;
 import page.usetaehwan.gak.repository.TeamRepository;
 import page.usetaehwan.gak.repository.VenueRepository;
@@ -63,12 +64,16 @@ class TeamDiagnosticsServiceTest {
 	@Autowired CompetitionSeeder competitionSeeder;
 	@Autowired CompetitionRepository competitionRepository;
 	@Autowired FixtureRepository fixtureRepository;
+	@Autowired PredictionRepository predictionRepository;
 	@Autowired TeamRepository teamRepository;
 	@Autowired VenueRepository venueRepository;
 	@Autowired SyncLogRepository syncLogRepository;
 
 	@BeforeEach
 	void reset() {
+		// prediction 이 fixture 를 참조하므로 반드시 먼저 지운다. 이 테스트가 예측을 만들지
+		// 않더라도 필요하다 — 같은 컨텍스트를 쓰는 다른 테스트가 남긴 행이 여기 걸린다.
+		predictionRepository.deleteAll();
 		fixtureRepository.deleteAll();
 		syncLogRepository.deleteAll();
 		teamRepository.deleteAll();

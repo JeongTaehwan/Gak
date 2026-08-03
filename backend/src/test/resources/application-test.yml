@@ -21,6 +21,9 @@ gak:
   api-football:
     mode: replay
     key: ""
+  scoring:
+    # 채점 스케줄러도 테스트 도중 제멋대로 돌면 안 된다. 테스트가 직접 호출한다.
+    enabled: false
   sync:
     # 스케줄러가 테스트 도중 제멋대로 도는 걸 막는다. 동기화는 테스트가 직접 호출한다.
     enabled: false
