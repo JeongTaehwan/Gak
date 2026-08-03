@@ -83,6 +83,73 @@ gak:
     # 외부 API를 부르지 않는 순수 DB 작업이라 요청 예산과 무관하다.
     cron: "0 30 * * * *"
 
+  # 뉴스 피드. 진단과 다른 층이다 — 여기 값은 진단 계산에 아무 영향을 주지 않는다.
+  news:
+    enabled: ${NEWS_ENABLED:true}
+
+    # 매시 5분. 동기화(10분)·채점(30분)과 어긋나 있어 서로 밀어내지 않는다.
+    # RSS 는 무료라 gak.sync 의 하루 100요청 예산과 무관하다.
+    cron: "0 5 * * * *"
+
+    # 신원을 밝히고 요청한다. 브라우저인 척하지 않는다 —
+    # 차단하고 싶은 쪽이 차단할 수 있어야 정직하게 수집한다고 말할 수 있다.
+    user-agent: ${NEWS_USER_AGENT:GakNewsBot/1.0 (+https://usetaehwan.page; football schedule app)}
+
+    # 이보다 오래된 소식은 지운다. 뉴스는 이력이 아니라 "지금 무슨 일이 있나"다.
+    retention: 30d
+    max-per-team: 40
+
+    # 갈래 태거 — 이 앱에서 LLM 이 뉴스에 닿는 유일한 지점이다.
+    # 게이트(어느 팀 기사인가)는 키워드가 하고, 여기는 라벨만 고른다.
+    classifier:
+      enabled: ${NEWS_CLASSIFIER_ENABLED:true}
+      # 분류기이므로 작은 모델로 충분하다. 실측 기준 하루 100건이면 연 $2 남짓.
+      model: claude-haiku-4-5
+      # ⚠️ Haiku 4.5 는 effort 파라미터를 받지 않고 400 을 낸다.
+      #    "none" 은 그 필드를 아예 보내지 말라는 뜻이다(RestAnthropicClient 참고).
+      #    모델을 Opus/Sonnet 계열로 바꾸면 low/medium 등으로 바꿔도 된다.
+      effort: none
+      max-tokens: 2048
+      batch-size: 20
+
+    # ⚠️ 소스별 kill switch — enabled: false 면 수집도 조회도 멈춘다.
+    #    저장분까지 지우려면 DELETE /api/admin/news/sources/{key} (local 프로파일).
+    #    key 는 저장된 행과 묶여 있으므로 한 번 정하면 바꾸지 않는다.
+    sources:
+      - key: bbc-football
+        name: BBC Sport
+        url: https://feeds.bbci.co.uk/sport/football/rss.xml
+        tier: MEDIA
+        enabled: true
+        # 범용 축구 피드라 team-id 가 없다 — 게이트가 모든 팀 별칭에 대조한다.
+
+      - key: guardian-manutd
+        name: The Guardian
+        url: https://www.theguardian.com/football/manchester-united/rss
+        tier: MEDIA
+        team-id: 33
+        enabled: true
+
+      - key: men-manutd
+        name: Manchester Evening News
+        url: https://www.manchestereveningnews.co.uk/all-about/manchester-united-fc/?service=rss
+        tier: MEDIA
+        team-id: 33
+        enabled: true
+        # robots.txt 가 Crawl-delay: 10 을 요구한다. 소스당 한 시간에 한 번이라
+        # 실질적으로 걸리지 않지만, 이 매체에서 피드를 더 받게 되는 날을 위해 명시해 둔다.
+        crawl-delay: 10s
+
+      # Sky Sports — 보류. rss/12040 은 축구 전용이 아니다.
+      # 실측 20건 중 6건이 골프·크리켓·테니스·F1·경마였다(30%).
+      # 게이트가 팀 별칭으로 걸러 주긴 하지만, 팀이 늘어날수록 이 노이즈가 비용이 된다.
+      # 축구 전용 피드를 찾으면 그때 켠다.
+      - key: sky-football
+        name: Sky Sports
+        url: https://www.skysports.com/rss/12040
+        tier: MEDIA
+        enabled: false
+
   anthropic:
     base-url: ${ANTHROPIC_BASE_URL:https://api.anthropic.com}
     # 비어 있으면 AI 진단이 꺼진다. 앱은 정상 기동하고 진단은 규칙 기반으로 동작한다.

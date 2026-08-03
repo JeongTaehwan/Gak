@@ -151,7 +151,12 @@ public class RestAnthropicClient implements AnthropicClient {
 	 */
 	private Map<String, Object> requestBody(String system, String user, Map<String, Object> schema) {
 		Map<String, Object> outputConfig = new LinkedHashMap<>();
-		outputConfig.put("effort", properties.effort());
+		// effort 를 지원하지 않는 모델이 있다 — Haiku 4.5 는 이 필드가 오면 400 을 낸다.
+		// 뉴스 갈래 태거가 그 모델을 쓰므로, "none" 이면 필드를 통째로 뺀다.
+		// (진단은 medium 을 그대로 보낸다 — 기본값이 바뀌지 않았다.)
+		if (sendsEffort(properties.effort())) {
+			outputConfig.put("effort", properties.effort());
+		}
 		outputConfig.put("format", Map.of("type", "json_schema", "schema", schema));
 
 		Map<String, Object> body = new LinkedHashMap<>();
@@ -166,6 +171,18 @@ public class RestAnthropicClient implements AnthropicClient {
 		body.put("output_config", outputConfig);
 		body.put("messages", List.of(Map.of("role", "user", "content", user)));
 		return body;
+	}
+
+	/**
+	 * {@code effort} 를 보내야 하는가.
+	 *
+	 * <p>이 파라미터는 모델마다 지원 여부가 다르다. Opus 계열은 받지만 Haiku 4.5 는 받지
+	 * 않고 400 을 낸다. 설정에 {@code none} 을 적으면 보내지 않는다는 뜻이다 —
+	 * "기본값으로 medium 을 쓴다"와 "이 모델엔 해당 없다"를 구분해야 해서 값 하나를 뒀다.
+	 */
+	static boolean sendsEffort(String effort) {
+		return effort != null && !effort.isBlank()
+				&& !"none".equalsIgnoreCase(effort.trim());
 	}
 
 	/** 요청 팩터리 생성만 분리 — Spring Boot 버전에 따라 설정 API가 달라서 한 곳에 가둔다. */

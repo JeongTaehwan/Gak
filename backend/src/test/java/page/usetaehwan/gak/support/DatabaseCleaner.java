@@ -6,6 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 import page.usetaehwan.gak.repository.AbsenceRepository;
 import page.usetaehwan.gak.repository.CompetitionRepository;
 import page.usetaehwan.gak.repository.FixtureRepository;
+import page.usetaehwan.gak.repository.NewsItemRepository;
 import page.usetaehwan.gak.repository.PlayerRepository;
 import page.usetaehwan.gak.repository.PredictionRepository;
 import page.usetaehwan.gak.repository.StandingRepository;
@@ -45,6 +46,7 @@ public class DatabaseCleaner {
 	private final TeamRepository teamRepository;
 	private final VenueRepository venueRepository;
 	private final CompetitionRepository competitionRepository;
+	private final NewsItemRepository newsItemRepository;
 
 	public DatabaseCleaner(AbsenceRepository absenceRepository,
 	                       StandingRepository standingRepository,
@@ -54,7 +56,8 @@ public class DatabaseCleaner {
 	                       SyncLogRepository syncLogRepository,
 	                       TeamRepository teamRepository,
 	                       VenueRepository venueRepository,
-	                       CompetitionRepository competitionRepository) {
+	                       CompetitionRepository competitionRepository,
+	                       NewsItemRepository newsItemRepository) {
 		this.absenceRepository = absenceRepository;
 		this.standingRepository = standingRepository;
 		this.predictionRepository = predictionRepository;
@@ -64,6 +67,7 @@ public class DatabaseCleaner {
 		this.teamRepository = teamRepository;
 		this.venueRepository = venueRepository;
 		this.competitionRepository = competitionRepository;
+		this.newsItemRepository = newsItemRepository;
 	}
 
 	/** 대회는 남긴다 — 시더가 매 테스트마다 다시 심으므로 지우면 그 일을 두 번 한다. */
@@ -77,6 +81,9 @@ public class DatabaseCleaner {
 		syncLogRepository.deleteAllInBatch();
 		teamRepository.deleteAllInBatch();
 		venueRepository.deleteAllInBatch();
+		// 뉴스는 다른 층이라 FK 가 없다 — 순서 어디에 놓아도 되지만,
+		// 여기 한 줄이 없으면 테스트끼리 소식이 새어 나간다.
+		newsItemRepository.deleteAllInBatch();
 	}
 
 	/** 대회까지 전부. */
