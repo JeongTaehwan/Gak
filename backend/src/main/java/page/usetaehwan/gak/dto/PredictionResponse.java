@@ -10,6 +10,7 @@ import page.usetaehwan.gak.domain.Prediction;
 public record PredictionResponse(
 		Long id,
 		Long fixtureId,
+		Long teamId,
 		Pick pick,
 		Instant createdAt,
 		Pick resolvedResult,
@@ -19,6 +20,7 @@ public record PredictionResponse(
 		return new PredictionResponse(
 				p.getId(),
 				p.getFixture().getId(),
+				p.getTeam().getId(),
 				p.getPick(),
 				p.getCreatedAt(),
 				p.getResolvedResult(),

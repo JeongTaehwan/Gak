@@ -13,23 +13,28 @@ import java.util.List;
  *
  * @param teamId      진단 대상 팀
  * @param teamName    표기명(한글 우선)
+ * @param teamCode    3글자 코드(예 "MUN"). 화면의 팀 마크가 쓴다. 없을 수 있다
  * @param generatedAt 이 결과를 계산한 시각(서버 시계)
  * @param window      무엇을 보고 무엇을 뺐는가
  * @param matches     날짜순 경기별 부하(간격·밀집 소속·이동거리)
  * @param congestion  일정 밀집도
  * @param form        최근 폼
  * @param travel      누적 이동거리
+ * @param absences    결장 요약(부상·징계·질병 등)
  * @param omissions   계산하지 못한 지표와 그 이유
  */
 public record TeamDiagnostics(
 		long teamId,
 		String teamName,
+		String teamCode,
 		Instant generatedAt,
 		AnalysisWindow window,
 		List<MatchLoad> matches,
 		CongestionReport congestion,
 		FormSummary form,
+		OpponentStrength opponentStrength,
 		TravelSummary travel,
+		AbsenceSummary absences,
 		List<Omission> omissions
 ) {
 }

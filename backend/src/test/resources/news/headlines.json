@@ -1,0 +1,876 @@
+{
+  "bbc-football": {
+    "source": {
+      "key": "bbc-football",
+      "tier": "MEDIA",
+      "name": "BBC Sport Football",
+      "url": "https://feeds.bbci.co.uk/sport/football/rss.xml",
+      "delay": 0
+    },
+    "httpStatus": 200,
+    "count": 72,
+    "items": [
+      {
+        "title": "FA set to withdraw support for Fifa president Infantino",
+        "link": "https://www.bbc.co.uk/sport/football/articles/cp30vg829nxo?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-03T07:49:33+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/cp30vg829nxo#0"
+      },
+      {
+        "title": "Celtic drawn against LASK as other Scottish sides discover opponents",
+        "link": "https://www.bbc.co.uk/sport/football/articles/cddjm88m4vno?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-03T12:25:22+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/cddjm88m4vno#0"
+      },
+      {
+        "title": "Newcastle sign Braga keeper Hornicek for £25.7m",
+        "link": "https://www.bbc.co.uk/sport/football/articles/c3ekzyz1qj8o?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-03T08:00:39+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/c3ekzyz1qj8o#0"
+      },
+      {
+        "title": "Man Utd boss Skinner leaves role before WSL season",
+        "link": "https://www.bbc.co.uk/sport/football/articles/cdewr8w0r80o?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-03T08:05:47+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/cdewr8w0r80o#0"
+      },
+      {
+        "title": "If Infantino goes, who might replace him as Fifa president?",
+        "link": "https://www.bbc.co.uk/sport/football/articles/cvgwvdvwn80o?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-03T13:14:12+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/cvgwvdvwn80o#0"
+      },
+      {
+        "title": "From European hopes to relegation form - will Moyes reignite Everton?",
+        "link": "https://www.bbc.co.uk/sport/football/articles/cy5dw9xeekvo?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-03T07:03:44+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/cy5dw9xeekvo#0"
+      },
+      {
+        "title": "Liverpool ship four second-half goals to leave Iraola with much to ponder",
+        "link": "https://www.bbc.co.uk/sport/football/articles/cr7k03gy028o?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-02T23:18:36+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/cr7k03gy028o#0"
+      },
+      {
+        "title": "'Nothing is strange' - how clubs prepare for the transfer window",
+        "link": "https://www.bbc.co.uk/sport/football/articles/c87nxvyq4yqo?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-03T05:43:49+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/c87nxvyq4yqo#0"
+      },
+      {
+        "title": "It's a new era, the past is the past - Peixoto",
+        "link": "https://www.bbc.co.uk/sport/football/articles/cwyr9y0528go?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-03T12:10:08+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/cwyr9y0528go#0"
+      },
+      {
+        "title": "Semenyo hails Maresca style of play as 'music to my ears'",
+        "link": "https://www.bbc.co.uk/sport/football/articles/cglj1zz5g92o?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-03T06:00:26+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/cglj1zz5g92o#0"
+      },
+      {
+        "title": "Casemiro said he wanted to play for us - Galaxy GM",
+        "link": "https://www.bbc.co.uk/sport/football/articles/cx27plpx2glo?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-03T13:09:02+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/cx27plpx2glo#0"
+      },
+      {
+        "title": "Who am I? Guess Premier League star No 14",
+        "link": "https://www.bbc.co.uk/sport/football/articles/c5y3k026j1zo?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-03T06:06:03+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/c5y3k026j1zo#0"
+      },
+      {
+        "title": "Watch highlights as St Johnstone edge out Killie in seven-goal thriller",
+        "link": "https://www.bbc.co.uk/sport/articles/cn5nqg6vvvyo?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-03T06:11:47+00:00",
+        "guid": "https://www.bbc.co.uk/sport/articles/cn5nqg6vvvyo#1"
+      },
+      {
+        "title": "Goals galore as Scottish Championship & Leagues 1 and 2 return",
+        "link": "https://www.bbc.co.uk/sport/videos/c8jnmz34rzno?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-03T07:22:23+00:00",
+        "guid": "https://www.bbc.co.uk/sport/videos/c8jnmz34rzno#1"
+      },
+      {
+        "title": "Watch Chelsea newcomer Welbeck's PL goals from last season",
+        "link": "https://www.bbc.co.uk/sport/football/videos/cn9nyqxw52go?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-01T16:08:25+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/videos/cn9nyqxw52go#1"
+      },
+      {
+        "title": "Maresca loses first match as Inter beat Man City on penalties",
+        "link": "https://www.bbc.co.uk/sport/football/videos/c4gx0gq0e0zo?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-01T16:47:36+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/videos/c4gx0gq0e0zo#1"
+      },
+      {
+        "title": "Wales first home nation to withdraw support for Infantino",
+        "link": "https://www.bbc.co.uk/sport/football/articles/ckg9z094v8go?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-03T06:54:07+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/ckg9z094v8go#2"
+      },
+      {
+        "title": "Aston Villa set-piece guru MacPhee joins Chelsea",
+        "link": "https://www.bbc.co.uk/sport/football/articles/c0m7w21v2rzo?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-03T09:33:10+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/c0m7w21v2rzo#2"
+      },
+      {
+        "title": "Alonso heals Real Madrid scars to lead Chelsea's senior revolution",
+        "link": "https://www.bbc.co.uk/sport/football/articles/cz7d138ew59o?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-02T16:00:36+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/cz7d138ew59o#2"
+      },
+      {
+        "title": "Game of the season in Premiership's opening weekend?",
+        "link": "https://www.bbc.co.uk/sport/football/articles/ce8l46wjdpjo?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-02T19:55:37+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/ce8l46wjdpjo#2"
+      },
+      {
+        "title": "Chelsea sign Strasbourg midfielder Barco",
+        "link": "https://www.bbc.co.uk/sport/football/articles/cdrv6e5m87no?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-02T18:38:05+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/cdrv6e5m87no#2"
+      },
+      {
+        "title": "A bruising 24 hours - what next for Fifa and under-pressure Infantino?",
+        "link": "https://www.bbc.co.uk/sport/football/articles/c9w0djx2g92o?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-01T22:23:20+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/c9w0djx2g92o#2"
+      },
+      {
+        "title": "How Johansson is rising to daunting Motherwell challenge",
+        "link": "https://www.bbc.co.uk/sport/football/articles/c2elj1ldgp1o?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-02T20:24:15+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/c2elj1ldgp1o#2"
+      },
+      {
+        "title": "Spurs make Osimhen approach - Monday's gossip",
+        "link": "https://www.bbc.co.uk/sport/football/articles/cn7n66edplno?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-03T10:54:44+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/cn7n66edplno#3"
+      },
+      {
+        "title": "What happened to star signings your club never made?",
+        "link": "https://www.bbc.co.uk/sport/football/articles/c5y32lgr67no?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-02T05:42:58+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/c5y32lgr67no#3"
+      },
+      {
+        "title": "Bournemouth close in on £11.1m Juanlu",
+        "link": "https://www.bbc.co.uk/sport/football/articles/cjwx77l1lg9o?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-02T12:44:37+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/cjwx77l1lg9o#3"
+      },
+      {
+        "title": "What could full season of O'Neill at Celtic look like?",
+        "link": "https://www.bbc.co.uk/sport/football/articles/c8j2ngnevz3o?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-02T18:41:27+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/c8j2ngnevz3o#3"
+      },
+      {
+        "title": "New boss Maresca is perfect for Man City - Gvardiol",
+        "link": "https://www.bbc.co.uk/sport/football/articles/c8rny130kzpo?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-02T06:01:41+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/c8rny130kzpo#3"
+      },
+      {
+        "title": "Gold family agrees to sell West Ham stake to Staveley",
+        "link": "https://www.bbc.co.uk/sport/football/articles/cwyle0nl810o?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-01T16:53:12+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/cwyle0nl810o#5"
+      },
+      {
+        "title": "Nisbet leads from front as Aberdeen turn tables on Hearts",
+        "link": "https://www.bbc.co.uk/sport/football/articles/cz05yv1x9vro?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-01T19:58:27+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/cz05yv1x9vro#5"
+      },
+      {
+        "title": "Brentford sign Sangare for club record fee",
+        "link": "https://www.bbc.co.uk/sport/football/articles/cn8n43nzyvmo?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-01T16:48:26+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/cn8n43nzyvmo#5"
+      },
+      {
+        "title": "Call for 'full review' as pressure grows on Infantino",
+        "link": "https://www.bbc.co.uk/sport/football/articles/c04kr2nv3v3o?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-01T17:07:46+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/c04kr2nv3v3o#5"
+      },
+      {
+        "title": "Same start but different outlook at Rangers as McInnes era begins",
+        "link": "https://www.bbc.co.uk/sport/football/articles/c04krgdvn3ro?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-07-31T23:09:51+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/c04krgdvn3ro#5"
+      },
+      {
+        "title": "McAidoo 'the kind of winger I love' -  Maresca",
+        "link": "https://www.bbc.co.uk/sport/football/articles/c75g4gg02dko?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-01T15:27:44+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/c75g4gg02dko#7"
+      },
+      {
+        "title": "Mudryk Chelsea return will take time - Alonso",
+        "link": "https://www.bbc.co.uk/sport/football/articles/c62eney6347o?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-01T14:19:02+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/c62eney6347o#7"
+      },
+      {
+        "title": "'Sometimes he wants to leave' - De Zerbi on Richarlison's Spurs future",
+        "link": "https://www.bbc.co.uk/sport/football/articles/c36djl924y4o?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-01T13:12:56+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/c36djl924y4o#7"
+      },
+      {
+        "title": "The five dramatic days that shook Infantino and world football",
+        "link": "https://www.bbc.co.uk/sport/football/articles/c8rny2p6144o?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-01T12:42:23+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/c8rny2p6144o#7"
+      },
+      {
+        "title": "Bournemouth sign Portugal defender Silva",
+        "link": "https://www.bbc.co.uk/sport/football/articles/cgljn7l17eno?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-01T13:39:03+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/cgljn7l17eno#7"
+      },
+      {
+        "title": "Courting controversy and befriending Trump - the story of Fifa boss Infantino",
+        "link": "https://www.bbc.co.uk/sport/football/articles/cwyg5887vp3o?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-01T10:18:23+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/cwyg5887vp3o#7"
+      },
+      {
+        "title": "Intensity, smiles & Lewandowski - inside Liverpool training under Iraola",
+        "link": "https://www.bbc.co.uk/sport/football/articles/c6290e063yno?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-01T07:42:28+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/c6290e063yno#7"
+      },
+      {
+        "title": "Challenging times ahead for Newcastle - Shearer",
+        "link": "https://www.bbc.co.uk/sport/football/articles/cd0xvpmny55o?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-07-30T15:10:54+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/cd0xvpmny55o#9"
+      },
+      {
+        "title": "Why women's football is first casualty of Fifa plans",
+        "link": "https://www.bbc.co.uk/sport/football/articles/cp8xzl54wyzo?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-07-31T13:25:00+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/cp8xzl54wyzo#9"
+      },
+      {
+        "title": "The winner who played for Tuchel - potential Newcastle boss Jaissle",
+        "link": "https://www.bbc.co.uk/sport/football/articles/cy8eglx37gdo?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-07-30T10:56:32+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/cy8eglx37gdo#9"
+      },
+      {
+        "title": "Four pointers to most open Premier League title race in years",
+        "link": "https://www.bbc.co.uk/sport/football/articles/c1e163xpzz2o?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-07-30T07:01:01+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/c1e163xpzz2o#9"
+      },
+      {
+        "title": "How to follow the new football season on BBC Sport",
+        "link": "https://www.bbc.co.uk/sport/football/articles/c9w2zr9wzj1o?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-07-11T06:03:35+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/c9w2zr9wzj1o#9"
+      },
+      {
+        "title": "All done deals in August 2026",
+        "link": "https://www.bbc.co.uk/sport/football/articles/c9v4d2z2p7yo?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-01T16:53:33+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/c9v4d2z2p7yo#9"
+      },
+      {
+        "title": "Mo Salah: Never Give Up",
+        "link": "https://www.bbc.co.uk/iplayer/episode/m002p54c?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2025-12-10T06:00:00+00:00",
+        "guid": "https://www.bbc.co.uk/iplayer/episode/m002p54c#10"
+      },
+      {
+        "title": "Does World Cup third place play-off count towards Golden Boot?",
+        "link": "https://www.bbc.co.uk/sport/football/articles/cn8nl41xr59o?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-07-17T10:54:10+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/cn8nl41xr59o#12"
+      },
+      {
+        "title": "What is the World Cup prize money?",
+        "link": "https://www.bbc.co.uk/sport/articles/c9821x9lpdjo?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-06-26T21:16:26+00:00",
+        "guid": "https://www.bbc.co.uk/sport/articles/c9821x9lpdjo#12"
+      },
+      {
+        "title": "What are the key dates for the 2026-27 football season?",
+        "link": "https://www.bbc.co.uk/sport/football/articles/cd0m840p7d1o?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-07-09T17:04:26+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/cd0m840p7d1o#12"
+      },
+      {
+        "title": "Should teams bring on players just for penalty shootouts?",
+        "link": "https://www.bbc.co.uk/sport/football/articles/c4gy899mpp9o?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-06-30T14:04:37+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/c4gy899mpp9o#12"
+      },
+      {
+        "title": "Who has been eliminated from the World Cup?",
+        "link": "https://www.bbc.co.uk/sport/football/articles/c74y970len4o?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-07-16T07:29:15+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/c74y970len4o#12"
+      },
+      {
+        "title": "How are the TV picks decided for the World Cup's round of 32?",
+        "link": "https://www.bbc.co.uk/sport/football/articles/c5yzlw6gz8jo?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-06-26T11:02:14+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/c5yzlw6gz8jo#12"
+      },
+      {
+        "title": "Celtic drawn against LASK as other Scottish sides discover opponents",
+        "link": "https://www.bbc.co.uk/sport/football/articles/cddjm88m4vno?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-03T12:25:22+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/cddjm88m4vno#14"
+      },
+      {
+        "title": "SFA 'aligned with Uefa's lack of confidence in Infantino'",
+        "link": "https://www.bbc.co.uk/sport/football/articles/cp30vg829nxo?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-03T07:49:33+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/cp30vg829nxo#14"
+      },
+      {
+        "title": "Listen: Premiership returns with chaos, comebacks & controversy",
+        "link": "https://www.bbc.co.uk/sounds/play/p0p290py?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-03T07:00:00+00:00",
+        "guid": "https://www.bbc.co.uk/sounds/play/p0p290py#14"
+      },
+      {
+        "title": "From European hopes to relegation form - will Moyes reignite Everton?",
+        "link": "https://www.bbc.co.uk/sport/football/articles/cy5dw9xeekvo?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-03T07:03:44+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/cy5dw9xeekvo#14"
+      },
+      {
+        "title": "McGregor tipped as future boss as he commits to Celtic - gossip",
+        "link": "https://www.bbc.co.uk/sport/football/articles/cpq85xerwn8o?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-03T06:55:28+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/cpq85xerwn8o#14"
+      },
+      {
+        "title": "Watch highlights as St Johnstone edge out Killie in seven-goal thriller",
+        "link": "https://www.bbc.co.uk/sport/articles/cn5nqg6vvvyo?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-03T06:11:47+00:00",
+        "guid": "https://www.bbc.co.uk/sport/articles/cn5nqg6vvvyo#14"
+      },
+      {
+        "title": "Man Utd boss Skinner leaves role before WSL season",
+        "link": "https://www.bbc.co.uk/sport/football/articles/cdewr8w0r80o?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-03T08:05:47+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/cdewr8w0r80o#15"
+      },
+      {
+        "title": "Oshoala revives Nigeria's Wafcon and World Cup bid",
+        "link": "https://www.bbc.co.uk/sport/football/articles/czxe062y199o?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-08-01T22:23:37+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/czxe062y199o#15"
+      },
+      {
+        "title": "Why women's football is first casualty of Fifa plans",
+        "link": "https://www.bbc.co.uk/sport/football/articles/cp8xzl54wyzo?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-07-31T13:25:00+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/cp8xzl54wyzo#15"
+      },
+      {
+        "title": "Chelsea sign Italy's Dragoni from Barcelona",
+        "link": "https://www.bbc.co.uk/sport/football/articles/cy745m20827o?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-07-31T16:52:15+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/cy745m20827o#15"
+      },
+      {
+        "title": "Beever-Jones ready to 'conquer' new season after injury troubles last term",
+        "link": "https://www.bbc.co.uk/sport/football/articles/c235g2vngk9o?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-07-31T08:09:34+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/c235g2vngk9o#15"
+      },
+      {
+        "title": "London City host Man Utd to kick off WSL season",
+        "link": "https://www.bbc.co.uk/sport/football/articles/c2dk0xxwgyno?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-07-30T09:00:23+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/c2dk0xxwgyno#15"
+      },
+      {
+        "title": "How Tottenham's transfer window shows big WSL ambitions",
+        "link": "https://www.bbc.co.uk/sport/football/articles/c98vj54z450o?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-07-30T07:14:51+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/c98vj54z450o#15"
+      },
+      {
+        "title": "The country that doesn't play football... yet",
+        "link": "https://www.bbc.co.uk/sport/football/articles/c5y03dermmeo?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-07-21T05:47:13+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/c5y03dermmeo#16"
+      },
+      {
+        "title": "In spotlight but shunning limelight - Olise's unique rise to top",
+        "link": "https://www.bbc.co.uk/sport/football/articles/c5yzr42943lo?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-07-04T11:02:02+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/c5yzr42943lo#16"
+      },
+      {
+        "title": "How Cornish miners brought football to Mexico",
+        "link": "https://www.bbc.co.uk/sport/football/articles/cx21q453l4jo?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-06-02T05:28:25+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/cx21q453l4jo#16"
+      },
+      {
+        "title": "The summer a golden generation lost its shine",
+        "link": "https://www.bbc.co.uk/sport/extra/60s97qhdbf/the-golden-generation?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-05-11T00:00:00+00:00",
+        "guid": "https://www.bbc.co.uk/sport/extra/60s97qhdbf/the-golden-generation#16"
+      },
+      {
+        "title": "How Toone is navigating grief through football",
+        "link": "https://www.bbc.co.uk/sport/football/articles/c3e2dg875x7o?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-05-29T17:04:22+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/c3e2dg875x7o#16"
+      },
+      {
+        "title": "When football turned to penalties to end 'cruel' system",
+        "link": "https://www.bbc.co.uk/sport/football/articles/cr71enxvrd3o?at_medium=RSS&at_campaign=rss",
+        "publishedAt": "2026-03-28T06:15:22+00:00",
+        "guid": "https://www.bbc.co.uk/sport/football/articles/cr71enxvrd3o#16"
+      }
+    ]
+  },
+  "sky-football": {
+    "source": {
+      "key": "sky-football",
+      "tier": "MEDIA",
+      "name": "Sky Sports Football",
+      "url": "https://www.skysports.com/rss/12040",
+      "delay": 0
+    },
+    "httpStatus": 200,
+    "count": 20,
+    "items": [
+      {
+        "title": "Solheim Cup captain's picks LIVE! Who will Nordqvist name for Team Europe?",
+        "link": "https://www.skysports.com/golf/live-blog/12040/13569335/solheim-cup-2026-team-europe-captains-picks-live-anna-nordqvist-names-players-to-complete-line-up-to-face-team-usa",
+        "publishedAt": "2026-08-03T13:45:00",
+        "guid": null
+      },
+      {
+        "title": "Celtic learn CL opponents as Brighton discover European route",
+        "link": "https://www.skysports.com/football/news/12040/13569393/champions-league-europa-league-conference-league-play-off-draws-celtic-rangers-brighton-hearts-hibernian-motherwell-discover-opponents",
+        "publishedAt": "2026-08-03T13:30:00",
+        "guid": null
+      },
+      {
+        "title": "Can Mount be the third midfielder Man Utd are looking for?",
+        "link": "https://www.skysports.com/football/news/12040/13569342/mason-mount-can-manchester-uniteds-pre-season-revelation-be-a-big-part-of-michael-carricks-midfield-overhaul",
+        "publishedAt": "2026-08-03T12:00:00",
+        "guid": null
+      },
+      {
+        "title": "USA cricketer Akhilesh Reddy given eight-year ban under anti-corruption code",
+        "link": "https://www.skysports.com/cricket/news/12040/13569369/usa-cricketer-bodugum-akhilesh-reddy-banned-for-eight-years-by-icc-tribunal-for-anti-corruption-rule-violations",
+        "publishedAt": "2026-08-03T10:39:00",
+        "guid": null
+      },
+      {
+        "title": "Newcastle reject Guimaraes bid from Arsenal",
+        "link": "https://www.skysports.com/football/news/12040/13557961/bruno-guimaraes-arsenal-bid-rejected-by-newcastle-with-magpies-determined-to-keep-captain-and-brazil-international-midfielder",
+        "publishedAt": "2026-08-03T12:39:00",
+        "guid": null
+      },
+      {
+        "title": "Tzolis unfazed by Vini Jr rumours as fitness champion settles into Arsenal",
+        "link": "https://www.skysports.com/football/news/12040/13568811/christos-tzolis-interview-new-arsenal-signing-discusses-vinicius-jr-rumours-winning-the-pre-season-fitness-tests-and-leonidas-nickname",
+        "publishedAt": "2026-08-03T10:30:00",
+        "guid": null
+      },
+      {
+        "title": "Fukofuka departs Scotland Women head coach role",
+        "link": "https://www.skysports.com/rugby-union/news/12040/13569347/scotland-women-head-coach-sione-fukofuka-leaves-role-for-personal-reasons-after-eight-months-in-charge",
+        "publishedAt": "2026-08-03T10:00:00",
+        "guid": null
+      },
+      {
+        "title": "'Made of muscles!' Why PSG want Japan goalkeeper Suzuki",
+        "link": "https://www.skysports.com/football/news/12040/13561579/zion-suzuki-to-psg-why-parma-and-japan-goalkeeper-is-in-demand-long-throws-catching-crosses-and-much-more",
+        "publishedAt": "2026-08-03T10:00:00",
+        "guid": null
+      },
+      {
+        "title": "FA set to follow Welsh FA and withdraw support for Infantino",
+        "link": "https://www.skysports.com/football/news/12040/13569337/gianni-infantino-english-fa-set-to-follow-welsh-fa-and-withdraw-support-for-fifa-president",
+        "publishedAt": "2026-08-03T09:45:00",
+        "guid": null
+      },
+      {
+        "title": "'Man Utd concerned about cost of WSL title chase' - Why Skinner left Man Utd",
+        "link": "https://www.skysports.com/football/news/12040/13569353/marc-skinner-leaves-man-utd-women-lack-of-investment-a-change-of-direction-and-inconsistent-playing-style-contributed-to-head-coach-exit",
+        "publishedAt": "2026-08-03T13:00:00",
+        "guid": null
+      },
+      {
+        "title": "Spurs interested in Liverpool's Gakpo",
+        "link": "https://www.skysports.com/football/news/12040/13569350/cody-gakpo-tottenham-interested-in-signing-liverpool-forward-as-roberto-de-zerbi-aims-to-improve-spurs-attack",
+        "publishedAt": "2026-08-03T09:51:00",
+        "guid": null
+      },
+      {
+        "title": "West Ham latest: Hammers 'exploring' Solomon deal as Potts set for Brugge medical",
+        "link": "https://www.skysports.com/football/live-blog/12040/13210475/west-ham-latest-news",
+        "publishedAt": "2026-08-03T12:00:00",
+        "guid": null
+      },
+      {
+        "title": "Newcastle sign goalkeeper Hornicek",
+        "link": "https://www.skysports.com/football/news/12040/13569327/lukas-hornicek-newcastle-united-sign-czech-republic-international-goalkeeper-on-five-year-contract-from-braga-in-deal-worth-25-7m",
+        "publishedAt": "2026-08-03T09:00:00",
+        "guid": null
+      },
+      {
+        "title": "'I have talent, they don't!' - Trump taunts opponents after winning club titles",
+        "link": "https://www.skysports.com/golf/news/12040/13569322/donald-trump-us-president-wins-bedminster-senior-club-championship-and-taunts-opponents-in-truth-social-post",
+        "publishedAt": "2026-08-03T07:46:00",
+        "guid": null
+      },
+      {
+        "title": "Skinner leaves Man Utd Women",
+        "link": "https://www.skysports.com/football/news/12040/13569329/marc-skinner-manchester-united-womens-head-coach-leaves-club-after-five-years-in-charge",
+        "publishedAt": "2026-08-03T08:45:00",
+        "guid": null
+      },
+      {
+        "title": "Pegula leads Eala as rain suspends DC Open final",
+        "link": "https://www.skysports.com/tennis/news/12040/13569195/jessica-pegula-leads-alexandra-eala-in-rain-affected-dc-open-final-as-kristina-liutova-16-wins-memphis-classic",
+        "publishedAt": "2026-08-03T06:53:00",
+        "guid": null
+      },
+      {
+        "title": "Will Verstappen, Alonso trigger F1 'silly season' chaos?",
+        "link": "https://www.skysports.com/f1/news/12040/13568774/how-max-verstappen-and-fernando-alonso-could-trigger-formula-1-silly-season-chaos-if-either-departs-current-seat",
+        "publishedAt": "2026-08-03T06:00:00",
+        "guid": null
+      },
+      {
+        "title": "Scot Prem: Hearts demand 'justice' as Findlay red card to be appealed",
+        "link": "https://www.skysports.com/football/live-blog/12040/13176154/scottish-premiership-news-transfers-rumours-gossip-and-more",
+        "publishedAt": "2026-08-03T12:40:00",
+        "guid": null
+      },
+      {
+        "title": "Today on Sky Sports Racing: Dark Cloud Rising and Lord Roxby clash at Ripon",
+        "link": "https://www.skysports.com/racing/news/12040/13569078/today-on-sky-sports-racing-ripon-and-windsor-feature-live-on-monday",
+        "publishedAt": "2026-08-03T06:00:00",
+        "guid": null
+      },
+      {
+        "title": "Liverpool collapse as Leeds come from 2-0 down to win",
+        "link": "https://www.skysports.com/football/liverpool-vs-leeds-united/report/554987",
+        "publishedAt": "2026-08-02T20:04:00",
+        "guid": null
+      }
+    ]
+  },
+  "guardian-manutd": {
+    "source": {
+      "key": "guardian-manutd",
+      "tier": "MEDIA",
+      "name": "The Guardian - Man Utd",
+      "url": "https://www.theguardian.com/football/manchester-united/rss",
+      "delay": 0
+    },
+    "httpStatus": 200,
+    "count": 20,
+    "items": [
+      {
+        "title": "The five big beasts are gone: who will be the Premier League’s next alpha manager? | Jonathan Wilson",
+        "link": "https://www.theguardian.com/football/2026/aug/02/premier-league-managers-arteta-alonso-de-zerbi-carrick-klopp-guardiola",
+        "publishedAt": "2026-08-02T07:00:15+00:00",
+        "guid": "https://www.theguardian.com/football/2026/aug/02/premier-league-managers-arteta-alonso-de-zerbi-carrick-klopp-guardiola"
+      },
+      {
+        "title": "Defence promises to be a central issue for Carrick and Manchester United",
+        "link": "https://www.theguardian.com/football/2026/jul/29/manchester-united-michael-carrick-central-defence-premier-league",
+        "publishedAt": "2026-07-29T14:05:09+00:00",
+        "guid": "https://www.theguardian.com/football/2026/jul/29/manchester-united-michael-carrick-central-defence-premier-league"
+      },
+      {
+        "title": "Manchester United consider Camavinga and Berge as midfield overhaul continues",
+        "link": "https://www.theguardian.com/football/2026/jul/23/manchester-united-consider-eduardo-camavinga-sander-berge-midfield-overhaul",
+        "publishedAt": "2026-07-23T11:41:48+00:00",
+        "guid": "https://www.theguardian.com/football/2026/jul/23/manchester-united-consider-eduardo-camavinga-sander-berge-midfield-overhaul"
+      },
+      {
+        "title": "Manchester United supporters groups in uproar over suspension of season tickets",
+        "link": "https://www.theguardian.com/football/2026/jul/21/manchester-united-supporters-groups-suspension-of-season-tickets",
+        "publishedAt": "2026-07-21T18:00:52+00:00",
+        "guid": "https://www.theguardian.com/football/2026/jul/21/manchester-united-supporters-groups-suspension-of-season-tickets"
+      },
+      {
+        "title": "‘The utmost respect for him’: Alex Ferguson pays tribute to Kevin Keegan",
+        "link": "https://www.theguardian.com/football/2026/jul/21/alex-ferguson-pays-tribute-kevin-keegan-newcastle",
+        "publishedAt": "2026-07-21T12:41:13+00:00",
+        "guid": "https://www.theguardian.com/football/2026/jul/21/alex-ferguson-pays-tribute-kevin-keegan-newcastle"
+      },
+      {
+        "title": "João Gomes seals £38m Aston Villa move, Hall and Robinson on Manchester United list",
+        "link": "https://www.theguardian.com/football/2026/jul/20/joao-gomes-signs-aston-villa-lewis-hall-antonee-robinson-manchester-united-transfer-latest",
+        "publishedAt": "2026-07-20T11:45:42+00:00",
+        "guid": "https://www.theguardian.com/football/2026/jul/20/joao-gomes-signs-aston-villa-lewis-hall-antonee-robinson-manchester-united-transfer-latest"
+      },
+      {
+        "title": "Manchester United start new signing Andrey Santos in pre-season loss to Wrexham",
+        "link": "https://www.theguardian.com/football/2026/jul/18/manchester-united-start-new-signing-andrey-santos-in-pre-season-loss-to-wrexham",
+        "publishedAt": "2026-07-18T19:15:10+00:00",
+        "guid": "https://www.theguardian.com/football/2026/jul/18/manchester-united-start-new-signing-andrey-santos-in-pre-season-loss-to-wrexham"
+      },
+      {
+        "title": "Why did Manchester United pay Chelsea £48m for Andrey Santos?",
+        "link": "https://www.theguardian.com/football/2026/jul/16/andrey-santos-manchester-united-chelsea-michael-carrick-brazil-midfielder-casemiro",
+        "publishedAt": "2026-07-16T11:43:39+00:00",
+        "guid": "https://www.theguardian.com/football/2026/jul/16/andrey-santos-manchester-united-chelsea-michael-carrick-brazil-midfielder-casemiro"
+      },
+      {
+        "title": "Manchester United to target £30m Crysencio Summerville should Marcus Rashford leave",
+        "link": "https://www.theguardian.com/football/2026/jul/15/manchester-united-crysencio-summerville-marcus-rashford",
+        "publishedAt": "2026-07-15T15:38:05+00:00",
+        "guid": "https://www.theguardian.com/football/2026/jul/15/manchester-united-crysencio-summerville-marcus-rashford"
+      },
+      {
+        "title": "Youri Tielemans targets ‘biggest trophies’ after joining Manchester United",
+        "link": "https://www.theguardian.com/football/2026/jul/14/youri-tielemans-signs-manchester-united-aston-villa",
+        "publishedAt": "2026-07-14T18:20:15+00:00",
+        "guid": "https://www.theguardian.com/football/2026/jul/14/youri-tielemans-signs-manchester-united-aston-villa"
+      },
+      {
+        "title": "Manchester United in advanced talks to sign Youri Tielemans from Aston Villa",
+        "link": "https://www.theguardian.com/football/2026/jul/13/manchester-united-in-advanced-talks-to-sign-youri-tielemans-from-aston-villa",
+        "publishedAt": "2026-07-13T10:56:57+00:00",
+        "guid": "https://www.theguardian.com/football/2026/jul/13/manchester-united-in-advanced-talks-to-sign-youri-tielemans-from-aston-villa"
+      },
+      {
+        "title": "Manchester United insist new stadium ‘not vanity project’ despite prospect of more debt",
+        "link": "https://www.theguardian.com/football/2026/jul/09/manchester-united-insist-new-stadium-not-vanity-project-despite-prospect-of-more-debt",
+        "publishedAt": "2026-07-09T14:00:06+00:00",
+        "guid": "https://www.theguardian.com/football/2026/jul/09/manchester-united-insist-new-stadium-not-vanity-project-despite-prospect-of-more-debt"
+      },
+      {
+        "title": "Marcus Rashford expected to start new season back at Manchester United",
+        "link": "https://www.theguardian.com/football/2026/jul/08/marcus-rashford-return-manchester-united-new-season-move-away-not-ruled-out-football",
+        "publishedAt": "2026-07-08T17:11:54+00:00",
+        "guid": "https://www.theguardian.com/football/2026/jul/08/marcus-rashford-return-manchester-united-new-season-move-away-not-ruled-out-football"
+      },
+      {
+        "title": "Manchester United target Andrey Santos but Chelsea value midfielder at £50m",
+        "link": "https://www.theguardian.com/football/2026/jul/05/andrey-santos-manchester-united-chelsea-transfer",
+        "publishedAt": "2026-07-05T09:13:26+00:00",
+        "guid": "https://www.theguardian.com/football/2026/jul/05/andrey-santos-manchester-united-chelsea-transfer"
+      },
+      {
+        "title": "A footballing deepfake: how Bruno Fernandes fell victim to an unlicensed betting operator",
+        "link": "https://www.theguardian.com/football/2026/jul/05/a-footballing-deepfake-how-bruno-fernandes-fell-victim-to-an-unlicensed-betting-operator",
+        "publishedAt": "2026-07-05T07:00:20+00:00",
+        "guid": "https://www.theguardian.com/football/2026/jul/05/a-footballing-deepfake-how-bruno-fernandes-fell-victim-to-an-unlicensed-betting-operator"
+      },
+      {
+        "title": "Tottenham win race to sign West Ham’s Mateus Fernandes for club record £85m",
+        "link": "https://www.theguardian.com/football/2026/jun/30/tottenham-west-ham-mateus-fernandes-club-record-85m-manchester-united-transfers",
+        "publishedAt": "2026-06-30T17:51:28+00:00",
+        "guid": "https://www.theguardian.com/football/2026/jun/30/tottenham-west-ham-mateus-fernandes-club-record-85m-manchester-united-transfers"
+      },
+      {
+        "title": "Amorim agrees to become Milan head coach in boost to Manchester United finances",
+        "link": "https://www.theguardian.com/football/2026/jun/15/ruben-amorim-agrees-become-milan-head-coach-boost-manchester-finances-compensation",
+        "publishedAt": "2026-06-15T12:25:37+00:00",
+        "guid": "https://www.theguardian.com/football/2026/jun/15/ruben-amorim-agrees-become-milan-head-coach-boost-manchester-finances-compensation"
+      },
+      {
+        "title": "Manchester United lead chase for West Ham’s £80m-rated Mateus Fernandes",
+        "link": "https://www.theguardian.com/football/2026/jun/12/manchester-united-west-ham-mateus-fernandes-real-madrid-arsenal-psg",
+        "publishedAt": "2026-06-13T01:01:57+00:00",
+        "guid": "https://www.theguardian.com/football/2026/jun/12/manchester-united-west-ham-mateus-fernandes-real-madrid-arsenal-psg"
+      },
+      {
+        "title": "‘It was madness in Baghdad’: René Meulensteen on coaching Iraq and helping Ronaldo",
+        "link": "https://www.theguardian.com/football/2026/jun/09/rene-meulensteen-iraq-world-cup-ronaldo-manchester-united",
+        "publishedAt": "2026-06-09T09:44:21+00:00",
+        "guid": "https://www.theguardian.com/football/2026/jun/09/rene-meulensteen-iraq-world-cup-ronaldo-manchester-united"
+      },
+      {
+        "title": "Manchester United think they can beat City to £100m-rated Elliot Anderson",
+        "link": "https://www.theguardian.com/football/2026/jun/08/manchester-united-city-100m-elliot-anderson-transfer-news",
+        "publishedAt": "2026-06-08T16:05:15+00:00",
+        "guid": "https://www.theguardian.com/football/2026/jun/08/manchester-united-city-100m-elliot-anderson-transfer-news"
+      }
+    ]
+  },
+  "men-manutd": {
+    "source": {
+      "key": "men-manutd",
+      "tier": "MEDIA",
+      "name": "Manchester Evening News - Man Utd",
+      "url": "https://www.manchestereveningnews.co.uk/all-about/manchester-united-fc/?service=rss",
+      "delay": 10
+    },
+    "httpStatus": 200,
+    "count": 25,
+    "items": [
+      {
+        "title": "Manchester United sent JJ Gabriel message after pre-season appearance vs Atletico Madrid",
+        "link": "https://www.manchestereveningnews.co.uk/sport/football/football-news/manchester-united-sent-jj-gabriel-34395747",
+        "publishedAt": "2026-08-03T12:47:45+00:00",
+        "guid": "https://www.manchestereveningnews.co.uk/sport/football/football-news/manchester-united-sent-jj-gabriel-34395747"
+      },
+      {
+        "title": "Man United transfer news LIVE - Manu Kone deal, Rashford latest, Myles Lewis-Skelly update",
+        "link": "https://www.manchestereveningnews.co.uk/sport/football/transfer-news/man-united-transfer-news-live-34393520",
+        "publishedAt": "2026-08-03T12:24:11+00:00",
+        "guid": "https://www.manchestereveningnews.co.uk/sport/football/transfer-news/man-united-transfer-news-live-34393520"
+      },
+      {
+        "title": "Michael Carrick might already know his three-man midfield for Manchester United vs Hull",
+        "link": "https://www.manchestereveningnews.co.uk/sport/football/michael-carrick-might-already-know-34394067",
+        "publishedAt": "2026-08-03T11:33:01+00:00",
+        "guid": "https://www.manchestereveningnews.co.uk/sport/football/michael-carrick-might-already-know-34394067"
+      },
+      {
+        "title": "Benjamin Sesko 'wanted' as Man United set for transfer battle after two-year mission",
+        "link": "https://www.manchestereveningnews.co.uk/sport/football/transfer-news/man-utd-sesko-transfer-latest-34394679",
+        "publishedAt": "2026-08-03T11:15:07+00:00",
+        "guid": "https://www.manchestereveningnews.co.uk/sport/football/transfer-news/man-utd-sesko-transfer-latest-34394679"
+      },
+      {
+        "title": "Cole Palmer backed to complete Man United transfer on one condition after Andrey Santos message",
+        "link": "https://www.manchestereveningnews.co.uk/sport/football/transfer-news/cole-palmer-man-utd-transfer-34394345",
+        "publishedAt": "2026-08-03T09:29:44+00:00",
+        "guid": "https://www.manchestereveningnews.co.uk/sport/football/transfer-news/cole-palmer-man-utd-transfer-34394345"
+      },
+      {
+        "title": "Man United get big Lewis Hall transfer boost as £60m star's Chelsea decision made",
+        "link": "https://www.manchestereveningnews.co.uk/sport/football/transfer-news/man-united-lewis-hall-transfer-34394000",
+        "publishedAt": "2026-08-03T09:00:50+00:00",
+        "guid": "https://www.manchestereveningnews.co.uk/sport/football/transfer-news/man-united-lewis-hall-transfer-34394000"
+      },
+      {
+        "title": "Unseen JJ Gabriel moment and Bayindir's classy gesture - Inside Man United's trip to Stockholm",
+        "link": "https://www.manchestereveningnews.co.uk/sport/football/unseen-jj-gabriel-moment-bayindirs-34390851",
+        "publishedAt": "2026-08-03T05:00:00+00:00",
+        "guid": "https://www.manchestereveningnews.co.uk/sport/football/unseen-jj-gabriel-moment-bayindirs-34390851"
+      },
+      {
+        "title": "Man United latest: £36m star 'agrees' to move as Arsenal medical provides transfer boost",
+        "link": "https://www.manchestereveningnews.co.uk/sport/football/transfer-news/man-united-arsenal-medical-transfer-34392132",
+        "publishedAt": "2026-08-03T04:30:00+00:00",
+        "guid": "https://www.manchestereveningnews.co.uk/sport/football/transfer-news/man-united-arsenal-medical-transfer-34392132"
+      },
+      {
+        "title": "Four Manchester United players to return for pre-season training this week",
+        "link": "https://www.manchestereveningnews.co.uk/sport/football/four-manchester-united-players-return-34390849",
+        "publishedAt": "2026-08-03T04:00:00+00:00",
+        "guid": "https://www.manchestereveningnews.co.uk/sport/football/four-manchester-united-players-return-34390849"
+      },
+      {
+        "title": "7 transfers Man United can seal this week including Arsenal star and Marcus Rashford swap deal",
+        "link": "https://www.manchestereveningnews.co.uk/sport/football/transfer-news/man-united-arsenal-swap-deal-34391681",
+        "publishedAt": "2026-08-03T03:30:00+00:00",
+        "guid": "https://www.manchestereveningnews.co.uk/sport/football/transfer-news/man-united-arsenal-swap-deal-34391681"
+      },
+      {
+        "title": "Man United transfer news: Aurelien Tchouameni latest, done deal, Arsenal swoop",
+        "link": "https://www.manchestereveningnews.co.uk/sport/football/transfer-news/man-united-transfer-news-live-34374327",
+        "publishedAt": "2026-08-02T21:58:08+00:00",
+        "guid": "https://www.manchestereveningnews.co.uk/sport/football/transfer-news/man-united-transfer-news-live-34374327"
+      },
+      {
+        "title": "Jadon Sancho transfer statement released as Man United flop takes drastic action",
+        "link": "https://www.manchestereveningnews.co.uk/sport/football/transfer-news/jadon-sancho-next-club-transfer-34393141",
+        "publishedAt": "2026-08-02T20:30:09+00:00",
+        "guid": "https://www.manchestereveningnews.co.uk/sport/football/transfer-news/jadon-sancho-next-club-transfer-34393141"
+      },
+      {
+        "title": "Man United proposed Marcus Rashford transfer repeat to seal £30m agreement",
+        "link": "https://www.manchestereveningnews.co.uk/sport/football/transfer-news/man-utd-transfer-zirkzee-rashford-34392997",
+        "publishedAt": "2026-08-02T20:05:19+00:00",
+        "guid": "https://www.manchestereveningnews.co.uk/sport/football/transfer-news/man-utd-transfer-zirkzee-rashford-34392997"
+      },
+      {
+        "title": "Chelsea blamed for major Alejandro Garnacho issue as ex-Man United star starts again",
+        "link": "https://www.manchestereveningnews.co.uk/sport/football/football-news/man-utd-garnacho-chelsea-villa-34392828",
+        "publishedAt": "2026-08-02T18:23:15+00:00",
+        "guid": "https://www.manchestereveningnews.co.uk/sport/football/football-news/man-utd-garnacho-chelsea-villa-34392828"
+      },
+      {
+        "title": "Mateus Fernandes drops real reason he snubbed Man United to complete Tottenham transfer",
+        "link": "https://www.manchestereveningnews.co.uk/sport/football/football-news/mateus-fernandes-tottenham-man-utd-34392675",
+        "publishedAt": "2026-08-02T17:53:04+00:00",
+        "guid": "https://www.manchestereveningnews.co.uk/sport/football/football-news/mateus-fernandes-tottenham-man-utd-34392675"
+      },
+      {
+        "title": "Bruno Fernandes sends two-word endorsement to Man United star after Atletico win",
+        "link": "https://www.manchestereveningnews.co.uk/sport/football/football-news/bruno-fernandes-mount-man-united-34392354",
+        "publishedAt": "2026-08-02T16:22:27+00:00",
+        "guid": "https://www.manchestereveningnews.co.uk/sport/football/football-news/bruno-fernandes-mount-man-united-34392354"
+      },
+      {
+        "title": "Alejandro Garnacho sends clear message as ex-Man United star shows true feelings after transfer",
+        "link": "https://www.manchestereveningnews.co.uk/sport/football/football-news/alejandro-garnacho-man-united-chelsea-34392546",
+        "publishedAt": "2026-08-02T15:59:18+00:00",
+        "guid": "https://www.manchestereveningnews.co.uk/sport/football/football-news/alejandro-garnacho-man-united-chelsea-34392546"
+      },
+      {
+        "title": "Michael Carrick 'must be happy' with two Man United players after Atletico Madrid win",
+        "link": "https://www.manchestereveningnews.co.uk/sport/football/football-news/man-united-michael-carrick-mount-34392479",
+        "publishedAt": "2026-08-02T15:54:33+00:00",
+        "guid": "https://www.manchestereveningnews.co.uk/sport/football/football-news/man-united-michael-carrick-mount-34392479"
+      },
+      {
+        "title": "Man United 'reach transfer agreement with medical booked' as announcement imminent",
+        "link": "https://www.manchestereveningnews.co.uk/sport/football/transfer-news/altay-bayindir-transfer-man-utd-34392317",
+        "publishedAt": "2026-08-02T15:10:44+00:00",
+        "guid": "https://www.manchestereveningnews.co.uk/sport/football/transfer-news/altay-bayindir-transfer-man-utd-34392317"
+      },
+      {
+        "title": "Man United star makes brave title prediction as Michael Carrick plans first full season",
+        "link": "https://www.manchestereveningnews.co.uk/sport/football/football-news/manchester-united-title-prediction-yoro-34391901",
+        "publishedAt": "2026-08-02T12:45:20+00:00",
+        "guid": "https://www.manchestereveningnews.co.uk/sport/football/football-news/manchester-united-title-prediction-yoro-34391901"
+      },
+      {
+        "title": "Ex-Man United star Casemiro endures nightmare start to Inter Miami career with Lionel Messi",
+        "link": "https://www.manchestereveningnews.co.uk/sport/football/football-news/casemiro-own-goal-inter-miami-34391680",
+        "publishedAt": "2026-08-02T12:02:44+00:00",
+        "guid": "https://www.manchestereveningnews.co.uk/sport/football/football-news/casemiro-own-goal-inter-miami-34391680"
+      },
+      {
+        "title": "'No excuses' - Why Leny Yoro is ready to step up for Manchester United this season",
+        "link": "https://www.manchestereveningnews.co.uk/sport/football/no-excuses-leny-yoro-ready-34390847",
+        "publishedAt": "2026-08-02T11:00:00+00:00",
+        "guid": "https://www.manchestereveningnews.co.uk/sport/football/no-excuses-leny-yoro-ready-34390847"
+      },
+      {
+        "title": "Man United consider forcing Arsenal's hand to sign Gunners star with Bruno Guimaraes deal close",
+        "link": "https://www.manchestereveningnews.co.uk/sport/football/transfer-news/man-united-transfer-lewis-skelly-34391205",
+        "publishedAt": "2026-08-02T09:37:03+00:00",
+        "guid": "https://www.manchestereveningnews.co.uk/sport/football/transfer-news/man-united-transfer-lewis-skelly-34391205"
+      },
+      {
+        "title": "Ex-Man United talent fighting for next career move as he opens up on injury hell",
+        "link": "https://www.manchestereveningnews.co.uk/sport/football/football-news/man-united-pfa-will-keane-34391130",
+        "publishedAt": "2026-08-02T09:19:24+00:00",
+        "guid": "https://www.manchestereveningnews.co.uk/sport/football/football-news/man-united-pfa-will-keane-34391130"
+      },
+      {
+        "title": "How to watch the 2026/27 Premier League on TV with Sky Sports deals from £20",
+        "link": "https://www.manchestereveningnews.co.uk/news/tv/how-watch-202627-premier-league-34376537",
+        "publishedAt": "2026-08-02T09:00:00+00:00",
+        "guid": "https://www.manchestereveningnews.co.uk/news/tv/how-watch-202627-premier-league-34376537"
+      }
+    ]
+  }
+}

@@ -175,6 +175,12 @@ public class FixtureUpsertService {
 		Venue existing = cache.get(node.id());
 		if (existing != null) {
 			existing.applyApiFacts(node.name(), node.city());
+			// 좌표가 비어 있으면 다시 시도한다. 시드를 보강하거나 도시명 매칭을 고쳐도
+			// 이미 저장된 경기장이 영영 비어 있으면 그 개선이 화면에 닿지 않는다.
+			// **이미 있는 좌표는 건드리지 않는다** — 시드가 실제 경기장보다 정확할 이유가 없다.
+			if (!existing.hasCoordinates()) {
+				fillFromSeed(existing, node.city());
+			}
 			return existing;
 		}
 
@@ -183,12 +189,17 @@ public class FixtureUpsertService {
 				.name(node.name())
 				.city(node.city())
 				.build();
-		// 좌표는 API가 주지 않는다 → 신규 생성 시 시드에서만 채운다.
-		SeedCatalog.Coordinates coords = seedCatalog.coordinates(node.city());
-		if (coords != null) {
-			created.assignCoordinates(coords.latitude(), coords.longitude());
-		}
+		// 좌표는 API가 주지 않는다 → 시드에서 채운다.
+		fillFromSeed(created, node.city());
 		return persister.persistNew(created);
+	}
+
+	/** 시드에서 좌표를 찾아 채운다. 못 찾으면 그대로 둔다 — 이동거리 계산이 생략될 뿐 에러가 아니다. */
+	private void fillFromSeed(Venue venue, String city) {
+		SeedCatalog.Coordinates coords = seedCatalog.coordinates(city);
+		if (coords != null) {
+			venue.assignCoordinates(coords.latitude(), coords.longitude());
+		}
 	}
 
 	private Team resolveTeam(FixtureItem.Team node, Venue homeVenue, Map<Long, Team> cache) {

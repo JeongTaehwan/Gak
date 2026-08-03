@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<?xml-stylesheet title="XSL_formatting" type="text/xsl" href="/rss/rssRender.xsl"?>
+    <rss version='2.0'>
+    <channel>
+       <title>SkySports | News</title>
+       <link>http://www.skysports.com</link>
+       <description>Sports News</description>
+       <language>en-gb</language>
+       <lastBuildDate>Mon, 03 Aug 2026 14:34:31 BST</lastBuildDate>
+       <copyright>Copyright 2026, BSKYB. All Rights Reserved.</copyright>
+       <category></category>
+       <image>
+            <title>Sky Sports</title>
+            <url>https://www.skysports.com/images/site/ss-logo-07.gif</url>
+            <link>https://www.skysports.com</link>
+       </image>
+       <ttl>120</ttl>
+       	<item>
+           <title><![CDATA[Solheim Cup captain's picks LIVE! Who will Nordqvist name for Team Europe?]]></title>
+           <description><![CDATA[]]></description>
+           <link>https://www.skysports.com/golf/live-blog/12040/13569335/solheim-cup-2026-team-europe-captains-picks-live-anna-nordqvist-names-players-to-complete-line-up-to-face-team-usa</link>
+           <pubDate>Mon, 03 Aug 2026 13:45:00 BST</pubDate>
+           <category>Liveblog</category>
+           <enclosure type="image/jpg" url="https://e0.365dm.com/26/08/1920x1080/skysports-golf-solheim-cup_7312616.jpg?20260803092205" length="123456" />
+      </item>
+      	<item>
+           <title><![CDATA[Celtic learn CL opponents as Brighton discover European route]]></title>
+           <description><![CDATA[Celtic will play Austrian champions LASK for a place in the league phase of the Champions League, while Brighton will face CFR Cluj or Tromso in the Conference League play-off round.]]></description>
+           <link>https://www.skysports.com/football/news/12040/13569393/champions-league-europa-league-conference-league-play-off-draws-celtic-rangers-brighton-hearts-hibernian-motherwell-discover-opponents</link>
+           <pubDate>Mon, 03 Aug 2026 13:30:00 BST</pubDate>
+           <category>News Story</category>
+           <enclosure type="image/jpg" url="https://e1.365dm.com/26/04/1920x1080/skysports-champions-league_7225302.jpg?20260803123057" length="123456" />
+      </item>
+      	<item>
+           <title><![CDATA[Can Mount be the third midfielder Man Utd are looking for?]]></title>
+           <description><![CDATA["Why go out searching for a midfielder when you've got Mason Mount at home?"]]></description>
+           <link>https://www.skysports.com/football/news/12040/13569342/mason-mount-can-manchester-uniteds-pre-season-revelation-be-a-big-part-of-michael-carricks-midfield-overhaul</link>
+           <pubDate>Mon, 03 Aug 2026 12:00:00 BST</pubDate>
+           <category>News Story</category>
+           <enclosure type="image/jpg" url="https://e1.365dm.com/26/08/1920x1080/skysports-mason-mount-manchester-united_7312641.jpg?20260803094438" length="123456" />
+      </item>
+      	<item>
+           <title><![CDATA[USA cricketer Akhilesh Reddy given eight-year ban under anti-corruption code]]></title>
+           <description><![CDATA[USA cricketer Bodugum Akhilesh Reddy has been banned from all cricket for eight years by the ICC after being found guilty of three counts of breaking anti-corruption rules by a tribunal.]]></description>
+           <link>https://www.skysports.com/cricket/news/12040/13569369/usa-cricketer-bodugum-akhilesh-reddy-banned-for-eight-years-by-icc-tribunal-for-anti-corruption-rule-violations</link>
+           <pubDate>Mon, 03 Aug 2026 10:39:00 BST</pubDate>
+           <category>News Story</category>
+           <enclosure type="image/jpg" url="https://e0.365dm.com/26/08/1920x1080/skysports-bodugum-akhilesh-reddy_7312713.jpg?20260803105230" length="123456" />
+      </item>
+      	<item>
+           <title><![CDATA[Newcastle reject Guimaraes bid from Arsenal]]></title>
+           <description><![CDATA[Arsenal's&#160;opening bid for&#160;Bruno Guimaraes&#160;has been rejected by&#160;Newcastle.&#160;]]></description>
+           <link>https://www.skysports.com/football/news/12040/13557961/bruno-guimaraes-arsenal-bid-rejected-by-newcastle-with-magpies-determined-to-keep-captain-and-brazil-international-midfielder</link>
+           <pubDate>Mon, 03 Aug 2026 12:39:00 BST</pubDate>
+           <category>News Story</category>
+           <enclosure type="image/jpg" url="https://e1.365dm.com/26/01/1920x1080/skysports-bruno-guimaraes-newcastle-united_7126176.jpg?20260104164227" length="123456" />
+      </item>
+      	<item>
+           <title><![CDATA[Tzolis unfazed by Vini Jr rumours as fitness champion settles into Arsenal]]></title>
+           <description><![CDATA[At Arsenal, there is an excitement about whether Vinicius Jr could sign this summer. But on Saturday, they were given a decent reminder that Christos Tzolis now plays for the club on the left wing.]]></description>
+           <link>https://www.skysports.com/football/news/12040/13568811/christos-tzolis-interview-new-arsenal-signing-discusses-vinicius-jr-rumours-winning-the-pre-season-fitness-tests-and-leonidas-nickname</link>
+           <pubDate>Mon, 03 Aug 2026 10:30:00 BST</pubDate>
+           <category>News Story</category>
+           <enclosure type="image/jpg" url="https://e2.365dm.com/26/08/1920x1080/skysports-premier-league-arsenal_7312618.jpg?20260803093047" length="123456" />
+      </item>
+      	<item>
+           <title><![CDATA[Fukofuka departs Scotland Women head coach role]]></title>
+           <description><![CDATA[Scottish Rugby has announced the departure of women's head coach Sione Fukofuka due to personal reasons after eight months in charge.]]></description>
+           <link>https://www.skysports.com/rugby-union/news/12040/13569347/scotland-women-head-coach-sione-fukofuka-leaves-role-for-personal-reasons-after-eight-months-in-charge</link>
+           <pubDate>Mon, 03 Aug 2026 10:00:00 BST</pubDate>
+           <category>News Story</category>
+           <enclosure type="image/jpg" url="https://e0.365dm.com/26/08/1920x1080/skysports-fukofuka-scotland_7312668.jpg?20260803095748" length="123456" />
+      </item>
+      	<item>
+           <title><![CDATA['Made of muscles!' Why PSG want Japan goalkeeper Suzuki ]]></title>
+           <description><![CDATA[Having been linked with a move to the Premier League, Zion Suzuki is set for a switch to European champions Paris Saint-German instead. It marks the completion of the 23-year-old Japanese goalkeeper's rise to the game's summit after a stellar World Cup.]]></description>
+           <link>https://www.skysports.com/football/news/12040/13561579/zion-suzuki-to-psg-why-parma-and-japan-goalkeeper-is-in-demand-long-throws-catching-crosses-and-much-more</link>
+           <pubDate>Mon, 03 Aug 2026 10:00:00 BST</pubDate>
+           <category>News Story</category>
+           <enclosure type="image/jpg" url="https://e0.365dm.com/26/07/1920x1080/skysports-zion-suzuki-japan_7292757.jpg?20260708100529" length="123456" />
+      </item>
+      	<item>
+           <title><![CDATA[FA set to follow Welsh FA and withdraw support for Infantino]]></title>
+           <description><![CDATA[The Football Association is set to withdraw support for FIFA president Gianni Infantino.]]></description>
+           <link>https://www.skysports.com/football/news/12040/13569337/gianni-infantino-english-fa-set-to-follow-welsh-fa-and-withdraw-support-for-fifa-president</link>
+           <pubDate>Mon, 03 Aug 2026 09:45:00 BST</pubDate>
+           <category>News Story</category>
+           <enclosure type="image/jpg" url="https://e0.365dm.com/26/06/1920x1080/skysports-gianni-infantino_7270331.jpg?20260610205832" length="123456" />
+      </item>
+      	<item>
+           <title><![CDATA['Man Utd concerned about cost of WSL title chase' - Why Skinner left Man Utd]]></title>
+           <description><![CDATA[Just a month out from their opening Women's Super League fixture, Manchester United find themselves without a head coach after Marc Skinner departed on Monday morning.]]></description>
+           <link>https://www.skysports.com/football/news/12040/13569353/marc-skinner-leaves-man-utd-women-lack-of-investment-a-change-of-direction-and-inconsistent-playing-style-contributed-to-head-coach-exit</link>
+           <pubDate>Mon, 03 Aug 2026 13:00:00 BST</pubDate>
+           <category>News Story</category>
+           <enclosure type="image/jpg" url="https://e2.365dm.com/23/10/1920x1080/skysports-man-utd-women-marc-skinner_6326349.jpg?20231018230730" length="123456" />
+      </item>
+      	<item>
+           <title><![CDATA[Spurs interested in Liverpool's Gakpo]]></title>
+           <description><![CDATA[Tottenham are interested in signing Cody Gakpo from Liverpool this summer.&#160;]]></description>
+           <link>https://www.skysports.com/football/news/12040/13569350/cody-gakpo-tottenham-interested-in-signing-liverpool-forward-as-roberto-de-zerbi-aims-to-improve-spurs-attack</link>
+           <pubDate>Mon, 03 Aug 2026 09:51:00 BST</pubDate>
+           <category>News Story</category>
+           <enclosure type="image/jpg" url="https://e1.365dm.com/26/08/1920x1080/skysports-cody-gakpo-liverpool_7312688.jpg?20260803103036" length="123456" />
+      </item>
+      	<item>
+           <title><![CDATA[West Ham latest: Hammers 'exploring' Solomon deal as Potts set for Brugge medical]]></title>
+           <description><![CDATA[]]></description>
+           <link>https://www.skysports.com/football/live-blog/12040/13210475/west-ham-latest-news</link>
+           <pubDate>Mon, 03 Aug 2026 12:00:00 BST</pubDate>
+           <category>Liveblog</category>
+           <enclosure type="image/jpg" url="https://e0.365dm.com/25/10/1920x1080/skysports-west-ham-news-club_7039266.jpg?20251002160718" length="123456" />
+      </item>
+      	<item>
+           <title><![CDATA[Newcastle sign goalkeeper Hornicek]]></title>
+           <description><![CDATA[Newcastle United have signed goalkeeper Lukas Hornicek from Braga in a deal worth &#163;25.7m.&#160;]]></description>
+           <link>https://www.skysports.com/football/news/12040/13569327/lukas-hornicek-newcastle-united-sign-czech-republic-international-goalkeeper-on-five-year-contract-from-braga-in-deal-worth-25-7m</link>
+           <pubDate>Mon, 03 Aug 2026 09:00:00 BST</pubDate>
+           <category>News Story</category>
+           <enclosure type="image/jpg" url="https://e2.365dm.com/26/07/1920x1080/skysports-lukas-hornicek-hornicek_7311398.jpg?20260731180550" length="123456" />
+      </item>
+      	<item>
+           <title><![CDATA['I have talent, they don't!' - Trump taunts opponents after winning club titles]]></title>
+           <description><![CDATA[Donald Trump taunted opponents after announcing he had won the Senior and Super Senior Men's Club Championship at his Bedminster golf course in New Jersey. ]]></description>
+           <link>https://www.skysports.com/golf/news/12040/13569322/donald-trump-us-president-wins-bedminster-senior-club-championship-and-taunts-opponents-in-truth-social-post</link>
+           <pubDate>Mon, 03 Aug 2026 07:46:00 BST</pubDate>
+           <category>News Story</category>
+           <enclosure type="image/jpg" url="https://e0.365dm.com/26/04/1920x1080/skysports-donald-trump-golf_7228526.jpg?20260423172650" length="123456" />
+      </item>
+      	<item>
+           <title><![CDATA[Skinner leaves Man Utd Women]]></title>
+           <description><![CDATA[Marc Skinner has left his role as Manchester United Women head coach after five years in charge.]]></description>
+           <link>https://www.skysports.com/football/news/12040/13569329/marc-skinner-manchester-united-womens-head-coach-leaves-club-after-five-years-in-charge</link>
+           <pubDate>Mon, 03 Aug 2026 08:45:00 BST</pubDate>
+           <category>News Story</category>
+           <enclosure type="image/jpg" url="https://e2.365dm.com/26/08/1920x1080/skysports-man-utd-boss-wsl_7312609.jpg?20260803090541" length="123456" />
+      </item>
+      	<item>
+           <title><![CDATA[Pegula leads Eala as rain suspends DC Open final]]></title>
+           <description><![CDATA[Jessica Pegula holds a one-set lead over Alexandra Eala in a rain-affected DC Open final that saw play suspended until Monday.]]></description>
+           <link>https://www.skysports.com/tennis/news/12040/13569195/jessica-pegula-leads-alexandra-eala-in-rain-affected-dc-open-final-as-kristina-liutova-16-wins-memphis-classic</link>
+           <pubDate>Mon, 03 Aug 2026 06:53:00 BST</pubDate>
+           <category>News Story</category>
+           <enclosure type="image/jpg" url="https://e2.365dm.com/26/08/1920x1080/skysports-pegula-tennis_7312541.jpg?20260803064559" length="123456" />
+      </item>
+      	<item>
+           <title><![CDATA[Will Verstappen, Alonso trigger F1 'silly season' chaos?]]></title>
+           <description><![CDATA[With Formula 1's summer break upon us, the sport's 'silly season' of speculation around - and possible movement in - the driver market is officially under way.]]></description>
+           <link>https://www.skysports.com/f1/news/12040/13568774/how-max-verstappen-and-fernando-alonso-could-trigger-formula-1-silly-season-chaos-if-either-departs-current-seat</link>
+           <pubDate>Mon, 03 Aug 2026 06:00:00 BST</pubDate>
+           <category>News Story</category>
+           <enclosure type="image/jpg" url="https://e0.365dm.com/26/07/1920x1080/skysports-max-verstappen-fernando_7311212.jpg?20260731135540" length="123456" />
+      </item>
+      	<item>
+           <title><![CDATA[Scot Prem: Hearts demand 'justice' as Findlay red card to be appealed]]></title>
+           <description><![CDATA[]]></description>
+           <link>https://www.skysports.com/football/live-blog/12040/13176154/scottish-premiership-news-transfers-rumours-gossip-and-more</link>
+           <pubDate>Mon, 03 Aug 2026 12:40:00 BST</pubDate>
+           <category>Liveblog</category>
+           <enclosure type="image/jpg" url="https://e0.365dm.com/26/08/1920x1080/skysports-hearts-findlay_7312845.jpg?20260803123829" length="123456" />
+      </item>
+      	<item>
+           <title><![CDATA[Today on Sky Sports Racing: Dark Cloud Rising and Lord Roxby clash at Ripon ]]></title>
+           <description><![CDATA[We have a full day of action on Monday with Flat action from Ripon and Windsor, live on Sky Sports Racing...]]></description>
+           <link>https://www.skysports.com/racing/news/12040/13569078/today-on-sky-sports-racing-ripon-and-windsor-feature-live-on-monday</link>
+           <pubDate>Mon, 03 Aug 2026 06:00:00 BST</pubDate>
+           <category>News Story</category>
+           <enclosure type="image/jpg" url="https://e0.365dm.com/26/04/1920x1080/skysports-ripon-racing_7228587.jpg?20260423181530" length="123456" />
+      </item>
+      	<item>
+           <title><![CDATA[Liverpool collapse as Leeds come from 2-0 down to win]]></title>
+           <description><![CDATA[Liverpool threw away a two-goal lead in spectacular fashion as Leeds won the final match of both teams' United States tour 4-2.]]></description>
+           <link>https://www.skysports.com/football/liverpool-vs-leeds-united/report/554987</link>
+           <pubDate>Sun, 02 Aug 2026 20:04:00 BST</pubDate>
+           <category>Report</category>
+           <enclosure type="image/jpg" url="https://e0.365dm.com/26/08/1920x1080/skysports-liverpool-leeds_7312483.jpg?20260802232218" length="123456" />
+      </item>
+            </channel>
+      </rss>
+ 

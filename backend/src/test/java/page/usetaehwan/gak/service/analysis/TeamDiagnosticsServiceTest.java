@@ -14,8 +14,10 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import page.usetaehwan.gak.domain.Competition;
+import page.usetaehwan.gak.domain.CompetitionType;
 import page.usetaehwan.gak.domain.Fixture;
 import page.usetaehwan.gak.domain.FixtureStatus;
 import page.usetaehwan.gak.domain.Pick;
@@ -28,11 +30,13 @@ import page.usetaehwan.gak.dto.analysis.SampleConfidence;
 import page.usetaehwan.gak.dto.analysis.TeamDiagnostics;
 import page.usetaehwan.gak.repository.CompetitionRepository;
 import page.usetaehwan.gak.repository.FixtureRepository;
+import page.usetaehwan.gak.repository.PredictionRepository;
 import page.usetaehwan.gak.repository.SyncLogRepository;
 import page.usetaehwan.gak.repository.TeamRepository;
 import page.usetaehwan.gak.repository.VenueRepository;
 import page.usetaehwan.gak.service.seed.CompetitionSeeder;
 import page.usetaehwan.gak.service.sync.FixtureSyncService;
+import page.usetaehwan.gak.support.DatabaseCleaner;
 
 /**
  * 진단 계산 통합 테스트 — 인메모리 DB + 저장된 응답 파일(실제 API 호출 없음).
@@ -46,6 +50,7 @@ import page.usetaehwan.gak.service.sync.FixtureSyncService;
  * </ul>
  */
 @SpringBootTest
+@Import(DatabaseCleaner.class)
 @ActiveProfiles("test")
 class TeamDiagnosticsServiceTest {
 
@@ -57,21 +62,22 @@ class TeamDiagnosticsServiceTest {
 	private static final long ARSENAL = 42L;
 	private static final long CHELSEA = 49L;
 
+	@Autowired DatabaseCleaner databaseCleaner;
 	@Autowired TeamDiagnosticsService diagnosticsService;
 	@Autowired FixtureSyncService syncService;
 	@Autowired CompetitionSeeder competitionSeeder;
 	@Autowired CompetitionRepository competitionRepository;
 	@Autowired FixtureRepository fixtureRepository;
+	@Autowired PredictionRepository predictionRepository;
 	@Autowired TeamRepository teamRepository;
 	@Autowired VenueRepository venueRepository;
 	@Autowired SyncLogRepository syncLogRepository;
 
 	@BeforeEach
 	void reset() {
-		fixtureRepository.deleteAll();
-		syncLogRepository.deleteAll();
-		teamRepository.deleteAll();
-		venueRepository.deleteAll();
+		// prediction 이 fixture 를 참조하므로 반드시 먼저 지운다. 이 테스트가 예측을 만들지
+		// 않더라도 필요하다 — 같은 컨텍스트를 쓰는 다른 테스트가 남긴 행이 여기 걸린다.
+		databaseCleaner.clearAllButCompetitions();
 		competitionSeeder.run(null);
 	}
 
@@ -175,6 +181,73 @@ class TeamDiagnosticsServiceTest {
 			// 8/17 원정 2-2 무, 8/17 홈 1-0 승, 3/11 챔스 2-2 승부차기 → 무
 			assertThat(d.form().recent()).containsExactly(Pick.D, Pick.W, Pick.D);
 			assertThat(d.form().draws()).isEqualTo(2);
+		}
+
+		@Test
+		@DisplayName("승부차기는 무승부로 집계하되, PK 스코어는 따로 실어 보낸다")
+		void shootoutScoreTravelsAlongsideTheDrawResult() {
+			MatchLoad shootout = diagnosticsService.diagnose(ARSENAL).matches().get(2);
+
+			// 집계는 무승부 — 120분을 뛴 부하가 폼에서 지워지면 안 된다
+			assertThat(shootout.result()).isEqualTo(Pick.D);
+			assertThat(shootout.goalsFor()).isEqualTo(2);
+			assertThat(shootout.goalsAgainst()).isEqualTo(2);
+			// 표시는 별개 — 화면이 "PK 패"를 붙일 수 있도록 스코어를 그대로 준다
+			assertThat(shootout.shootoutFor()).isEqualTo(4);
+			assertThat(shootout.shootoutAgainst()).isEqualTo(5);
+		}
+
+		@Test
+		@DisplayName("승부차기가 없던 경기는 PK 스코어가 null이다 — 0-0으로 채우지 않는다")
+		void matchesWithoutShootoutCarryNullScores() {
+			assertThat(diagnosticsService.diagnose(MAN_UTD).matches())
+					.allSatisfy(m -> {
+						assertThat(m.shootoutFor()).isNull();
+						assertThat(m.shootoutAgainst()).isNull();
+					});
+		}
+
+		@Test
+		@DisplayName("결과가 확정되지 않은 경기는 승패도 스코어도 null이다")
+		void unresolvedMatchesCarryNoResult() {
+			// 8/24 토트넘전은 진행 중(LIVE) — 중간 스코어 1-1을 최종처럼 내려보내지 않는다
+			MatchLoad live = diagnosticsService.diagnose(MAN_UTD).matches().get(1);
+
+			assertThat(live.status()).isEqualTo(FixtureStatus.LIVE);
+			assertThat(live.result()).isNull();
+			assertThat(live.goalsFor()).isNull();
+			assertThat(live.goalsAgainst()).isNull();
+		}
+
+		@Test
+		@DisplayName("우리 팀 관점으로 득실을 뒤집어 준다 — 화면이 홈/원정을 다시 따지지 않게")
+		void goalsAreGivenFromOurPointOfView() {
+			List<MatchLoad> matches = diagnosticsService.diagnose(MAN_UTD).matches();
+
+			// 8/16 홈 1-3 패 (원본 goals 1-3)
+			assertThat(matches.get(0).home()).isTrue();
+			assertThat(matches.get(0).result()).isEqualTo(Pick.L);
+			assertThat(matches.get(0).goalsFor()).isEqualTo(1);
+			assertThat(matches.get(0).goalsAgainst()).isEqualTo(3);
+
+			// 9/17 챔스 홈 2-1 승
+			assertThat(matches.get(2).result()).isEqualTo(Pick.W);
+			assertThat(matches.get(2).goalsFor()).isEqualTo(2);
+			assertThat(matches.get(2).goalsAgainst()).isEqualTo(1);
+		}
+
+		@Test
+		@DisplayName("대회 성격과 짧은 표기명을 함께 준다 — 화면이 대회 id로 라벨을 분기하지 않도록")
+		void carriesCompetitionTypeAndShortLabel() {
+			List<MatchLoad> matches = diagnosticsService.diagnose(MAN_UTD).matches();
+
+			assertThat(matches).extracting(MatchLoad::competitionType)
+					.containsExactly(CompetitionType.LEAGUE, CompetitionType.LEAGUE,
+							CompetitionType.HYBRID);
+			assertThat(matches).extracting(MatchLoad::competitionShortName)
+					.containsExactly("리그", "리그", "챔스");
+			// 긴 이름도 그대로 남아 있다(툴팁·진단 문장용)
+			assertThat(matches.get(2).competitionName()).isEqualTo("UEFA 챔피언스리그");
 		}
 
 		@Test

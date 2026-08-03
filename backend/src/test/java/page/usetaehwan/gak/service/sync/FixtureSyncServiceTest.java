@@ -8,6 +8,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import page.usetaehwan.gak.domain.Fixture;
 import page.usetaehwan.gak.domain.FixtureStatus;
@@ -22,6 +23,7 @@ import page.usetaehwan.gak.repository.SyncLogRepository;
 import page.usetaehwan.gak.repository.TeamRepository;
 import page.usetaehwan.gak.repository.VenueRepository;
 import page.usetaehwan.gak.service.seed.CompetitionSeeder;
+import page.usetaehwan.gak.support.DatabaseCleaner;
 
 /**
  * 동기화 파이프라인 통합 테스트 — 저장된 응답 파일 + 인메모리 DB.
@@ -31,6 +33,7 @@ import page.usetaehwan.gak.service.seed.CompetitionSeeder;
  * 상태가 같아야, 실패한 동기화를 "그냥 다시 돌리는 것"만으로 복구할 수 있다.
  */
 @SpringBootTest
+@Import(DatabaseCleaner.class)
 @ActiveProfiles("test")
 class FixtureSyncServiceTest {
 
@@ -39,6 +42,7 @@ class FixtureSyncServiceTest {
 	private static final long LA_LIGA = 140L;   // 재생 파일을 일부러 두지 않은 대회
 	private static final long MAN_UTD = 33L;
 
+	@Autowired DatabaseCleaner databaseCleaner;
 	@Autowired FixtureSyncService syncService;
 	@Autowired CompetitionSeeder competitionSeeder;
 	@Autowired CompetitionRepository competitionRepository;
@@ -49,10 +53,7 @@ class FixtureSyncServiceTest {
 
 	@BeforeEach
 	void reset() {
-		fixtureRepository.deleteAll();
-		syncLogRepository.deleteAll();
-		teamRepository.deleteAll();
-		venueRepository.deleteAll();
+		databaseCleaner.clearAllButCompetitions();
 		competitionSeeder.run(null);
 	}
 

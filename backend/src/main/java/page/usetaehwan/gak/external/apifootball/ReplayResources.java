@@ -34,6 +34,15 @@ public class ReplayResources {
 		return "fixtures-league" + leagueId + "-season" + season + ".json";
 	}
 
+	/** 팀·시즌에 대응하는 결장 응답 파일명. */
+	public static String standingsFileName(long leagueId, int season) {
+		return "standings-league" + leagueId + "-season" + season + ".json";
+	}
+
+	public static String injuriesFileName(long teamId, int season) {
+		return "injuries-team" + teamId + "-season" + season + ".json";
+	}
+
 	public Optional<Resource> find(String fileName) {
 		for (String location : locations) {
 			Resource resource = resourceLoader.getResource(location + fileName);

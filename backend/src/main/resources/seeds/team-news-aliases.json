@@ -1,0 +1,61 @@
+{
+  "_readme": [
+    "뉴스 게이트가 쓰는 팀 별칭 시드. 이 파일이 '이 기사가 우리 팀 것인가'를 정한다.",
+    "실측(헤드라인 137건): 별칭만으로는 정밀도 80%, 아래 제외 규칙을 더하면 100%.",
+    "",
+    "⚠️ 팀을 추가할 때 반드시 읽을 것 — CLAUDE.md '뉴스 피드' 절에 같은 내용이 있다.",
+    "",
+    "1) 'United' / 'City' / 'Rovers' / 'Wanderers' 를 단독 별칭으로 넣지 말 것.",
+    "   Newcastle United, West Ham United, Leeds United, Sheffield United,",
+    "   Man City, Leicester City, Hull City ... 전부 걸린다.",
+    "   반드시 도시명을 붙인 형태로만 넣는다.",
+    "",
+    "2) 애칭(Red Devils, Gunners, Spurs)은 유일한지 확인하고 넣을 것.",
+    "   'Spurs' 는 토트넘이지만 NBA 샌안토니오 스퍼스와도 겹친다 —",
+    "   축구 전용 피드에서만 안전하다.",
+    "",
+    "3) 선수 이름은 여기 넣지 않는다. 동명이인이 실제로 있었다:",
+    "   'Alonso heals Real Madrid scars to lead Chelsea revolution' (사비 알론소)",
+    "   'Will Verstappen, Alonso trigger F1 silly season chaos?'    (페르난도 알론소)",
+    "",
+    "4) 별칭을 추가하면 TeamNewsMatcherRealDataTest 를 돌려 정밀도를 확인할 것."
+  ],
+
+  "excludeAny": [
+    "wsl", "women", "womens", "women's", "ladies",
+    "u18", "u19", "u21", "u23", "youth", "academy", "reserves"
+  ],
+
+  "_excludeAnyWhy": [
+    "여자팀·유소년팀은 구단명을 그대로 쓰지만 우리가 다루는 1군이 아니다.",
+    "실측 오탐 9건 중 5건이 여기였다:",
+    "  'Man Utd boss Skinner leaves role before WSL season'",
+    "  'Skinner leaves Man Utd Women'",
+    "  'London City host Man Utd to kick off WSL season'"
+  ],
+
+  "excludeBefore": ["ex-", "ex ", "former ", "one-time ", "onetime "],
+
+  "_excludeBeforeWhy": [
+    "별칭 '바로 앞'에 이 말이 붙으면 그 기사는 지금 우리 팀 소식이 아니다.",
+    "실측 오탐 9건 중 4건이 여기였다:",
+    "  'Ex-Man United star Casemiro endures nightmare start to Inter Miami career'",
+    "  'Chelsea blamed for Garnacho issue as ex-Man United star starts again'",
+    "별칭이 여러 번 나오면 그중 하나라도 깨끗하면 통과시킨다 —",
+    "'Ex-United man returns to Manchester United' 같은 문장을 버리지 않기 위해서다."
+  ],
+
+  "teams": {
+    "33": {
+      "name": "Manchester United",
+      "aliases": [
+        "Manchester United",
+        "Man United",
+        "Man Utd",
+        "Man. Utd",
+        "MUFC",
+        "Red Devils"
+      ]
+    }
+  }
+}

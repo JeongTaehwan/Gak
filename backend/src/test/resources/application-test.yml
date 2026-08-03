@@ -21,6 +21,41 @@ gak:
   api-football:
     mode: replay
     key: ""
+  scoring:
+    # 채점 스케줄러도 테스트 도중 제멋대로 돌면 안 된다. 테스트가 직접 호출한다.
+    enabled: false
+  news:
+    # 스케줄러가 테스트 도중 네트워크를 타면 안 된다. 수집은 테스트가 직접 호출한다.
+    enabled: false
+    # 태거도 꺼 둔다 — 테스트가 모델을 부르는 일은 없어야 한다.
+    classifier:
+      enabled: false
+    # 저장해 둔 원문(raw-*.xml)을 돌려주는 스텁이 이 url 로 파일을 고른다.
+    sources:
+      - key: bbc-football
+        name: BBC Sport
+        url: https://feeds.bbci.co.uk/sport/football/rss.xml
+        tier: MEDIA
+        enabled: true
+      - key: guardian-manutd
+        name: The Guardian
+        url: https://www.theguardian.com/football/manchester-united/rss
+        tier: MEDIA
+        team-id: 33
+        enabled: true
+      - key: men-manutd
+        name: Manchester Evening News
+        url: https://www.manchestereveningnews.co.uk/all-about/manchester-united-fc/?service=rss
+        tier: MEDIA
+        team-id: 33
+        enabled: true
+      # 꺼진 소스 — 스위치가 실제로 동작하는지 확인하는 데 쓴다.
+      - key: sky-football
+        name: Sky Sports
+        url: https://www.skysports.com/rss/12040
+        tier: MEDIA
+        enabled: false
+
   sync:
     # 스케줄러가 테스트 도중 제멋대로 도는 걸 막는다. 동기화는 테스트가 직접 호출한다.
     enabled: false

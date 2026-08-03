@@ -43,6 +43,16 @@ public class Competition {
 	/** 한글 대회명(시드). 없으면 화면에서 {@link #name}으로 fallback. */
 	private String nameKo;
 
+	/**
+	 * 짧은 한글 대회명(시드). 타임라인 뱃지처럼 폭이 좁은 자리에 쓴다
+	 * ("UEFA 챔피언스리그" → "챔스"). 없으면 {@link #nameKo}로 fallback.
+	 *
+	 * <p>표기를 프론트가 정하지 않고 여기 두는 이유는 {@code Team.shortNameKo}와 같다 —
+	 * 대회 id로 라벨을 분기하는 코드가 화면에 생기면, 대회를 하나 추가할 때마다
+	 * 서버와 화면 두 곳을 고쳐야 하고 한쪽만 고친 순간 뱃지가 빈다.
+	 */
+	private String shortNameKo;
+
 	private String country;
 
 	@Enumerated(EnumType.STRING)
@@ -62,11 +72,12 @@ public class Competition {
 	private boolean displayed = true;
 
 	@Builder
-	private Competition(Long id, String name, String nameKo, String country,
+	private Competition(Long id, String name, String nameKo, String shortNameKo, String country,
 	                    CompetitionType type, boolean calendarSeason, boolean displayed) {
 		this.id = id;
 		this.name = name;
 		this.nameKo = nameKo;
+		this.shortNameKo = shortNameKo;
 		this.country = country;
 		this.type = type;
 		this.calendarSeason = calendarSeason;
@@ -77,10 +88,11 @@ public class Competition {
 	 * 시드 값으로 갱신한다. 시드가 이 필드들의 원본이므로 매 기동 시 덮어쓴다.
 	 * id는 바꾸지 않는다 — 바뀐다면 그건 다른 대회다.
 	 */
-	public void applySeed(String name, String nameKo, String country,
+	public void applySeed(String name, String nameKo, String shortNameKo, String country,
 	                      CompetitionType type, boolean calendarSeason, boolean displayed) {
 		this.name = name;
 		this.nameKo = nameKo;
+		this.shortNameKo = shortNameKo;
 		this.country = country;
 		this.type = type;
 		this.calendarSeason = calendarSeason;
@@ -103,5 +115,13 @@ public class Competition {
 	/** 화면 표기명(파생값 — 저장하지 않는다). */
 	public String displayName() {
 		return (nameKo != null && !nameKo.isBlank()) ? nameKo : name;
+	}
+
+	/** 좁은 자리(타임라인 뱃지)용 표기명. 짧은 한글명 → 한글명 → 영문 순 fallback. */
+	public String displayShortName() {
+		if (shortNameKo != null && !shortNameKo.isBlank()) {
+			return shortNameKo;
+		}
+		return displayName();
 	}
 }

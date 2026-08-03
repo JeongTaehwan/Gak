@@ -188,6 +188,15 @@ public class Fixture {
 		return status != null && status.isFinished();
 	}
 
+	/** 이 팀이 이 경기에 뛰는가(홈이든 원정이든). */
+	public boolean involves(Long teamId) {
+		if (teamId == null) {
+			return false;
+		}
+		return (homeTeam != null && teamId.equals(homeTeam.getId()))
+				|| (awayTeam != null && teamId.equals(awayTeam.getId()));
+	}
+
 	/**
 	 * 특정 팀 관점의 실제 결과(승/무/패) 계산 — 파생값이라 저장하지 않는다.
 	 * 종료 전이거나 득점 정보가 없으면 null.
