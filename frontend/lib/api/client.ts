@@ -24,6 +24,7 @@ import type {
   PredictionAccuracy,
   StandingsTable,
   TeamDiagnostics,
+  TeamNewsResponse,
 } from "@/lib/api/types";
 
 /** 맨체스터 유나이티드. API-Football 팀 id를 그대로 쓴다. */
@@ -188,6 +189,36 @@ export async function getTeamStandings(teamId: number): Promise<StandingsTable> 
     throw new BackendResponseError(res.status, await readErrorMessage(res));
   }
   return (await res.json()) as StandingsTable;
+}
+
+/**
+ * 이 팀의 소식 — `GET /api/teams/{teamId}/news`.
+ *
+ * **진단과 따로 부른다.** 합치면 화면 코드에서 두 층이 같은 객체로 들어오고, 언젠가
+ * 누군가 진단 문장에 뉴스를 인용한다. 층을 나눈다는 건 서로를 참조하지 않는다는 뜻이고,
+ * 호출을 나누는 것으로 그걸 지킨다.
+ *
+ * **실패해도 화면을 무너뜨리지 않는다.** 소식은 덧칠이라, 못 받으면 그 층만 비운다.
+ * 여기서만 예외를 삼키는 이유가 그것이다 — 진단은 못 받으면 화면이 의미가 없지만,
+ * 뉴스는 없어도 타임라인이 멀쩡하다.
+ *
+ * 목 모드에는 소식이 없다. **없는 걸 만들어 넣지 않는다** — 순위표와 같은 판단이다.
+ */
+export async function getTeamNews(teamId: number): Promise<TeamNewsResponse> {
+  const empty: TeamNewsResponse = {
+    items: [],
+    coverage: { from: null, to: null, totalItems: 0, retentionDays: 0 },
+  };
+  if (usingMock()) return empty;
+
+  const url = `${baseUrl()}/api/teams/${teamId}/news`;
+  try {
+    const res = await fetch(url, { next: { revalidate: 60 } });
+    if (!res.ok) return empty;
+    return (await res.json()) as TeamNewsResponse;
+  } catch {
+    return empty;
+  }
 }
 
 /** 백엔드 공통 오류 응답(`{timestamp, status, message}`)에서 사람이 읽을 문구만 뽑는다. */

@@ -11,7 +11,15 @@ import { DiagnosisPanel } from "@/components/diagnosis/DiagnosisPanel";
 import { PredictionPanel } from "@/components/prediction/PredictionPanel";
 import { StandingsPanel } from "@/components/standings/StandingsPanel";
 import type { DataSource } from "@/lib/api/client";
-import type { PredictionAccuracy, StandingsTable } from "@/lib/api/types";
+import type {
+  NewsCategory,
+  PredictionAccuracy,
+  StandingsTable,
+  TeamNewsResponse,
+} from "@/lib/api/types";
+import { attachNews, filterByCategory } from "@/lib/news/attach";
+import { NewsFilterBar } from "@/components/news/NewsFilterBar";
+import { NewsLayerNote } from "@/components/news/NewsLayerNote";
 
 const HIGHLIGHT_LABEL: Record<HighlightTag, string> = {
   congestion: "밀집 구간",
@@ -28,11 +36,13 @@ export function MainScreen({
   timeline,
   accuracy,
   standings,
+  news,
   source,
 }: {
   timeline: TimelineVM;
   accuracy: PredictionAccuracy;
   standings: StandingsTable;
+  news: TeamNewsResponse;
   source: DataSource;
 }) {
   // 대화 대본은 진단 결과에서 만들어진다 — 화면과 대화가 다른 숫자를 말하지 않도록.
@@ -43,6 +53,32 @@ export function MainScreen({
   ]);
   const [highlight, setHighlight] = useState<HighlightTag | null>(null);
   const [mode, setMode] = useState<Mode>("timeline");
+  const [newsCategory, setNewsCategory] = useState<NewsCategory | null>(null);
+
+  // 칩 개수는 **거르기 전** 전체에서 센다 — 거른 뒤로 세면 누른 칩만 0이 아니게 된다.
+  const newsCounts = useMemo(() => {
+    const counts: Partial<Record<NewsCategory, number>> = {};
+    for (const item of news.items) {
+      if (item.category) counts[item.category] = (counts[item.category] ?? 0) + 1;
+    }
+    return counts;
+  }, [news.items]);
+
+  const untaggedCount = useMemo(
+    () => news.items.filter((n) => !n.category).length,
+    [news.items],
+  );
+
+  // 거른 뒤에 얹는다 — 칩을 누르면 타임라인 위 배치까지 함께 좁혀진다.
+  const attached = useMemo(
+    () =>
+      attachNews(
+        timeline,
+        filterByCategory(news.items, newsCategory),
+        news.coverage,
+      ),
+    [timeline, news, newsCategory],
+  );
 
   const onAsk = useCallback(
     (key: string) => {
@@ -119,7 +155,33 @@ export function MainScreen({
 
         <div className="flex-1 overflow-y-auto px-7 pb-10 pt-6">
           {mode === "timeline" && (
-            <Timeline timeline={timeline} activeHighlight={highlight} />
+            <>
+              {/* 소식 층 머리말 — 얹을 게 있으면 필터, 없으면 왜 없는지 */}
+              <div className="mb-4">
+                {news.items.length > 0 ? (
+                  <div className="flex flex-col gap-2.5">
+                    <NewsFilterBar
+                      counts={newsCounts}
+                      active={newsCategory}
+                      onChange={setNewsCategory}
+                      total={news.items.length}
+                      untagged={untaggedCount}
+                    />
+                    {attached.status.reason !== "ok" && (
+                      <NewsLayerNote status={attached.status} />
+                    )}
+                  </div>
+                ) : (
+                  <NewsLayerNote status={attached.status} />
+                )}
+              </div>
+
+              <Timeline
+                timeline={timeline}
+                activeHighlight={highlight}
+                news={attached}
+              />
+            </>
           )}
           {mode === "diagnosis" && (
             <DiagnosisPanel timeline={timeline} onInspect={onHighlight} />

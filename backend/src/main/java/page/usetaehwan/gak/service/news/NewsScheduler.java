@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import page.usetaehwan.gak.config.NewsProperties;
 
 /**
  * 주기 수집.
@@ -32,10 +33,28 @@ public class NewsScheduler {
 
 	private final NewsIngestService ingestService;
 	private final NewsTaggingService taggingService;
+	private final NewsProperties properties;
 
-	public NewsScheduler(NewsIngestService ingestService, NewsTaggingService taggingService) {
+	public NewsScheduler(NewsIngestService ingestService,
+	                     NewsTaggingService taggingService,
+	                     NewsProperties properties) {
 		this.ingestService = ingestService;
 		this.taggingService = taggingService;
+		this.properties = properties;
+	}
+
+	/**
+	 * 기동 로그에 수집이 켜져 있음을 남긴다.
+	 *
+	 * <p>스케줄러는 <b>안 도는 것이 조용하다</b> — 설정을 잘못 건드려 꺼져 있어도 아무
+	 * 에러가 없고, 다음 날 "왜 소식이 안 늘지"를 보고서야 안다. RSS 는 과거를 주지 않으니
+	 * 그 사이에 놓친 기사는 영영 못 받는다. 켜져 있다는 사실을 기동 때 한 줄로 남긴다.
+	 */
+	@jakarta.annotation.PostConstruct
+	void announce() {
+		log.info("뉴스 수집 스케줄러 활성: cron={}, 소스 {}개, 보관 {}일",
+				properties.cron(), properties.enabledSources().size(),
+				properties.retention().toDays());
 	}
 
 	@Scheduled(cron = "${gak.news.cron:0 5 * * * *}")

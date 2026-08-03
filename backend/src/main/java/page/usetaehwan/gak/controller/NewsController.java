@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import page.usetaehwan.gak.dto.news.NewsItemResponse;
+import page.usetaehwan.gak.dto.news.TeamNewsResponse;
 import page.usetaehwan.gak.service.news.NewsQueryService;
 
 /**
@@ -38,10 +39,11 @@ public class NewsController {
 	 * @param limit  최대 건수(설정 상한을 넘지 못한다)
 	 */
 	@GetMapping("/api/teams/{teamId}/news")
-	public List<NewsItemResponse> teamNews(@PathVariable Long teamId,
-	                                       @RequestParam(required = false) Integer limit) {
-		return newsQueryService.forTeam(teamId, limit).stream()
+	public TeamNewsResponse teamNews(@PathVariable Long teamId,
+	                                 @RequestParam(required = false) Integer limit) {
+		List<NewsItemResponse> items = newsQueryService.forTeam(teamId, limit).stream()
 				.map(NewsItemResponse::from)
 				.toList();
+		return new TeamNewsResponse(items, newsQueryService.coverageFor(teamId));
 	}
 }

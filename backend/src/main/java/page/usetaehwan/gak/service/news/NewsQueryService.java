@@ -1,11 +1,13 @@
 package page.usetaehwan.gak.service.news;
 
+import java.time.Instant;
 import java.util.List;
 import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import page.usetaehwan.gak.config.NewsProperties;
 import page.usetaehwan.gak.domain.NewsItem;
+import page.usetaehwan.gak.dto.news.TeamNewsResponse;
 import page.usetaehwan.gak.repository.NewsItemRepository;
 
 /**
@@ -41,15 +43,48 @@ public class NewsQueryService {
 	 */
 	@Transactional(readOnly = true)
 	public List<NewsItem> forTeam(Long teamId, Integer limit) {
-		List<String> sourceKeys = properties.enabledSources().stream()
-				.map(NewsProperties.Source::key)
-				.toList();
+		List<String> sourceKeys = enabledKeys();
 		if (teamId == null || sourceKeys.isEmpty()) {
 			return List.of();
 		}
-		int max = (limit == null || limit < 1)
+		return repository.findTeamNews(teamId, sourceKeys, Limit.of(cap(limit)));
+	}
+
+	/**
+	 * 우리가 이 팀에 대해 가진 소식의 범위.
+	 *
+	 * <p>화면이 <b>"왜 비어 있는지"</b>를 말할 수 있게 하는 값이다. 목록과 함께 내려간다.
+	 */
+	@Transactional(readOnly = true)
+	public TeamNewsResponse.Coverage coverageFor(Long teamId) {
+		List<String> sourceKeys = enabledKeys();
+		long retentionDays = properties.retention().toDays();
+		if (teamId == null || sourceKeys.isEmpty()) {
+			return new TeamNewsResponse.Coverage(null, null, 0, retentionDays);
+		}
+		Object[] raw = repository.findCoverageRaw(teamId, sourceKeys);
+		// 집계 쿼리는 행이 없어도 한 줄을 준다 — min/max 가 null 인 줄이다.
+		Object[] row = (raw != null && raw.length == 1 && raw[0] instanceof Object[] inner)
+				? inner : raw;
+		if (row == null || row.length < 3) {
+			return new TeamNewsResponse.Coverage(null, null, 0, retentionDays);
+		}
+		return new TeamNewsResponse.Coverage(
+				(Instant) row[0],
+				(Instant) row[1],
+				row[2] == null ? 0L : ((Number) row[2]).longValue(),
+				retentionDays);
+	}
+
+	private List<String> enabledKeys() {
+		return properties.enabledSources().stream()
+				.map(NewsProperties.Source::key)
+				.toList();
+	}
+
+	private int cap(Integer limit) {
+		return (limit == null || limit < 1)
 				? properties.maxPerTeam()
 				: Math.min(limit, properties.maxPerTeam());
-		return repository.findTeamNews(teamId, sourceKeys, Limit.of(max));
 	}
 }

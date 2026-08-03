@@ -3,6 +3,7 @@ import {
   BackendResponseError,
   MANCHESTER_UNITED_ID,
   getTeamDiagnostics,
+  getTeamNews,
   getTeamPredictions,
   getTeamStandings,
 } from "@/lib/api/client";
@@ -37,16 +38,20 @@ export default async function Home() {
   try {
     // 두 엔드포인트를 나란히 부른다. 서로 다른 속도로 변하는 값이라 API 는 나뉘어
     // 있지만, 화면 한 번 여는 데 왕복을 두 번 기다릴 이유는 없다.
-    const [{ diagnostics, source }, accuracy, standings] = await Promise.all([
-      getTeamDiagnostics({ teamId: MANCHESTER_UNITED_ID }),
-      getTeamPredictions(MANCHESTER_UNITED_ID),
-      getTeamStandings(MANCHESTER_UNITED_ID),
-    ]);
+    const [{ diagnostics, source }, accuracy, standings, news] =
+      await Promise.all([
+        getTeamDiagnostics({ teamId: MANCHESTER_UNITED_ID }),
+        getTeamPredictions(MANCHESTER_UNITED_ID),
+        getTeamStandings(MANCHESTER_UNITED_ID),
+        // 소식은 실패해도 예외를 던지지 않는다 — 없으면 그 층만 빈다.
+        getTeamNews(MANCHESTER_UNITED_ID),
+      ]);
     return (
       <MainScreen
         timeline={buildTimeline(diagnostics)}
         accuracy={accuracy}
         standings={standings}
+        news={news}
         source={source}
       />
     );

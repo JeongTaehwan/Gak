@@ -66,6 +66,21 @@ public interface NewsItemRepository extends JpaRepository<NewsItem, Long> {
 	@Query("delete from NewsItem n where n.publishedAt < :cutoff")
 	int deletePublishedBefore(@Param("cutoff") java.time.Instant cutoff);
 
+	/**
+	 * 우리가 이 팀에 대해 가진 소식이 <b>어느 시점부터 어느 시점까지인가</b>.
+	 *
+	 * <p>화면이 "소식 없음"과 "소식이 있을 수 없음"을 구분하려면 이게 필요하다.
+	 * 목록이 비었을 때 그게 버그인지, 아직 수집 전인지, 보관 기간 밖인지, 지금 보고 있는
+	 * 시즌과 시점이 다른 건지를 개수만 봐서는 알 수 없다.
+	 */
+	@Query("""
+			select min(n.publishedAt), max(n.publishedAt), count(n)
+			from NewsItem n
+			where n.teamId = :teamId and n.sourceKey in :sourceKeys
+			""")
+	Object[] findCoverageRaw(@Param("teamId") Long teamId,
+	                         @Param("sourceKeys") Collection<String> sourceKeys);
+
 	long countBySourceKey(String sourceKey);
 
 	long countByTeamId(Long teamId);

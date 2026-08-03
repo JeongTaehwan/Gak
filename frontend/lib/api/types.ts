@@ -364,3 +364,55 @@ export interface StandingRow {
   /** 지금 보고 있는 팀인가 — 20줄 중 어디를 봐야 하는지. */
   highlighted: boolean;
 }
+
+/* ─────────────────────────────────────────────────────────────
+   뉴스 — `GET /api/teams/{teamId}/news`
+   ───────────────────────────────────────────────────────────── */
+
+/**
+ * 소식의 갈래. **다섯 개뿐이고 여기서 늘지 않는다.**
+ *
+ * 서버가 LLM으로 붙이지만 출력 공간이 닫혀 있어, 최악의 실패가 "배지가 잘못 붙음"으로
+ * 묶인다. `null`은 오류가 아니라 **아직 안 붙었거나 못 붙은 정상 상태**다.
+ */
+export type NewsCategory = "TRANSFER" | "SQUAD" | "MATCH" | "CLUB" | "OTHER";
+
+/** 출처 등급. 같은 문장이라도 누가 말했느냐로 무게가 다르다. */
+export type SourceTier = "OFFICIAL" | "MEDIA";
+
+/**
+ * 소식 한 건. **우리가 쓴 문장이 아니다.**
+ *
+ * 본문·요약은 없다. 서버가 저장하지 않고, 애초에 파싱하지도 않는다 —
+ * 제목만으로 원문을 대체하지 않는 것이 이 층이 존재할 수 있는 근거다.
+ */
+export interface NewsItem {
+  title: string;
+  /** 원문 링크. 사용자는 여기서 우리 사이트를 떠난다 — 그게 설계다. */
+  link: string;
+  publishedAt: string;
+  /** 화면에 **반드시** 보여야 한다. 누가 쓴 글인지 감추지 않는다. */
+  sourceName: string;
+  tier: SourceTier;
+  /** null이면 배지 없이 그린다. */
+  category: NewsCategory | null;
+}
+
+/**
+ * 우리가 가진 소식의 범위.
+ *
+ * 목록이 비었을 때 **왜 비었는지**를 화면이 말할 수 있게 하는 값이다.
+ * 개수만 봐서는 "버그"·"아직 수집 전"·"보관 기간 밖"·"보는 시즌과 시점이 다름"을
+ * 구분할 수 없다.
+ */
+export interface NewsCoverage {
+  from: string | null;
+  to: string | null;
+  totalItems: number;
+  retentionDays: number;
+}
+
+export interface TeamNewsResponse {
+  items: NewsItem[];
+  coverage: NewsCoverage;
+}

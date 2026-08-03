@@ -8,12 +8,21 @@ import {
   CongestionBanner,
   CongestionEndCap,
 } from "@/components/timeline/CongestionBracket";
+import { NewsRail } from "@/components/news/NewsRail";
+import type { AttachedNews } from "@/lib/news/attach";
 
 /**
  * 전 대회 통합 타임라인 — 날짜순 하나의 흐름.
  *   · 경기 간격 = 세로 여백(GapMarker)  · 대회 = 색 뱃지  · 승/무/패 = 이중 부호화
  *   · 밀집 구간 = 앰버 브래킷(시작 배너 → 세로 레일 → 끝 캡)
  *   · activeHighlight 가 있으면 해당 성격의 경기만 강조하고 나머지는 흐린다.
+ *
+ * ## 소식 층
+ * `news`가 있으면 각 경기 **직전 구간**에 그 시기 헤드라인을 얹는다. 밀집 구간 안이면
+ * 앰버 레일 안쪽에 놓여 "이 빡빡한 구간에 무슨 말이 있었나"가 한눈에 붙는다.
+ *
+ * ⚠️ **배치이지 인과가 아니다.** 소식은 진단 문장·근거 카드·AI 프롬프트 어디에도
+ * 들어가지 않는다. 색을 쓰지 않고 점선 안에 넣는 것도 그 구분을 눈으로 유지하기 위해서다.
  *
  * ## 데이터가 적을 때
  * 지금 붙어 있는 실데이터는 팀당 몇 경기뿐이다. 그때 화면이 "밀집 구간 없음"만 보여
@@ -24,9 +33,11 @@ import {
 export function Timeline({
   timeline,
   activeHighlight,
+  news,
 }: {
   timeline: TimelineVM;
   activeHighlight: HighlightTag | null;
+  news?: AttachedNews | null;
 }) {
   const spanById = new Map(timeline.spans.map((s) => [s.id, s]));
 
@@ -76,6 +87,7 @@ export function Timeline({
         const span = cong ? spanById.get(cong.spanId) : undefined;
         // 간격: 밀집 구간 내부 전이면 레일 안, 아니면(휴식/시작 진입) 레일 밖.
         const gapInRail = !!cong && cong.pos !== "start";
+        const rowNews = news?.byRowId.get(row.id) ?? [];
 
         return (
           <Fragment key={row.id}>
@@ -85,6 +97,7 @@ export function Timeline({
               <div className="ml-0.5 border-l-[3px] border-warn pl-2.5">
                 {gapInRail && row.gap && <GapMarker gap={row.gap} inRail />}
                 {cong.pos === "start" && <CongestionBanner span={span} />}
+                <NewsRail items={rowNews} />
                 <MatchCard
                   row={row}
                   emphasis={emphasisOf(row.tags)}
@@ -93,15 +106,22 @@ export function Timeline({
                 {cong.pos === "end" && <CongestionEndCap span={span} />}
               </div>
             ) : (
-              <MatchCard
-                row={row}
-                emphasis={emphasisOf(row.tags)}
-                accent={activeHighlight}
-              />
+              <>
+                <NewsRail items={rowNews} />
+                <MatchCard
+                  row={row}
+                  emphasis={emphasisOf(row.tags)}
+                  accent={activeHighlight}
+                />
+              </>
             )}
           </Fragment>
         );
       })}
+
+      {news && news.trailing.length > 0 && (
+        <NewsRail items={news.trailing} compact />
+      )}
 
       <TimelineTail
         upcoming={timeline.upcomingCount}
