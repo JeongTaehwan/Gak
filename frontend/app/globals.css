@@ -29,8 +29,14 @@
   --color-line-strong: #243040; /* border.strong */
   --color-line-dashed: #3a4a61; /* 점선 보더(빈 상태·플레이스홀더) */
 
+  /* ── Brand ── */
+  /* 로고 잉크. 값은 canvas 와 같지만 역할이 다르다 — canvas 는 "바탕", ink 는 "그리는
+     색"이다. 밝은 배경 위 로고가 쓰는 단색이라 배경 토큰이 바뀌어도 따라 바뀌면 안 된다.
+     (volt 는 다크 전용 액센트다. 흰 배경 대비가 1.18:1 이라 밝은 곳에선 읽히지 않는다. 다크 캔버스 위에서는 17:1.) */
+  --color-ink: #04060a;
+
   /* ── Accent & Semantic ── */
-  --color-volt: #c8ff1e; /* accent.volt — 주 액센트 */
+  --color-volt: #c8ff1e; /* accent.volt — 주 액센트(다크 배경 전용) */
   --color-volt-hi: #e2ff66; /* volt hover */
   --color-win: #2fd575; /* result.win */
   --color-loss: #ff4d5e; /* result.loss */

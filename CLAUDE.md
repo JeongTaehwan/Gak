@@ -127,6 +127,18 @@ controller → service → repository → domain(entity)
 - Next.js는 이 워크스페이스 기준 버전을 쓴다. 코드 작성 전 필요한 API는
   `node_modules/next/dist/docs/` 문서를 먼저 확인한다(학습 데이터와 다를 수 있음).
 
+### 로고·파비콘
+
+- 파비콘은 `app/icon.svg`(App Router 규약 — 자동으로 `<link rel="icon">`이 된다).
+- 로고는 `components/brand/Logo.tsx` — 가로형 `LogoLockup` / 심볼 단독 `LogoSymbol`.
+- **SVG 안에 글자(`<text>`)를 넣지 않는다.** 웹폰트가 안 뜨면 SVG는 대체 글꼴을
+  `viewBox`에 욱여넣어 글자가 눌리거나 잘린다. 심볼은 도형만으로 그리고, "각 GAK"는
+  평범한 HTML 텍스트로 둔다 — 폰트가 없으면 모양만 달라지고 배치는 멀쩡하다.
+- **volt(`#C8FF1E`)는 다크 배경 전용이다.** 흰 배경 대비가 1.18:1 이라 읽히지 않는다(WCAG AA 본문 기준 4.5:1). 잉크는 20:1.
+  밝은 배경에서는 `tone="light"`로 잉크(`--color-ink`) 단색을 쓴다.
+- 파비콘만 예외적으로 잉크 타일(배경)을 직접 들고 있다. 탭 배경색은 우리가 정할 수
+  없기 때문이다.
+
 ---
 
 ## 시크릿 취급 — 절대 금지

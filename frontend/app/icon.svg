@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="각 (Gak)">
+  <!--
+    각(Gak) 파비콘 — 각도 기호(∠). 이름 그대로의 심볼이자, 타임라인이 꺾이는 지점이다.
+    Next.js App Router 규약: app/icon.svg 는 자동으로 <link rel="icon"> 이 된다.
+
+    두 가지를 일부러 지켰다.
+
+    1) 글자(<text>)를 쓰지 않는다. 파비콘은 웹폰트가 로드되기 전에 그려지므로, SVG 안에
+       글자를 넣으면 시스템 폰트로 대체돼 자간·굵기가 시안과 달라지고 잘리기까지 한다.
+       도형만으로 그리면 어디서 열든 같은 모양이다.
+
+    2) 배경(잉크 타일)을 심볼이 직접 들고 있다. 탭 배경색은 브라우저·테마마다 다르고
+       (라이트 테마 탭은 거의 흰색), volt(#C8FF1E)는 흰 배경에서 대비가 모자란다.
+       타일이 자기 배경을 깔면 어느 탭에서든 대비가 보장된다.
+       화면 안의 로고는 반대다 — 거긴 배경을 아니까 타일 없이 단색으로 그리고, 라이트
+       배경에서는 잉크로 바꾼다(components/brand/Logo.tsx).
+
+    색은 토큰과 같은 값이다: ink #04060A(bg.canvas) / volt #C8FF1E(accent.volt).
+    SVG 파일 하나로는 CSS 변수를 쓸 수 없어 값이 박혀 있다 — 토큰을 바꾸면 여기도 함께 고친다.
+  -->
+  <rect width="32" height="32" rx="7" fill="#04060A"/>
+  <path d="M25 24.5 H7.5 L21.5 7.5"
+        fill="none" stroke="#C8FF1E" stroke-width="4.5"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
