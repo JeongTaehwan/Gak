@@ -307,6 +307,48 @@ class AiDiagnosisServiceTest {
 		assertThat(result.unknowns()).containsExactly("상대 강도");
 	}
 
+	@Test
+	@DisplayName("근거가 많이 와도 5건까지만 싣는다 — 결론 카드가 길면 읽히지 않는다")
+	void capsEvidenceSoTheConclusionStaysReadable() {
+		StringBuilder items = new StringBuilder();
+		for (int i = 1; i <= 9; i++) {
+			items.append(i > 1 ? "," : "")
+					.append("{\"claim\":\"근거%d\",\"metric\":\"지표%d\",\"value\":\"값%d\"}"
+							.formatted(i, i, i));
+		}
+		AiDiagnosis result = serviceWith(replying("""
+				{"headline":"밀집이 전반기에 몰렸다","sub":"9~12월에 구간 3개가 집중됐다.",
+				 "evidence":[%s],"unknowns":[]}
+				""".formatted(items))).narrate(healthy());
+
+		assertThat(result.available()).isTrue();
+		assertThat(result.evidence()).hasSize(5);
+		// 앞에서 자른다 — 모델은 중요한 것부터 적는다
+		assertThat(result.evidence().get(0).metric()).isEqualTo("지표1");
+		assertThat(result.evidence().get(4).metric()).isEqualTo("지표5");
+	}
+
+	@Test
+	@DisplayName("반쪽 근거를 버린 뒤에 개수를 센다 — 쓸모없는 것이 자리를 차지하면 안 된다")
+	void countsTheCapAfterDroppingIncompleteItems() {
+		AiDiagnosis result = serviceWith(replying("""
+				{"headline":"밀집이 전반기에 몰렸다","sub":"9~12월에 구간 3개가 집중됐다.",
+				 "evidence":[
+				   {"claim":"a","metric":"","value":""},
+				   {"claim":"b","metric":"","value":""},
+				   {"claim":"c","metric":"","value":""},
+				   {"claim":"d","metric":"","value":""},
+				   {"claim":"e","metric":"","value":""},
+				   {"claim":"살아남는 근거","metric":"밀집 구간 수","value":"3개"}
+				 ],"unknowns":[]}
+				""")).narrate(healthy());
+
+		// 반쪽 5건이 앞자리를 다 먹었지만, 버려진 뒤라 온전한 것이 살아남는다
+		assertThat(result.available()).isTrue();
+		assertThat(result.evidence()).hasSize(1);
+		assertThat(result.evidence().get(0).metric()).isEqualTo("밀집 구간 수");
+	}
+
 	// --- 실패 처리 -------------------------------------------------------------
 
 	@Test

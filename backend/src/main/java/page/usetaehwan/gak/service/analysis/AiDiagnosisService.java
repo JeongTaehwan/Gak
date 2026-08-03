@@ -42,6 +42,16 @@ public class AiDiagnosisService {
 
 	private static final Logger log = LoggerFactory.getLogger(AiDiagnosisService.class);
 
+	/**
+	 * 결론 카드에 실을 근거의 최대 개수.
+	 *
+	 * <p>근거는 <b>많은 것보다 핵심적인 게 낫다.</b> 9건을 늘어놓으면 결론 카드가 길어져
+	 * 읽히지 않고, 무엇이 결정적이었는지도 흐려진다 — 전부 중요하다고 말하는 건 아무것도
+	 * 중요하지 않다고 말하는 것과 같다. 우리가 계산한 지표 전체는 바로 아래 근거 카드에
+	 * 이미 다 있으므로, 여기서는 <b>결론이 무너지지 않으려면 반드시 있어야 할 것</b>만 남긴다.
+	 */
+	private static final int MAX_EVIDENCE = 5;
+
 	private final AnthropicClient client;
 	private final ObjectMapper objectMapper;
 
@@ -177,6 +187,13 @@ public class AiDiagnosisService {
 			log.warn("AI 진단에 쓸 수 있는 근거가 없어 폐기");
 			return AiDiagnosis.unavailable("AI 결론에 근거 수치가 없어 사용하지 않습니다");
 		}
+		if (evidence.size() > MAX_EVIDENCE) {
+			// 프롬프트로 3~5개를 요청하지만 모델은 지시를 흘릴 수 있다. 화면 계약은 코드가 지킨다.
+			// 앞에서 자르는 게 맞다 — 모델은 중요한 것부터 적고, 스키마 순서상 evidence 가
+			// 맨 앞이라 결론을 쓰기 전에 고른 것들이다.
+			log.info("AI 진단 근거 {}건 중 상위 {}건만 사용", evidence.size(), MAX_EVIDENCE);
+			evidence = evidence.subList(0, MAX_EVIDENCE);
+		}
 
 		List<String> unknowns = new ArrayList<>();
 		for (JsonNode u : root.path("unknowns")) {
@@ -239,7 +256,9 @@ public class AiDiagnosisService {
 		// 근거 → 결론 → 부연 → 모르는 것. 모델은 이 순서로 생성한다.
 		Map<String, Object> properties = new LinkedHashMap<>();
 		properties.put("evidence", field("array",
-				"결론의 근거가 될 지표. **가장 먼저 채운다.** 최소 1개. "
+				"결론의 근거가 될 지표. **가장 먼저 채운다.** "
+						+ "결론을 떠받치는 **핵심 3~5개만** 고른다 — 받은 지표를 전부 옮겨 적는 게 아니라, "
+						+ "이 결론이 무너지지 않으려면 반드시 있어야 할 것만 남긴다. "
 						+ "받은 지표에서 그대로 인용하며, 세 칸을 모두 채운다",
 				Map.entry("items", evidenceItem())));
 		properties.put("headline", field("string",
