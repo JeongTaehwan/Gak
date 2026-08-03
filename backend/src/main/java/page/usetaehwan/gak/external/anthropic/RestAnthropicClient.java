@@ -88,6 +88,11 @@ public class RestAnthropicClient implements AnthropicClient {
 		if (response == null) {
 			return AnthropicResult.failed(AnthropicResult.Failure.MALFORMED);
 		}
+		// 원본을 남긴다. "형식은 맞는데 내용이 없는" 응답은 우리 DTO 만 봐서는 원인을 못 찾는다 —
+		// stop_reason·usage.thinking_tokens 까지 봐야 잘린 건지, 안 생각한 건지 갈린다.
+		if (log.isDebugEnabled()) {
+			log.debug("Anthropic 원본 응답:\n{}", response.toPrettyString());
+		}
 		return parse(response);
 	}
 

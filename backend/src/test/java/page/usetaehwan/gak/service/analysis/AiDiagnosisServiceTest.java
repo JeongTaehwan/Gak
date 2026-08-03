@@ -194,6 +194,119 @@ class AiDiagnosisServiceTest {
 		assertThat(result.unknowns()).contains("선수 개개인의 기여도");
 	}
 
+	// --- 빈 껍데기 거부 ---------------------------------------------------------
+	//
+	// 여기가 이 파일에서 가장 중요한 구역이다. 형식이 틀린 응답은 파싱이 알아서 걸러 주지만,
+	// **형식은 맞고 내용만 없는 응답**은 그냥 통과해 버린다. 그러면 화면 배지가 "AI 분석"으로
+	// 바뀐 채 빈 문장이 뜬다 — 실패했으면 규칙 기반 문장이 남았을 텐데, 성공한 척하는 쪽이
+	// 더 나쁘다. 아래는 전부 실제로 모델이 보냈거나 보낼 수 있는 모양이다.
+
+	@Test
+	@DisplayName("실제로 겪은 빈 껍데기 — headline/sub 가 'placeholder' 이고 근거 칸이 빈 응답")
+	void rejectsTheRealWorldPlaceholderResponse() {
+		AiDiagnosis result = serviceWith(replying("""
+				{"headline":"placeholder","sub":"placeholder",
+				 "evidence":[{"claim":"시즌 전반기에 밀집 구간이 집중됐다","metric":"","value":""}],
+				 "unknowns":[]}
+				""")).narrate(healthy());
+
+		assertThat(result.available()).isFalse();
+		assertThat(result.unavailableReason()).isNotBlank();
+	}
+
+	@Test
+	@DisplayName("required 를 만족해도 빈 값이면 통과시키지 않는다 — 스키마는 '키 존재'만 보장한다")
+	void requiredKeysWithEmptyValuesAreNotEnough() {
+		// 모든 키가 있고 타입도 맞다. 스키마 검증은 통과하는 응답이다.
+		AiDiagnosis result = serviceWith(replying("""
+				{"headline":"","sub":"","evidence":[],"unknowns":[]}
+				""")).narrate(healthy());
+
+		assertThat(result.available()).isFalse();
+	}
+
+	@Test
+	@DisplayName("근거가 required 인데 빈 배열로 와도 거부한다 (실제로 겪은 응답)")
+	void rejectsEmptyEvidenceArray() {
+		AiDiagnosis result = serviceWith(replying("""
+				{"headline":"밀집은 시즌 전반부에 몰렸다","sub":"구간 3개가 9~12월에 있다.",
+				 "evidence":[],"unknowns":[]}
+				""")).narrate(healthy());
+
+		assertThat(result.available()).isFalse();
+		assertThat(result.unavailableReason()).contains("근거");
+	}
+
+	@Test
+	@DisplayName("자리만 채운 문자열도 빈 값으로 본다 — N/A, -, 없음 등")
+	void treatsFillerStringsAsEmpty() {
+		for (String filler : new String[] {"placeholder", "N/A", "-", "없음", "TBD", "...", "null"}) {
+			AiDiagnosis result = serviceWith(replying("""
+					{"headline":"%s","sub":"밀집 구간 3개가 전반부에 몰려 있다.",
+					 "evidence":[{"claim":"a","metric":"b","value":"c"}],"unknowns":[]}
+					""".formatted(filler))).narrate(healthy());
+
+			assertThat(result.available()).as("결론이 %s", filler).isFalse();
+		}
+	}
+
+	@Test
+	@DisplayName("결론과 부연이 글자까지 같으면 한 문자열로 두 칸을 때운 것이다")
+	void rejectsIdenticalHeadlineAndSub() {
+		AiDiagnosis result = serviceWith(replying("""
+				{"headline":"일정이 빡빡했다","sub":"일정이 빡빡했다",
+				 "evidence":[{"claim":"a","metric":"b","value":"c"}],"unknowns":[]}
+				""")).narrate(healthy());
+
+		assertThat(result.available()).isFalse();
+	}
+
+	@Test
+	@DisplayName("근거 항목은 세 칸이 다 차야 한다 — 한 칸이라도 비면 그 항목을 버린다")
+	void dropsEvidenceItemsWithEmptySlots() {
+		AiDiagnosis result = serviceWith(replying("""
+				{"headline":"밀집 구간이 전반부에 몰렸다","sub":"9~12월에 3개가 집중됐다.",
+				 "evidence":[
+				   {"claim":"값 없는 근거","metric":"최단 간격","value":""},
+				   {"claim":"지표 없는 근거","metric":"","value":"3일"},
+				   {"claim":"제대로 된 근거","metric":"밀집 구간 수","value":"3개"}
+				 ],"unknowns":[]}
+				""")).narrate(healthy());
+
+		// 온전한 것 하나가 남았으므로 결론은 살린다
+		assertThat(result.available()).isTrue();
+		assertThat(result.evidence()).hasSize(1);
+		assertThat(result.evidence().get(0).metric()).isEqualTo("밀집 구간 수");
+	}
+
+	@Test
+	@DisplayName("근거가 전부 반쪽이면 남는 게 없으므로 결론째 버린다")
+	void rejectsWhenEveryEvidenceItemIsIncomplete() {
+		AiDiagnosis result = serviceWith(replying("""
+				{"headline":"밀집 구간이 전반부에 몰렸다","sub":"9~12월에 3개가 집중됐다.",
+				 "evidence":[
+				   {"claim":"a","metric":"최단 간격","value":""},
+				   {"claim":"b","metric":"","value":"3일"}
+				 ],"unknowns":[]}
+				""")).narrate(healthy());
+
+		assertThat(result.available()).isFalse();
+		assertThat(result.unavailableReason()).contains("근거");
+	}
+
+	@Test
+	@DisplayName("unknowns 의 빈 항목은 조용히 걷어낸다 — 이건 결론을 무효로 만들지 않는다")
+	void stripsEmptyUnknownsWithoutFailing() {
+		AiDiagnosis result = serviceWith(replying("""
+				{"headline":"밀집 구간이 전반부에 몰렸다","sub":"9~12월에 3개가 집중됐다.",
+				 "evidence":[{"claim":"a","metric":"b","value":"c"}],
+				 "unknowns":["상대 강도",""," ","N/A"]}
+				""")).narrate(healthy());
+
+		assertThat(result.available()).isTrue();
+		assertThat(result.unknowns()).containsExactly("상대 강도");
+	}
+
 	// --- 실패 처리 -------------------------------------------------------------
 
 	@Test

@@ -3,8 +3,10 @@ package page.usetaehwan.gak.service.analysis;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -114,75 +116,173 @@ public class AiDiagnosisService {
 	}
 
 	/**
-	 * 응답 JSON을 DTO로.
+	 * 응답 JSON을 DTO로 옮기고 <b>내용이 있는지</b> 검증한다.
 	 *
-	 * <p>스키마를 걸었어도 파싱은 방어적으로 한다. 스키마 강제는 서버가 지켜 주지만,
-	 * 우리가 스키마를 잘못 쓴 경우까지 막아 주진 않는다.
+	 * <h2>왜 스키마만으로 부족한가</h2>
+	 * <p>구조화 출력의 {@code required}는 <b>"키가 있어야 한다"</b>는 뜻이지
+	 * <b>"값이 비어 있으면 안 된다"</b>가 아니다. {@code ""} 도, {@code []} 도 required 를
+	 * 만족한다. 그리고 {@code minLength}·{@code minItems} 같은 제약은 구조화 출력이
+	 * 지원하지 않으므로 <b>스키마로는 "비어 있지 않음"을 표현할 수 없다.</b>
+	 *
+	 * <p>실제로 모델이 이렇게 답한 적이 있다 — 형식은 완벽하고 내용만 없다.
+	 * <pre>
+	 * {"headline":"placeholder","sub":"placeholder",
+	 *  "evidence":[{"claim":"밀집이 집중됐다","metric":"","value":""}],"unknowns":[]}
+	 * </pre>
+	 *
+	 * <p>이걸 성공으로 치면 <b>화면 배지가 "AI 분석"으로 바뀐 채 빈 껍데기가 뜬다.</b>
+	 * 실패했으면 규칙 기반 문장이 남았을 텐데, 성공한 척하는 쪽이 더 나쁘다 —
+	 * 사용자는 우리가 분석했다고 믿고 그 빈 문장을 읽는다.
 	 */
 	private AiDiagnosis parse(String json) {
+		JsonNode root;
 		try {
-			JsonNode root = objectMapper.readTree(json);
-			String headline = root.path("headline").asText("");
-			String sub = root.path("sub").asText("");
-
-			List<AiDiagnosis.Evidence> evidence = new ArrayList<>();
-			for (JsonNode e : root.path("evidence")) {
-				evidence.add(new AiDiagnosis.Evidence(
-						e.path("claim").asText(""),
-						e.path("metric").asText(""),
-						e.path("value").asText("")));
-			}
-
-			List<String> unknowns = new ArrayList<>();
-			for (JsonNode u : root.path("unknowns")) {
-				unknowns.add(u.asText());
-			}
-
-			if (headline.isBlank() || evidence.isEmpty()) {
-				// 근거 없는 결론은 받지 않는다 — 스키마가 막았어야 할 것이 새어 나온 경우다.
-				log.warn("AI 진단에 결론 또는 근거가 없어 폐기: headline={}, evidence={}",
-						headline.isBlank() ? "(없음)" : "있음", evidence.size());
-				return AiDiagnosis.unavailable("AI 응답에 근거가 없어 사용하지 않습니다");
-			}
-			return AiDiagnosis.of(headline, sub, evidence, unknowns);
+			root = objectMapper.readTree(json);
 		} catch (Exception e) {
 			log.warn("AI 진단 응답 파싱 실패: {}", e.toString());
 			return AiDiagnosis.unavailable("AI 응답을 읽지 못했습니다");
 		}
+
+		String headline = root.path("headline").asText("").trim();
+		String sub = root.path("sub").asText("").trim();
+
+		if (isFiller(headline) || isFiller(sub)) {
+			log.warn("AI 진단이 빈 껍데기라 폐기: headline={}, sub={}", quote(headline), quote(sub));
+			return AiDiagnosis.unavailable("AI가 내용 없는 응답을 보내 사용하지 않습니다");
+		}
+		// 결론과 부연이 글자까지 같으면 모델이 같은 문자열로 두 칸을 때운 것이다.
+		if (headline.equals(sub)) {
+			log.warn("AI 진단의 결론과 부연이 동일해 폐기: {}", quote(headline));
+			return AiDiagnosis.unavailable("AI가 내용 없는 응답을 보내 사용하지 않습니다");
+		}
+
+		// 근거는 세 칸이 모두 차 있어야 근거다. 한 칸이라도 비면 그 항목을 버린다 —
+		// "지표 이름 없는 값"이나 "값 없는 지표"는 검증할 수 없는 문장일 뿐이다.
+		List<AiDiagnosis.Evidence> evidence = new ArrayList<>();
+		int dropped = 0;
+		for (JsonNode e : root.path("evidence")) {
+			String claim = e.path("claim").asText("").trim();
+			String metric = e.path("metric").asText("").trim();
+			String value = e.path("value").asText("").trim();
+			if (isFiller(claim) || isFiller(metric) || isFiller(value)) {
+				dropped++;
+				continue;
+			}
+			evidence.add(new AiDiagnosis.Evidence(claim, metric, value));
+		}
+		if (dropped > 0) {
+			log.warn("AI 진단 근거 {}건이 비어 있어 버림 (남은 {}건)", dropped, evidence.size());
+		}
+		if (evidence.isEmpty()) {
+			log.warn("AI 진단에 쓸 수 있는 근거가 없어 폐기");
+			return AiDiagnosis.unavailable("AI 결론에 근거 수치가 없어 사용하지 않습니다");
+		}
+
+		List<String> unknowns = new ArrayList<>();
+		for (JsonNode u : root.path("unknowns")) {
+			String text = u.asText("").trim();
+			if (!isFiller(text)) {
+				unknowns.add(text);
+			}
+		}
+		return AiDiagnosis.of(headline, sub, evidence, unknowns);
+	}
+
+	/**
+	 * 값이 비었거나 <b>자리만 채운 문자열</b>인가.
+	 *
+	 * <p>빈 문자열만 막으면 부족하다 — 모델은 required 를 만족시키려고 {@code "placeholder"},
+	 * {@code "N/A"}, {@code "-"} 같은 걸 넣는다. 형식 검사는 통과하고 사람만 속는 값들이다.
+	 */
+	private static boolean isFiller(String value) {
+		if (value == null || value.isBlank()) {
+			return true;
+		}
+		String v = value.trim().toLowerCase();
+		return FILLER_VALUES.contains(v) || v.chars().allMatch(c -> c == '-' || c == '.' || c == '?');
+	}
+
+	/** 모델이 빈칸을 때울 때 쓰는 값들. 소문자로 비교한다. */
+	private static final Set<String> FILLER_VALUES = Set.of(
+			"placeholder", "n/a", "na", "tbd", "todo", "none", "null", "unknown",
+			"string", "example", "example value", "value", "metric", "claim",
+			"없음", "미정", "해당없음", "알수없음", "알 수 없음", "미상");
+
+	/** 로그용 — 너무 길면 자른다. */
+	private static String quote(String s) {
+		String t = s.length() > 40 ? s.substring(0, 40) + "…" : s;
+		return "\"" + t + "\"";
 	}
 
 	/**
 	 * 응답 스키마.
 	 *
-	 * <p>{@code evidence}가 {@code required}에 들어 있는 게 핵심이다 — 이 한 줄이
-	 * "결론에 근거 수치가 반드시 붙는다"를 <b>부탁이 아니라 계약으로</b> 만든다.
-	 * {@code additionalProperties: false}는 모델이 우리가 모르는 필드를 만들어 붙이는 걸
-	 * 막는다.
+	 * <h2>순서가 의미를 갖는다 — 그래서 {@link LinkedHashMap} 이다</h2>
+	 * <p>{@code Map.of()} 는 <b>순서를 보장하지 않는다</b>(JVM 마다 무작위로 섞인다).
+	 * 구조화 출력에서 모델은 스키마에 적힌 순서대로 필드를 생성하므로, 순서가 섞이면
+	 * <b>결론을 먼저 쓰고 근거를 나중에 찾는</b> 실행 순서가 나온다. 실제로 그렇게 돌았고,
+	 * 그때 나온 게 근거 없는 결론이었다.
+	 *
+	 * <p>그래서 <b>{@code evidence} 를 맨 앞에 둔다.</b> 모델이 근거가 될 수치를 먼저
+	 * 적어 놓고 그걸 보며 결론을 쓰게 하는 것 — 사람이 자료를 펼쳐 놓고 요약문을 쓰는
+	 * 순서와 같다. 반대로 하면 결론에 맞는 근거를 나중에 끼워 맞추게 된다.
+	 *
+	 * <h2>스키마로 막을 수 없는 것</h2>
+	 * <p>{@code required} 는 <b>"키가 있어야 한다"</b>는 뜻일 뿐이라 {@code ""} 와
+	 * {@code []} 를 막지 못하고, {@code minLength}·{@code minItems} 는 구조화 출력이
+	 * 지원하지 않는다. <b>"비어 있지 않음"은 스키마로 표현할 수 없다</b> — 그래서
+	 * {@link #parse(String)} 가 코드로 검증한다.
 	 */
-	private static final Map<String, Object> RESPONSE_SCHEMA = Map.of(
-			"type", "object",
-			"properties", Map.of(
-					"headline", Map.of(
-							"type", "string",
-							"description", "한 줄 결론. 30자 안팎"),
-					"sub", Map.of(
-							"type", "string",
-							"description", "결론을 뒷받침하는 2~3문장"),
-					"evidence", Map.of(
-							"type", "array",
-							"description", "결론의 근거가 된 지표. 최소 1개",
-							"items", Map.of(
-									"type", "object",
-									"properties", Map.of(
-											"claim", Map.of("type", "string", "description", "주장"),
-											"metric", Map.of("type", "string", "description", "근거가 된 지표 이름"),
-											"value", Map.of("type", "string", "description", "그 값. 받은 숫자를 그대로")),
-									"required", List.of("claim", "metric", "value"),
-									"additionalProperties", false)),
-					"unknowns", Map.of(
-							"type", "array",
-							"description", "이 결론을 더 확실히 하려면 필요하지만 갖고 있지 않은 정보",
-							"items", Map.of("type", "string"))),
-			"required", List.of("headline", "sub", "evidence", "unknowns"),
-			"additionalProperties", false);
+	private static final Map<String, Object> RESPONSE_SCHEMA = schema();
+
+	private static Map<String, Object> schema() {
+		// 근거 → 결론 → 부연 → 모르는 것. 모델은 이 순서로 생성한다.
+		Map<String, Object> properties = new LinkedHashMap<>();
+		properties.put("evidence", field("array",
+				"결론의 근거가 될 지표. **가장 먼저 채운다.** 최소 1개. "
+						+ "받은 지표에서 그대로 인용하며, 세 칸을 모두 채운다",
+				Map.entry("items", evidenceItem())));
+		properties.put("headline", field("string",
+				"위 evidence 를 근거로 한 줄 결론. 30자 안팎"));
+		properties.put("sub", field("string",
+				"결론을 뒷받침하는 2~3문장. evidence 의 수치를 문장 안에 녹인다"));
+		properties.put("unknowns", field("array",
+				"이 결론을 더 확실히 하려면 필요하지만 갖고 있지 않은 정보",
+				Map.entry("items", Map.of("type", "string"))));
+
+		Map<String, Object> root = new LinkedHashMap<>();
+		root.put("type", "object");
+		root.put("properties", properties);
+		root.put("required", List.of("evidence", "headline", "sub", "unknowns"));
+		root.put("additionalProperties", false);
+		return root;
+	}
+
+	private static Map<String, Object> evidenceItem() {
+		Map<String, Object> props = new LinkedHashMap<>();
+		props.put("metric", field("string", "근거가 된 지표 이름. 예: \"구간 내 최단 간격\""));
+		props.put("value", field("string", "그 값. 받은 숫자를 그대로. 예: \"3일\""));
+		props.put("claim", field("string", "이 수치가 무엇을 말하는지 한 문장"));
+
+		Map<String, Object> item = new LinkedHashMap<>();
+		item.put("type", "object");
+		item.put("properties", props);
+		// metric·value 를 claim 보다 앞에 둔다 — 수치를 먼저 적고 나서 해석하게.
+		item.put("required", List.of("metric", "value", "claim"));
+		item.put("additionalProperties", false);
+		return item;
+	}
+
+	@SafeVarargs
+	private static Map<String, Object> field(
+			String type, String description, Map.Entry<String, Object>... extras) {
+		Map<String, Object> f = new LinkedHashMap<>();
+		f.put("type", type);
+		f.put("description", description);
+		for (Map.Entry<String, Object> e : extras) {
+			f.put(e.getKey(), e.getValue());
+		}
+		return f;
+	}
 }
+

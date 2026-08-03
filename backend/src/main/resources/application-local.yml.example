@@ -54,6 +54,6 @@ gak:
     key: ""
     # 아래는 전부 선택. 기본값이 application.yml 에 있다.
     # model: claude-opus-5
-    # effort: low       # 계산된 지표를 문장으로 옮기는 일이라 깊은 추론이 불필요
+    # effort: medium    # low 는 사고 토큰이 0 이 되어 근거 없는 결론이 나온다
     # max-tokens: 4096  # 사고 + 응답을 합친 상한
-    # timeout: 30s      # 넘기면 규칙 기반 문장을 그대로 둔다
+    # timeout: 60s      # medium 실측 26초. 넘기면 규칙 기반 문장을 그대로 둔다

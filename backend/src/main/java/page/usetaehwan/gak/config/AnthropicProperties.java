@@ -12,7 +12,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @param baseUrl   API 베이스 URL
  * @param key       API 키. <b>비어 있으면 AI 진단 비활성</b>
  * @param model     모델 id
- * @param effort    추론 강도(low/medium/high/xhigh/max). 진단 문장은 짧은 서술이라 낮게 잡는다
+ * @param effort    추론 강도(low/medium/high/xhigh/max).
+ *                  <b>low 는 쓰지 말 것</b> — 사고 토큰이 0 이 되어 근거 없는 결론이 나온다
  * @param maxTokens 응답 상한. <b>사고(thinking) + 응답 텍스트를 합친 한도</b>라 넉넉해야 한다
  * @param timeout   응답 대기 상한. 넘기면 규칙 기반으로 되돌아간다
  */
@@ -29,11 +30,11 @@ public record AnthropicProperties(
 	public AnthropicProperties {
 		baseUrl = orDefault(baseUrl, "https://api.anthropic.com");
 		model = orDefault(model, "claude-opus-5");
-		effort = orDefault(effort, "low");
+		effort = orDefault(effort, "medium");
 		// 이 모델은 사고가 기본으로 켜져 있고, maxTokens 는 사고와 응답을 함께 덮는다.
 		// 짧은 진단 문장이라도 사고에 쓸 자리를 남기지 않으면 답이 중간에 잘린다.
 		maxTokens = (maxTokens == null || maxTokens < 1024) ? 4096 : maxTokens;
-		timeout = timeout == null ? Duration.ofSeconds(30) : timeout;
+		timeout = timeout == null ? Duration.ofSeconds(60) : timeout;
 	}
 
 	/** AI 진단을 쓸 수 있는 상태인가. */
