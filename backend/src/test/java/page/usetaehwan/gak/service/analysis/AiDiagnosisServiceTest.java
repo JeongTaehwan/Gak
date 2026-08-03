@@ -14,6 +14,7 @@ import page.usetaehwan.gak.domain.Pick;
 import page.usetaehwan.gak.dto.analysis.AnalysisWindow;
 import page.usetaehwan.gak.dto.analysis.CongestionReport;
 import page.usetaehwan.gak.dto.analysis.FormSummary;
+import page.usetaehwan.gak.dto.analysis.OpponentStrength;
 import page.usetaehwan.gak.dto.analysis.SampleConfidence;
 import page.usetaehwan.gak.dto.analysis.TeamDiagnostics;
 import page.usetaehwan.gak.dto.analysis.TravelSummary;
@@ -88,6 +89,7 @@ class AiDiagnosisServiceTest {
 				new CongestionReport(14, 5, detectable, 40, 4, 3, 3.0, List.of()),
 				new FormSummary(6, formSample, recentPicks(formSample), 3, 1, 2, 10,
 						formSample * 3, pointsRate, null, confidence),
+				OpponentStrength.unmeasured(formSample),
 				new TravelSummary(
 						Instant.parse("2023-08-11T19:00:00Z"),
 						Instant.parse("2024-05-19T15:00:00Z"),

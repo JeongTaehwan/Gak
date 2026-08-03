@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 import page.usetaehwan.gak.domain.AbsenceReason;
 import page.usetaehwan.gak.dto.analysis.CongestionSpanView;
 import page.usetaehwan.gak.dto.analysis.Omission;
+import page.usetaehwan.gak.dto.analysis.OpponentStrength;
 import page.usetaehwan.gak.dto.analysis.TeamDiagnostics;
 
 /**
@@ -57,15 +58,18 @@ final class DiagnosisPromptFactory {
 			   - 선수 개개인의 기량·중요도·컨디션 (누가 빠져서 전력이 얼마나 떨어졌는지)
 			   - 전술·포메이션·감독의 선택
 			   - 팀 분위기·사기·라커룸 상황
-			   - 상대 팀의 강함/약함 (순위 데이터가 없습니다)
+			   - 선수 영입·이적, 구단 재정, 감독 교체 같은 팀 바깥 사정
 			   위 항목이 결론에 필요하다고 판단되면, 그 사실을 unknowns 에 적으세요.
 			2. 모든 주장에는 근거 수치가 붙어야 합니다. evidence 없이 서술하지 마세요.
 			   "일정이 빡빡했다" 같은 문장은 그 자체로 근거가 아닙니다 —
 			   어떤 수치가 그렇게 말하는지 함께 적으세요.
-			3. 상관과 인과를 구분하세요. "밀집 구간에 성적이 나빴다"는 관측이고,
+			3. 상대 순위가 주어지면 반드시 함께 읽으세요. "4패"와 "4패인데 셋이 상위권
+			   상대였다"는 전혀 다른 말입니다. 다만 순위를 매기지 못한 경기(컵 대회,
+			   시즌 초)가 있으면 그 사실도 함께 적으세요 — 분모가 다릅니다.
+			4. 상관과 인과를 구분하세요. "밀집 구간에 성적이 나빴다"는 관측이고,
 			   "밀집이 원인이다"는 주장입니다. 후자를 말하려면 그럴 만한 근거가 있어야 하고,
 			   없으면 관측으로만 적으세요.
-			4. 데이터가 일부만 있는 지표(부분합·일부 경기만 측정)를 전체인 것처럼 말하지 마세요.
+			5. 데이터가 일부만 있는 지표(부분합·일부 경기만 측정)를 전체인 것처럼 말하지 마세요.
 
 			## 출력
 			- headline: 한 줄 결론. 30자 안팎. 근거의 요지가 드러나야 합니다.
@@ -147,6 +151,28 @@ final class DiagnosisPromptFactory {
 					.append("\n");
 		}
 
+		// --- 상대 강도 ---
+		var o = d.opponentStrength();
+		sb.append("\n## 상대 강도 (그 경기 시점의 순위)\n");
+		if (!o.available()) {
+			sb.append("- 순위를 매길 수 없었습니다(컵 대회이거나 시즌 초). 상대의 강약을 말하지 마세요\n");
+		} else {
+			sb.append("- 순위를 매긴 경기: ").append(o.measured()).append("경기");
+			if (o.unmeasured() > 0) {
+				sb.append(" (나머지 ").append(o.unmeasured())
+						.append("경기는 컵이거나 시즌 초라 순위 없음 — 아래 숫자의 분모가 아닙니다)");
+			}
+			sb.append("\n");
+			sb.append("- 상대 평균 순위 ").append(o.averageRank()).append("위 (")
+					.append(o.tableSize()).append("팀 중)\n");
+			sb.append("- 상위권 기준: ").append(o.topCut()).append("위 이내\n");
+			sb.append("  · 상위권 상대: ").append(splitLine(o.vsTop())).append("\n");
+			sb.append("  · 그 외 상대: ").append(splitLine(o.vsRest())).append("\n");
+			if (!o.deductionsKnown()) {
+				sb.append("- 승점 삭감을 확인하지 못했습니다. 순위가 실제와 다를 수 있습니다\n");
+			}
+		}
+
 		// --- 결장 ---
 		var a = d.absences();
 		sb.append("\n## 결장 (부상·징계·질병 등)\n");
@@ -197,6 +223,19 @@ final class DiagnosisPromptFactory {
 		return sb.toString();
 	}
 
+
+	/** 상위권/그 외 성적 한 줄. 표본이 얇으면 비율을 적지 않는다. */
+	private static String splitLine(OpponentStrength.Split s) {
+		if (s.matches() == 0) {
+			return "만난 적 없음";
+		}
+		String line = "%d경기 %d승 %d무 %d패, 승점 %d/%d"
+				.formatted(s.matches(), s.wins(), s.draws(), s.losses(), s.points(), s.maxPoints());
+		return s.pointsRate() == null
+				? line + " (표본이 작아 승점률은 내지 않았습니다 — 비율로 말하지 마세요)"
+				: line + ", 승점률 %d%%".formatted(Math.round(s.pointsRate() * 100));
+	}
+
 	/** Instant 를 날짜만 남긴 문자열로 — 모델에게 초 단위 정밀도는 필요 없다. */
 	private static String day(Instant instant) {
 		return LocalDate.ofInstant(instant, ZoneOffset.UTC).toString();
@@ -233,6 +272,8 @@ final class DiagnosisPromptFactory {
 		}
 		lines.add("선수 개개인의 기량·중요도: 수집하지 않습니다. 누가 빠졌는지는 알아도 "
 				+ "그 선수가 팀에 얼마나 중요한지는 모릅니다.");
+		lines.add("컵 대회 상대의 강함: 컵에는 순위표가 없어 순위를 매기지 못합니다. "
+				+ "컵에서 강팀을 이겼어도 위 상대 강도에는 잡히지 않습니다.");
 		lines.add("전술·포메이션·라인업: 수집하지 않습니다.");
 		lines.add("팀 분위기·사기: 데이터로 잴 수 없습니다.");
 		return lines;

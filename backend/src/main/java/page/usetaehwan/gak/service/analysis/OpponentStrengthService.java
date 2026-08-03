@@ -114,6 +114,37 @@ public class OpponentStrengthService {
 	}
 
 	/**
+	 * 경기별 <b>그 시점 상대 순위</b>. 화면이 "vs 아스날 (2위)"를 그릴 수 있게 한다.
+	 *
+	 * <p>순위를 말할 수 없는 경기(컵이거나 시즌 초)는 <b>맵에 넣지 않는다</b> —
+	 * 0이나 -1 로 채우면 화면이 그걸 순위로 그린다.
+	 */
+	@Transactional(readOnly = true)
+	public Map<Long, Integer> ranksByFixture(Long teamId, List<Fixture> matches) {
+		Map<TableKey, List<Fixture>> leagueCache = new HashMap<>();
+		Map<TableKey, Map<Long, Integer>> deductionCache = new HashMap<>();
+		Map<Long, Integer> out = new HashMap<>();
+
+		for (Fixture f : matches) {
+			if (f.getCompetition().getType() != CompetitionType.LEAGUE || f.getKickoff() == null) {
+				continue;
+			}
+			TableKey key = new TableKey(f.getCompetition().getId(), f.getSeason());
+			List<Fixture> all = leagueCache.computeIfAbsent(key, k ->
+					fixtureRepository.findByCompetitionIdAndSeasonOrderByKickoffAsc(k.competitionId(), k.season()));
+			Map<Long, Integer> deductions = deductionCache.computeIfAbsent(key, this::deductionsFor);
+
+			long opponentId = f.getHomeTeam().getId().equals(teamId)
+					? f.getAwayTeam().getId() : f.getHomeTeam().getId();
+			Integer rank = LeagueTable.at(all, f.getKickoff(), deductions).rankOf(opponentId);
+			if (rank != null) {
+				out.put(f.getId(), rank);
+			}
+		}
+		return out;
+	}
+
+	/**
 	 * 팀별 승점 삭감분.
 	 *
 	 * <p>순위표의 승점(삭감 반영됨)과, 같은 경기 수까지의 우리 계산 승점을 견준다.

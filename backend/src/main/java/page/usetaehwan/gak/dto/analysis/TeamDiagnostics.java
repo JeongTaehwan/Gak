@@ -32,6 +32,7 @@ public record TeamDiagnostics(
 		List<MatchLoad> matches,
 		CongestionReport congestion,
 		FormSummary form,
+		OpponentStrength opponentStrength,
 		TravelSummary travel,
 		AbsenceSummary absences,
 		List<Omission> omissions

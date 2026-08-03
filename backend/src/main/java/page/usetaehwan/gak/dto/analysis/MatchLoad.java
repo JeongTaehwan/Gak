@@ -63,6 +63,8 @@ public record MatchLoad(
 		CompetitionType competitionType,
 		long opponentId,
 		String opponentName,
+		/** 이 경기 <b>직전</b>의 상대 리그 순위. 컵이거나 시즌 초라 말할 수 없으면 null */
+		Integer opponentRank,
 		boolean home,
 		FixtureStatus status,
 		Pick result,

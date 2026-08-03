@@ -30,6 +30,7 @@ import page.usetaehwan.gak.dto.analysis.CongestionSpanView;
 import page.usetaehwan.gak.dto.analysis.FormSummary;
 import page.usetaehwan.gak.dto.analysis.MatchLoad;
 import page.usetaehwan.gak.dto.analysis.Omission;
+import page.usetaehwan.gak.dto.analysis.OpponentStrength;
 import page.usetaehwan.gak.dto.analysis.SampleConfidence;
 import page.usetaehwan.gak.dto.analysis.TeamDiagnostics;
 import page.usetaehwan.gak.dto.analysis.TravelSummary;
@@ -79,15 +80,18 @@ public class TeamDiagnosticsService {
 	private final FixtureRepository fixtureRepository;
 	private final TeamRepository teamRepository;
 	private final AbsenceRepository absenceRepository;
+	private final OpponentStrengthService opponentStrengthService;
 	private final Clock clock;
 
 	public TeamDiagnosticsService(FixtureRepository fixtureRepository,
+	                              OpponentStrengthService opponentStrengthService,
 	                              TeamRepository teamRepository,
 	                              AbsenceRepository absenceRepository,
 	                              Clock clock) {
 		this.fixtureRepository = fixtureRepository;
 		this.teamRepository = teamRepository;
 		this.absenceRepository = absenceRepository;
+		this.opponentStrengthService = opponentStrengthService;
 		this.clock = clock;
 	}
 
@@ -117,15 +121,23 @@ public class TeamDiagnosticsService {
 				? CongestionDetector.detect(schedule.epochDays(), options.windowDays(), options.minMatches())
 				: List.of();
 
+		FormResult form = toFormSummary(teamId, all, options.formSize(), omissions);
+		// 경기별 상대 순위 — 타임라인이 "vs 아스날 (2위)"를 그릴 수 있게
+		Map<Long, Integer> rankByFixture = opponentStrengthService.ranksByFixture(teamId, all);
+		// 상대 강도는 폼과 **같은 경기 목록**을 본다. 각자 고르면 분모가 어긋난다.
+		OpponentStrength opponents = opponentStrengthService.of(teamId, form.recentFixtures());
+		noteOpponentLimits(opponents, omissions);
+
 		return new TeamDiagnostics(
 				team.getId(),
 				team.displayName(),
 				team.getCode(),
 				Instant.now(clock),
 				schedule.window(all.size()),
-				toMatchLoads(teamId, schedule, spans, outByFixture),
+				toMatchLoads(teamId, schedule, spans, outByFixture, rankByFixture),
 				toCongestionReport(schedule, spans, options, omissions),
-				toFormSummary(teamId, all, options.formSize(), omissions),
+				form.summary(),
+				opponents,
 				toTravelSummary(schedule, options, omissions),
 				toAbsenceSummary(schedule, absences, omissions),
 				List.copyOf(omissions));
@@ -210,7 +222,8 @@ public class TeamDiagnosticsService {
 	// --- 경기별 부하 ---------------------------------------------------------
 
 	private List<MatchLoad> toMatchLoads(Long teamId, Schedule schedule, List<IndexSpan> spans,
-	                                     Map<Long, Integer> outByFixture) {
+	                                     Map<Long, Integer> outByFixture,
+	                                     Map<Long, Integer> rankByFixture) {
 		Map<Integer, Integer> spanIdByIndex = indexToSpanId(spans);
 		List<MatchLoad> loads = new ArrayList<>(schedule.size());
 
@@ -238,6 +251,8 @@ public class TeamDiagnosticsService {
 					competition.getType(),
 					opponent.getId(),
 					opponent.displayName(),
+					// 컵이거나 시즌 초라 순위를 말할 수 없으면 null — 0으로 채우지 않는다
+					rankByFixture.get(fixture.getId()),
 					home,
 					fixture.getStatus(),
 					fixture.resultFor(teamId),
@@ -488,8 +503,17 @@ public class TeamDiagnosticsService {
 
 	// --- 폼 ------------------------------------------------------------------
 
-	private FormSummary toFormSummary(Long teamId, List<Fixture> all, int formSize,
-	                                  List<Omission> omissions) {
+	/**
+	 * 폼 요약과 <b>그 계산에 쓰인 경기 목록</b>을 함께 돌려준다.
+	 *
+	 * <p>상대 강도는 "이 6경기의 상대가 누구였나"를 묻는 것이라 <b>폼과 정확히 같은 목록</b>을
+	 * 봐야 한다. 각자 다시 고르면 "6경기 4패"와 "5경기 상대 평균 8위"처럼 분모가 어긋난다.
+	 */
+	private record FormResult(FormSummary summary, List<Fixture> recentFixtures) {
+	}
+
+	private FormResult toFormSummary(Long teamId, List<Fixture> all, int formSize,
+	                                 List<Omission> omissions) {
 		// 결과가 확정된 경기만. LIVE는 아직 사실이 아니라 여기서 빠진다(SchedulePolicy 참고).
 		List<Fixture> finished = all.stream().filter(SchedulePolicy::countsForForm).toList();
 		List<Fixture> recentFixtures = finished.size() <= formSize
@@ -527,14 +551,41 @@ public class TeamDiagnosticsService {
 					SampleConfidence.MIN_SAMPLE_FOR_RATE, sampleSize)));
 		}
 
-		// 상대 강도 = 붙은 상대들의 순위 평균. 우리는 순위표를 저장하지 않는다(API의 /standings를
-		// 아직 동기화하지 않는다). 없는 값을 "평균 10위" 같은 그럴듯한 기본값으로 채우면
-		// 다음 단계의 AI 진단이 그걸 사실로 읽는다. 그래서 null + 이유로 남긴다.
-		omissions.add(Omission.of("opponentStrength",
-				"상대 강도는 순위 데이터가 필요합니다. 현재 순위표(/standings)를 동기화하지 않아 계산을 생략합니다."));
+		// FormSummary.opponentStrength(Double) 는 "상대 순위 평균" 한 칸짜리 옛 자리다.
+		// 이제 OpponentStrength 가 그것보다 많은 걸 담으므로(상위권/그 외 분리, 분모, 한계)
+		// 여기서는 채우지 않고 TeamDiagnostics 최상위에 따로 싣는다.
+		return new FormResult(
+				new FormSummary(formSize, sampleSize, List.copyOf(recent),
+						wins, draws, losses, points, maxPoints, pointsRate, null, confidence),
+				recentFixtures);
+	}
 
-		return new FormSummary(formSize, sampleSize, List.copyOf(recent),
-				wins, draws, losses, points, maxPoints, pointsRate, null, confidence);
+
+	/**
+	 * 상대 강도가 <b>말하지 못하는 것</b>을 남긴다.
+	 *
+	 * <p>값이 나왔다고 끝이 아니다. 컵 경기에는 순위가 없고, 시즌 초 상대는 경기 수가 얇아
+	 * 순위를 매기지 않는다. 그 경기들이 분모에서 빠졌다는 사실을 밝히지 않으면 "6경기 상대
+	 * 평균 8위"가 실제로는 4경기 기준이라는 걸 아무도 모른다.
+	 */
+	private void noteOpponentLimits(OpponentStrength o, List<Omission> omissions) {
+		if (!o.available()) {
+			omissions.add(Omission.of("opponentStrength",
+					"상대 강도를 낼 수 없습니다. 최근 경기가 컵 대회이거나(순위표가 없습니다) "
+							+ "상대의 경기 수가 적어 순위를 말할 수 없는 시점입니다."));
+			return;
+		}
+		if (o.unmeasured() > 0) {
+			omissions.add(Omission.of("opponentStrength",
+					"최근 %d경기 중 %d경기는 상대 순위를 매기지 못했습니다(컵 대회이거나 시즌 초). "
+							.formatted(o.measured() + o.unmeasured(), o.unmeasured())
+							+ "아래 상대 강도는 나머지 %d경기 기준입니다.".formatted(o.measured())));
+		}
+		if (!o.deductionsKnown()) {
+			omissions.add(Omission.of("opponentStrength",
+					"순위표를 동기화하지 않아 승점 삭감을 확인하지 못했습니다. "
+							+ "삭감된 팀이 있으면 순위가 실제와 다를 수 있습니다."));
+		}
 	}
 
 	// --- 이동거리 ------------------------------------------------------------
