@@ -16,6 +16,7 @@
  * 3경기로 "일정이 문제다"라고 말하면 그건 진단이 아니라 추측이다. 이 앱은 근거로
  * 말하는 게 존재 이유라, 판정 불가일 때는 **판정 불가라고 결론 낸다.**
  */
+import type { AbsenceReason } from "@/lib/api/types";
 import type {
   Diagnosis,
   DiagnosisCard,
@@ -29,6 +30,7 @@ const OMISSION_LABEL: Record<string, string> = {
   pointsRate: "승점률",
   opponentStrength: "상대 강도",
   travelDistance: "이동거리",
+  absences: "결장 데이터 범위",
 };
 
 /**
@@ -37,10 +39,18 @@ const OMISSION_LABEL: Record<string, string> = {
  * 하필 우리가 못 보는 것들이라, 이걸 안 밝히면 진단이 실제보다 완전해 보인다.
  */
 const STRUCTURAL_UNKNOWNS: UnknownItem[] = [
-  { label: "부상 영향", reason: "선수 데이터를 동기화하지 않습니다", structural: true },
   { label: "전술 변화", reason: "포메이션·라인업을 다루지 않습니다", structural: true },
   { label: "라커룸 분위기", reason: "애초에 데이터로 잴 수 없습니다", structural: true },
 ];
+
+/** 결장 갈래 라벨. "부상"으로 뭉뚱그리지 않는다 — 징계·질병이 섞여 있다. */
+const REASON_LABEL: Record<AbsenceReason, string> = {
+  INJURY: "부상",
+  SUSPENSION: "징계",
+  ILLNESS: "질병",
+  NATIONAL_DUTY: "대표팀 차출",
+  OTHER: "기타",
+};
 
 export function buildDiagnosis(t: Timeline): Diagnosis {
   return {
@@ -53,6 +63,18 @@ export function buildDiagnosis(t: Timeline): Diagnosis {
         reason: o.reason,
         structural: false,
       })),
+      // 결장 데이터를 아직 안 받았다면 그것도 "모르는 것"이다. 받았다면 이미 omissions
+      // 쪽에서 커버 범위를 말하므로 여기 또 적지 않는다.
+      ...(t.absences.covered
+        ? []
+        : [
+            {
+              label: "결장(부상·징계)",
+              reason:
+                "이 팀의 결장 데이터를 아직 동기화하지 않았습니다. POST /api/admin/sync/injuries/{teamId}?season=",
+              structural: false,
+            },
+          ]),
       ...STRUCTURAL_UNKNOWNS,
     ],
   };
@@ -143,7 +165,30 @@ function cards(t: Timeline): DiagnosisCard[] {
     });
   }
 
-  // ④ 이동거리 — 잰 경기가 있을 때만. 부분합이면 그 사실을 detail에 밝힌다.
+  // ④ 결장 — "부상"이 아니라 "결장"이다. 징계·질병이 섞여 있다.
+  if (t.absences.covered && t.absences.totalOut > 0) {
+    const a = t.absences;
+    const breakdown = (Object.entries(a.byReason) as [AbsenceReason, number][])
+      .filter(([, n]) => n > 0)
+      .sort((x, y) => y[1] - x[1])
+      .map(([k, n]) => `${REASON_LABEL[k]} ${n}`)
+      .join(" · ");
+    const worst = a.topAbsentees[0];
+
+    out.push({
+      key: "absence",
+      value: `경기당 ${a.averagePerCoveredMatch}명`,
+      tone: (a.averagePerCoveredMatch ?? 0) >= 5 ? "loss" : "draw",
+      label: "확정 결장 인원",
+      detail:
+        `${breakdown}. 한 경기 최대 ${a.maxOutInOneMatch}명` +
+        (worst ? `, 최다 결장은 ${worst.playerName} ${worst.matches}경기` : "") +
+        `. ${a.coveredMatches}/${a.analyzedMatches}경기만 데이터가 있어 나머지는 '0명'이 아니라 '모름'이다.`,
+      highlight: null,
+    });
+  }
+
+  // ⑤ 이동거리 — 잰 경기가 있을 때만. 부분합이면 그 사실을 detail에 밝힌다.
   if (tr.measuredMatches > 0 && tr.totalKm != null) {
     out.push({
       key: "travel",

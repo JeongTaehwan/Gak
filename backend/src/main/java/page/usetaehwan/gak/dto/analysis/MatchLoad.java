@@ -51,6 +51,8 @@ import page.usetaehwan.gak.domain.Pick;
  * @param congestionSpanId     소속된 밀집 구간 id. 밀집이 아니면 null
  * @param extraMinutes         정규시간 초과 소화 시간(분). 연장 없으면 0
  * @param travelKm             이 경기를 위한 이동거리(km). 홈경기는 0, 좌표를 모르면 <b>null</b>
+ * @param absentCount          이 경기에 빠진 확정 결장 인원. <b>결장 데이터가 없는 경기는 null</b>
+ *                             — 0(아무도 안 빠짐)과 "모름"은 다르다
  */
 public record MatchLoad(
 		long fixtureId,
@@ -71,6 +73,7 @@ public record MatchLoad(
 		Integer gapDays,
 		Integer congestionSpanId,
 		int extraMinutes,
-		Double travelKm
+		Double travelKm,
+		Integer absentCount
 ) {
 }

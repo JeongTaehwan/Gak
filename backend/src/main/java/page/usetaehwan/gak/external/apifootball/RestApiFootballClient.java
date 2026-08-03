@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -16,6 +17,7 @@ import page.usetaehwan.gak.config.ApiFootballProperties;
 import page.usetaehwan.gak.domain.SyncSource;
 import page.usetaehwan.gak.external.apifootball.dto.ApiFootballEnvelope;
 import page.usetaehwan.gak.external.apifootball.dto.FixtureItem;
+import page.usetaehwan.gak.external.apifootball.dto.InjuryItem;
 
 /**
  * 실제 API-Football 호출. {@code gak.api-football.mode=real} 일 때만 빈으로 올라온다.
@@ -57,14 +59,43 @@ public class RestApiFootballClient implements ApiFootballClient {
 	@Override
 	public FixturesFetch fetchFixtures(long leagueId, int season) {
 		String context = "fixtures league=" + leagueId + " season=" + season;
-		ResponseEntity<String> entity;
+		String body = get("/fixtures", Map.of("league", leagueId, "season", season), context,
+				ReplayResources.fixturesFileName(leagueId, season));
 
+		// errors 필드 확인은 파서가 한다(실 호출/재생 공통 경로).
+		ApiFootballEnvelope<FixtureItem> envelope = parser.parse(body, FixtureItem.class, context, 1);
+		return new FixturesFetch(envelope.responseOrEmpty(), 1);
+	}
+
+	@Override
+	public InjuriesFetch fetchInjuries(long teamId, int season) {
+		String context = "injuries team=" + teamId + " season=" + season;
+		String body = get("/injuries", Map.of("team", teamId, "season", season), context,
+				ReplayResources.injuriesFileName(teamId, season));
+
+		ApiFootballEnvelope<InjuryItem> envelope = parser.parse(body, InjuryItem.class, context, 1);
+		return new InjuriesFetch(envelope.responseOrEmpty(), 1);
+	}
+
+	/**
+	 * GET 한 번 — 오류 처리와 capture 를 한곳에 모은다.
+	 *
+	 * <p>엔드포인트가 늘 때마다 이 30줄을 복사하면, 언젠가 한 곳에서만 타임아웃 처리를
+	 * 빠뜨린다. 그 빠뜨림은 "스케줄러 스레드가 붙잡혀 그날 동기화가 통째로 멈추는" 방식으로만
+	 * 드러난다.
+	 *
+	 * @param captureFileName 받은 원본을 저장할 파일명(replay 규약)
+	 */
+	private String get(String path, Map<String, Object> params, String context,
+	                   String captureFileName) {
+		ResponseEntity<String> entity;
 		try {
 			entity = restClient.get()
-					.uri(uri -> uri.path("/fixtures")
-							.queryParam("league", leagueId)
-							.queryParam("season", season)
-							.build())
+					.uri(uri -> {
+						uri.path(path);
+						params.forEach(uri::queryParam);
+						return uri.build();
+					})
 					.retrieve()
 					// 4xx/5xx 도 할당량은 이미 나간 것으로 본다 → consumed = 1
 					.onStatus(HttpStatusCode::isError, (request, response) -> {
@@ -85,11 +116,8 @@ public class RestApiFootballClient implements ApiFootballClient {
 
 		String body = entity.getBody();
 		logRemainingQuota(entity);
-		capture(leagueId, season, body);
-
-		// errors 필드 확인은 파서가 한다(실 호출/재생 공통 경로).
-		ApiFootballEnvelope<FixtureItem> envelope = parser.parse(body, FixtureItem.class, context, 1);
-		return new FixturesFetch(envelope.responseOrEmpty(), 1);
+		capture(captureFileName, body);
+		return body;
 	}
 
 	private void logRemainingQuota(ResponseEntity<String> entity) {
@@ -103,12 +131,12 @@ public class RestApiFootballClient implements ApiFootballClient {
 	 * 받은 원본을 replay 파일명 규약대로 저장한다. 실패해도 동기화를 막지 않는다
 	 * — 이미 할당량을 쓴 응답이므로 파일 저장 실패로 버릴 이유가 없다.
 	 */
-	private void capture(long leagueId, int season, String body) {
+	private void capture(String fileName, String body) {
 		String dir = properties.captureDir();
 		if (dir == null || dir.isBlank() || body == null) {
 			return;
 		}
-		Path target = Path.of(dir).resolve(ReplayResources.fixturesFileName(leagueId, season));
+		Path target = Path.of(dir).resolve(fileName);
 		try {
 			Files.createDirectories(target.getParent());
 			Files.writeString(target, body, StandardCharsets.UTF_8);

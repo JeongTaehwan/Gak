@@ -9,6 +9,8 @@
  *    끝냈고, 여기서 다시 하면 두 곳이 서로 다른 답을 내기 시작한다.
  */
 import type {
+  AbsenceReason,
+  AbsentPlayer,
   FixtureStatus,
   Omission,
   SampleConfidence,
@@ -82,6 +84,8 @@ export interface TimelineRow {
   gap: Gap | null;
   /** 밀집 구간 소속(아니면 null). */
   congestion: RowCongestion | null;
+  /** 이 경기 확정 결장 인원. 결장 데이터가 없는 경기는 null(0과 다르다). */
+  absentCount: number | null;
   /** 강조 매칭 태그. */
   tags: HighlightTag[];
 }
@@ -147,6 +151,24 @@ export interface Form {
   pointsRate: number | null;
 }
 
+/**
+ * 결장 요약 — "부상"이 아니라 "결장"이다. 징계·질병·감독 결정이 함께 오기 때문이다.
+ */
+export interface Absences {
+  covered: boolean;
+  coveredMatches: number;
+  analyzedMatches: number;
+  totalOut: number;
+  distinctPlayers: number;
+  maxOutInOneMatch: number;
+  /** "경기당 3.4명" 계산에 쓰는 값. 분모는 데이터가 있는 경기 수다. */
+  averagePerCoveredMatch: number | null;
+  byReason: Partial<Record<AbsenceReason, number>>;
+  topAbsentees: AbsentPlayer[];
+  /** "44/52경기 · 확정 결장 290명 · 경기당 6.6명" */
+  summary: string;
+}
+
 /** 화면 상단이 쓰는 팀 요약. */
 export interface TeamSummary {
   id: number;
@@ -201,6 +223,7 @@ export interface Timeline {
   congestion: CongestionStatus;
   form: Form;
   travel: Travel;
+  absences: Absences;
   diagnosis: Diagnosis;
   /** 계산하지 못한 지표와 그 이유 — 화면이 정직하게 밝힌다. */
   omissions: Omission[];
@@ -210,4 +233,4 @@ export interface Timeline {
   excludedCount: number;
 }
 
-export type { FixtureStatus, Omission, SampleConfidence };
+export type { AbsenceReason, AbsentPlayer, FixtureStatus, Omission, SampleConfidence };

@@ -7,12 +7,14 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import page.usetaehwan.gak.domain.SyncLog;
 import page.usetaehwan.gak.dto.SyncLogResponse;
 import page.usetaehwan.gak.dto.SyncReportResponse;
 import page.usetaehwan.gak.external.apifootball.ApiFootballClient;
 import page.usetaehwan.gak.repository.SyncLogRepository;
+import page.usetaehwan.gak.service.sync.AbsenceSyncService;
 import page.usetaehwan.gak.service.sync.FixtureSyncService;
 import page.usetaehwan.gak.service.sync.RequestBudget;
 
@@ -30,15 +32,18 @@ import page.usetaehwan.gak.service.sync.RequestBudget;
 public class SyncAdminController {
 
 	private final FixtureSyncService syncService;
+	private final AbsenceSyncService absenceSyncService;
 	private final SyncLogRepository syncLogRepository;
 	private final RequestBudget requestBudget;
 	private final ApiFootballClient client;
 
 	public SyncAdminController(FixtureSyncService syncService,
+	                           AbsenceSyncService absenceSyncService,
 	                           SyncLogRepository syncLogRepository,
 	                           RequestBudget requestBudget,
 	                           ApiFootballClient client) {
 		this.syncService = syncService;
+		this.absenceSyncService = absenceSyncService;
 		this.syncLogRepository = syncLogRepository;
 		this.requestBudget = requestBudget;
 		this.client = client;
@@ -73,6 +78,20 @@ public class SyncAdminController {
 	@PostMapping("/{competitionId}")
 	public SyncLogResponse syncOne(@PathVariable Long competitionId) {
 		return SyncLogResponse.from(syncService.syncCompetition(competitionId));
+	}
+
+	/**
+	 * 한 팀의 결장 기록을 동기화한다({@code /injuries}).
+	 *
+	 * <p>스케줄러가 없어 이 통로가 유일한 실행 수단이다 — 팀 단위 호출만 검증돼 있어
+	 * 주기 실행에 넣기 전에 범위를 정해야 한다({@code AbsenceSyncService} 주석 참고).
+	 * real 모드에서는 호출 1회당 요청 1회를 소모한다.
+	 */
+	@PostMapping("/injuries/{teamId}")
+	public AbsenceSyncService.AbsenceSyncResult syncInjuries(
+			@PathVariable Long teamId,
+			@RequestParam int season) {
+		return absenceSyncService.sync(teamId, season);
 	}
 
 	/** 최근 이력 50건 — 무엇이 언제 돌았고 왜 실패했는지. */

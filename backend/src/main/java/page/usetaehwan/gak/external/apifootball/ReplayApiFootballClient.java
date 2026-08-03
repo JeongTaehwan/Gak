@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 import page.usetaehwan.gak.domain.SyncSource;
 import page.usetaehwan.gak.external.apifootball.dto.ApiFootballEnvelope;
 import page.usetaehwan.gak.external.apifootball.dto.FixtureItem;
+import page.usetaehwan.gak.external.apifootball.dto.InjuryItem;
 
 /**
  * 저장된 응답을 재생하는 클라이언트. <b>이쪽이 기본값이다.</b>
@@ -51,5 +52,17 @@ public class ReplayApiFootballClient implements ApiFootballClient {
 
 		// 재생은 할당량을 쓰지 않는다 → requestCount = 0.
 		return new FixturesFetch(envelope.responseOrEmpty(), 0);
+	}
+
+	@Override
+	public InjuriesFetch fetchInjuries(long teamId, int season) {
+		String fileName = ReplayResources.injuriesFileName(teamId, season);
+		String body = replayResources.read(fileName);
+		String context = "replay " + fileName;
+
+		ApiFootballEnvelope<InjuryItem> envelope = parser.parse(body, InjuryItem.class, context, 0);
+		log.debug("replay {} → 결장 {}건", fileName, envelope.responseOrEmpty().size());
+
+		return new InjuriesFetch(envelope.responseOrEmpty(), 0);
 	}
 }

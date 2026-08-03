@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import page.usetaehwan.gak.domain.Competition;
 import page.usetaehwan.gak.domain.CompetitionType;
@@ -25,6 +26,7 @@ import page.usetaehwan.gak.repository.FixtureRepository;
 import page.usetaehwan.gak.repository.PredictionRepository;
 import page.usetaehwan.gak.repository.TeamRepository;
 import page.usetaehwan.gak.service.PredictionScoringService.ScoringReport;
+import page.usetaehwan.gak.support.DatabaseCleaner;
 
 /**
  * 채점 배치. 예측 생성이 "킥오프 이전에만"이라면 채점은 그 반대쪽 짝이고, 둘이 다 있어야
@@ -34,11 +36,13 @@ import page.usetaehwan.gak.service.PredictionScoringService.ScoringReport;
  * <b>모르는 것을 틀린 것으로 만들지 않는지</b>, 그리고 <b>몇 번을 돌려도 같은지</b>.
  */
 @SpringBootTest
+@Import(DatabaseCleaner.class)
 @ActiveProfiles("test")
 class PredictionScoringServiceTest {
 
 	private static final long EPL = 39L;
 
+	@Autowired DatabaseCleaner databaseCleaner;
 	@Autowired PredictionScoringService scoringService;
 	@Autowired PredictionRepository predictionRepository;
 	@Autowired FixtureRepository fixtureRepository;
@@ -51,10 +55,7 @@ class PredictionScoringServiceTest {
 
 	@BeforeEach
 	void reset() {
-		predictionRepository.deleteAll();
-		fixtureRepository.deleteAll();
-		teamRepository.deleteAll();
-		competitionRepository.deleteAll();
+		databaseCleaner.clearAllButCompetitions();
 
 		league = competitionRepository.save(Competition.builder()
 				.id(EPL).name("Premier League").nameKo("프리미어리그").shortNameKo("리그")

@@ -38,6 +38,7 @@ import type {
   CongestionStatus,
   HighlightTag,
   RowCongestion,
+  Absences,
   Timeline,
   TimelineRow,
   Travel,
@@ -112,6 +113,7 @@ export function buildTimeline(d: TeamDiagnostics): Timeline {
               label: gapLabel(m.gapDays),
             },
       congestion: rowCongestion,
+      absentCount: m.absentCount,
       tags,
     };
   });
@@ -138,6 +140,7 @@ export function buildTimeline(d: TeamDiagnostics): Timeline {
     competitionsPresent,
     congestion: congestionStatus(d),
     travel: travelSummary(d),
+    absences: absenceSummary(d),
     form: {
       recent: d.form.recent,
       sampleSize: d.form.sampleSize,
@@ -260,6 +263,42 @@ function travelSummary(d: TeamDiagnostics): Travel {
     measuredMatches: t.measuredMatches,
     unknownCoordinateMatches: t.unknownCoordinateMatches,
     totalKm: t.totalKm,
+    summary,
+  };
+}
+
+/**
+ * 결장 요약.
+ *
+ * 평균의 분모를 전체 경기 수가 아니라 **데이터가 있는 경기 수**로 잡는다. 52경기 중
+ * 44경기만 데이터가 있는데 52로 나누면 "경기당 5.6명"이 되고, 실제(6.6명)보다 적어
+ * 보인다. 데이터가 없는 8경기를 "0명"으로 세는 셈이기 때문이다.
+ */
+function absenceSummary(d: TeamDiagnostics): Absences {
+  const a = d.absences;
+  const avg =
+    a.covered && a.coveredMatches > 0 ? a.totalOut / a.coveredMatches : null;
+
+  const summary = !a.covered
+    ? "결장 데이터 없음"
+    : [
+        `${a.coveredMatches}/${a.analyzedMatches}경기 확인`,
+        `확정 결장 ${a.totalOut}명`,
+        avg != null ? `경기당 ${avg.toFixed(1)}명` : null,
+      ]
+        .filter(Boolean)
+        .join(" · ");
+
+  return {
+    covered: a.covered,
+    coveredMatches: a.coveredMatches,
+    analyzedMatches: a.analyzedMatches,
+    totalOut: a.totalOut,
+    distinctPlayers: a.distinctPlayers,
+    maxOutInOneMatch: a.maxOutInOneMatch,
+    averagePerCoveredMatch: avg == null ? null : Math.round(avg * 10) / 10,
+    byReason: a.byReason,
+    topAbsentees: a.topAbsentees,
     summary,
   };
 }

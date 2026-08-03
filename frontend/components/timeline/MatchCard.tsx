@@ -87,6 +87,19 @@ export function MatchCard({
         {row.opponent}
       </span>
 
+      {/*
+        확정 결장 인원. null 은 "데이터 없음"이라 아무것도 그리지 않는다 — "0명"으로
+        그리면 데이터가 없는 경기를 "전원 출전"으로 읽게 된다.
+      */}
+      {row.absentCount != null && row.absentCount > 0 && (
+        <span
+          className="shrink-0 rounded-badge bg-loss/10 px-2 py-[3px] text-[11px] font-extrabold text-loss"
+          title={`확정 결장 ${row.absentCount}명 (부상·징계 등)`}
+        >
+          결장 {row.absentCount}
+        </span>
+      )}
+
       {/* 승부차기 — 결과 집계는 무승부지만 진출 여부는 따로 밝힌다 */}
       {row.shootoutNote && (
         <span className="shrink-0 rounded-badge bg-comp-cup/12 px-2 py-[3px] text-[11px] font-extrabold text-comp-cup">

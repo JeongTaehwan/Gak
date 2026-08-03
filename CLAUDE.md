@@ -19,6 +19,48 @@ gak/
 
 ---
 
+## 🚩 2026-08-21 (시즌 개막) 전에 반드시 할 일
+
+지금 화면에 뜨는 데이터는 **실제 경기가 아니다.** `src/test/resources/apifootball/`의
+replay 파일은 파이프라인 갈래를 태우려고 만든 표본 10경기이고, 시즌 라벨만 2024다.
+개막에 맞춰 실제 데이터를 받을 때 아래를 순서대로 한다.
+
+1. **현재 시즌 캡처** — `mode: real` + `capture-dir`로 한 번 돌린다(대회당 요청 1회).
+   ```bash
+   ./gradlew bootRun --args='--spring.profiles.active=local \
+     --gak.api-football.mode=real \
+     --gak.api-football.capture-dir=src/test/resources/apifootball \
+     --gak.sync.max-competitions-per-run=1'
+   ```
+2. **⚠️ `season-override: 2024` 를 지운다** (`application-local.yml`).
+   **이걸 잊는 게 가장 위험하다.** 앱은 정상으로 보이는데 화면에는 2년 전 일정만 계속
+   나온다 — 아무 에러도 안 뜨므로 눈치채기까지 오래 걸린다.
+   확인: `select distinct season from fixture;` 또는 `/api/admin/sync/logs`의 season 값.
+3. **예측·채점을 실제로 돌려 본다.** 미래 경기가 생기면 그때부터 예측을 걸 수 있고
+   (지금은 모든 경기가 과거라 `POST /api/predictions`가 400), 경기가 끝나면 채점
+   스케줄러가 매시 30분에 집어 간다.
+4. **`/teams` 응답도 함께 캡처한다.** 팀 한글명 시드(`team-names-ko.json`)가 지금
+   **영문 이름 문자열을 키로** 쓰는데, 이름은 언제든 바뀐다(`Bayern Munich` ↔
+   `Bayern München`). 팀 id로 바꾸고 싶지만 대조할 원본이 없어 미뤄 뒀다 — 대회 시드가
+   `CompetitionSeedTest`로 검증되는 것과 같은 장치를 팀에도 붙인다.
+5. **결장(부상) 데이터의 리그 단위 조회가 되는지 확인한다.**
+   지금 실제 응답으로 검증된 건 **팀 단위 1요청**뿐이다(`/injuries?team=33&season=2023`).
+   이대로면 20개 대회로 확장이 안 된다 — 대회당 팀이 20개면 그것만 400요청이고,
+   하루 예산은 100이다.
+   현재 시즌을 캡처할 때 아래를 **함께 시도**해서 되는지 본다.
+   ```bash
+   curl -s -H "x-apisports-key: $API_FOOTBALL_KEY" \
+     "https://v3.football.api-sports.io/injuries?league=39&season=2026" \
+     | head -c 400
+   ```
+   - **되면** → 대회 단위 동기화(대회당 1요청)로 바꾸고 경기 동기화와 같은 스케줄에 태운다.
+   - **안 되면**(`errors`에 파라미터 오류) → 팀 단위로 남기되 **노출 중인 팀만** 받는
+     식으로 범위를 좁힌다. 전 팀 동기화는 예산상 불가능하다는 걸 그때 확정한다.
+   - 어느 쪽이든 확인 전까지 스케줄러를 만들지 않는다. 되는지도 모르는 채 예산을
+     태우는 게 제일 나쁘다. (그래서 지금은 수동 실행만 열려 있다)
+
+---
+
 ## 계층 규칙 (backend) — 단방향
 
 ```
@@ -50,6 +92,12 @@ controller → service → repository → domain(entity)
 - `CompetitionType`(LEAGUE/CUP/HYBRID)은 **시드가 직접 정한다**
   (`resources/seeds/competitions.json`). API의 `league.type`은 League/Cup 두 값뿐이라
   조별리그+녹아웃인 유럽대항전(HYBRID)을 표현하지 못한다.
+- **결장은 `Injury`가 아니라 `Absence`다.** API 엔드포인트 이름은 `/injuries`지만 실제
+  응답에는 징계(`Suspended`·`Red Card`)·질병·대표팀 차출·감독 결정이 섞여 온다
+  (맨유 2023 시즌 346건 중 35건). 전부 "부상"으로 세면 화면이 "부상 5명"이라 말하는데
+  둘은 징계인 상태가 된다. 사유 원문(`reasonRaw`)은 보관하고 갈래(`AbsenceReason`)로
+  따로 나눈다. `Questionable`(불투명)은 결장자 수에 **넣지 않는다** — 합치면 부풀어 오른다.
+  그리고 결장 데이터가 없는 경기의 `absentCount`는 **0이 아니라 null**이다.
 - **대회는 id로만 다룬다.** 이름은 유일하지 않다 — "Serie A"는 이탈리아(135)와
   브라질(71)에 모두 있고, 여자부·유소년·하부 리그가 거의 같은 이름을 쓴다
   (DFB Pokal 81 / 여자 947 / 유소년 715). 시드 id는 테스트가 실제 `/leagues` 응답과

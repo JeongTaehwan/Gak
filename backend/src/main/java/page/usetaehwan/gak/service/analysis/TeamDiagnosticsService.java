@@ -5,18 +5,25 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import page.usetaehwan.gak.domain.Absence;
+import page.usetaehwan.gak.domain.AbsenceReason;
 import page.usetaehwan.gak.domain.Competition;
 import page.usetaehwan.gak.domain.Fixture;
 import page.usetaehwan.gak.domain.Pick;
 import page.usetaehwan.gak.domain.Score;
 import page.usetaehwan.gak.domain.Team;
 import page.usetaehwan.gak.domain.Venue;
+import page.usetaehwan.gak.dto.analysis.AbsenceSummary;
 import page.usetaehwan.gak.dto.analysis.AnalysisWindow;
 import page.usetaehwan.gak.dto.analysis.CongestionReport;
 import page.usetaehwan.gak.dto.analysis.CongestionSpanView;
@@ -26,6 +33,7 @@ import page.usetaehwan.gak.dto.analysis.Omission;
 import page.usetaehwan.gak.dto.analysis.SampleConfidence;
 import page.usetaehwan.gak.dto.analysis.TeamDiagnostics;
 import page.usetaehwan.gak.dto.analysis.TravelSummary;
+import page.usetaehwan.gak.repository.AbsenceRepository;
 import page.usetaehwan.gak.repository.FixtureRepository;
 import page.usetaehwan.gak.repository.TeamRepository;
 import page.usetaehwan.gak.service.analysis.CongestionDetector.IndexSpan;
@@ -65,15 +73,21 @@ public class TeamDiagnosticsService {
 	/** "값 없음"을 뜻하는 간격(목록의 첫 경기). */
 	private static final int NO_GAP = -1;
 
+	/** 결장 상위 명단에 몇 명까지 실을지. 화면 한 블록에 들어가는 만큼만. */
+	private static final int TOP_ABSENTEES = 5;
+
 	private final FixtureRepository fixtureRepository;
 	private final TeamRepository teamRepository;
+	private final AbsenceRepository absenceRepository;
 	private final Clock clock;
 
 	public TeamDiagnosticsService(FixtureRepository fixtureRepository,
 	                              TeamRepository teamRepository,
+	                              AbsenceRepository absenceRepository,
 	                              Clock clock) {
 		this.fixtureRepository = fixtureRepository;
 		this.teamRepository = teamRepository;
+		this.absenceRepository = absenceRepository;
 		this.clock = clock;
 	}
 
@@ -94,6 +108,11 @@ public class TeamDiagnosticsService {
 		Schedule schedule = Schedule.of(team, all);
 		List<Omission> omissions = new ArrayList<>();
 
+		// 경기별 확정 결장 인원. 결장 데이터가 없는 경기는 이 맵에 아예 없다 —
+		// "0명"과 "모름"을 가르는 유일한 장치라 getOrDefault(…, 0) 로 접으면 안 된다.
+		List<Absence> absences = absenceRepository.findTeamAbsencesWithPlayer(teamId);
+		Map<Long, Integer> outByFixture = outCountByFixture(absences);
+
 		List<IndexSpan> spans = schedule.size() >= options.minMatches()
 				? CongestionDetector.detect(schedule.epochDays(), options.windowDays(), options.minMatches())
 				: List.of();
@@ -104,10 +123,11 @@ public class TeamDiagnosticsService {
 				team.getCode(),
 				Instant.now(clock),
 				schedule.window(all.size()),
-				toMatchLoads(teamId, schedule, spans),
+				toMatchLoads(teamId, schedule, spans, outByFixture),
 				toCongestionReport(schedule, spans, options, omissions),
 				toFormSummary(teamId, all, options.formSize(), omissions),
 				toTravelSummary(schedule, options, omissions),
+				toAbsenceSummary(schedule, absences, omissions),
 				List.copyOf(omissions));
 	}
 
@@ -189,7 +209,8 @@ public class TeamDiagnosticsService {
 
 	// --- 경기별 부하 ---------------------------------------------------------
 
-	private List<MatchLoad> toMatchLoads(Long teamId, Schedule schedule, List<IndexSpan> spans) {
+	private List<MatchLoad> toMatchLoads(Long teamId, Schedule schedule, List<IndexSpan> spans,
+	                                     Map<Long, Integer> outByFixture) {
 		Map<Integer, Integer> spanIdByIndex = indexToSpanId(spans);
 		List<MatchLoad> loads = new ArrayList<>(schedule.size());
 
@@ -227,9 +248,126 @@ public class TeamDiagnosticsService {
 					schedule.gapDays()[i] == NO_GAP ? null : schedule.gapDays()[i],
 					spanIdByIndex.get(i),
 					SchedulePolicy.extraMinutes(fixture),
-					schedule.travelKm()[i]));
+					schedule.travelKm()[i],
+					outByFixture.get(fixture.getId())));
 		}
 		return List.copyOf(loads);
+	}
+
+	// --- 결장 ----------------------------------------------------------------
+
+	/** 경기 → 확정 결장 인원. 결장 데이터가 있는 경기만 키로 들어간다("0명"과 "모름"의 구분). */
+	private Map<Long, Integer> outCountByFixture(List<Absence> absences) {
+		Map<Long, Integer> byFixture = new HashMap<>();
+		for (Absence absence : absences) {
+			Long fixtureId = absence.getFixture().getId();
+			// 데이터가 있다는 사실 자체를 먼저 기록한다 — 불투명(DOUBTFUL)만 있는 경기도
+			// "그 경기는 확인했고 확정 결장이 0명"이다.
+			byFixture.merge(fixtureId, absence.countsAsOut() ? 1 : 0, Integer::sum);
+		}
+		return byFixture;
+	}
+
+	/**
+	 * 결장 요약. 분모를 조심해야 한다 — API가 우리 경기 전부의 결장을 주지 않는다
+	 * (맨유 2023 시즌은 52경기 중 44경기만 있었다). 그래서 "데이터가 있는 경기 수"를
+	 * 함께 실어 보내고, 데이터가 아예 없으면 0으로 채우는 대신 covered=false 로 말한다.
+	 */
+	private AbsenceSummary toAbsenceSummary(Schedule schedule, List<Absence> absences,
+	                                        List<Omission> omissions) {
+		if (absences.isEmpty()) {
+			omissions.add(Omission.of("absences",
+					"결장(부상·징계) 데이터를 아직 동기화하지 않았습니다. "
+							+ "POST /api/admin/sync/injuries/{teamId}?season= 으로 받을 수 있습니다."));
+			return AbsenceSummary.notCovered(schedule.size());
+		}
+
+		// 진단이 보는 경기(연기·취소 제외) 안의 결장만 센다 — 화면에 없는 경기의 결장을
+		// 합계에 넣으면 "경기당 평균"이 화면과 안 맞는다.
+		Set<Long> visible = new HashSet<>();
+		for (int i = 0; i < schedule.size(); i++) {
+			visible.add(schedule.at(i).getId());
+		}
+
+		Map<Long, Integer> outPerFixture = new HashMap<>();
+		Map<AbsenceReason, Integer> byReason = new EnumMap<>(AbsenceReason.class);
+		Map<Long, PlayerTally> tallyByPlayer = new HashMap<>();
+		Set<Long> coveredFixtures = new HashSet<>();
+
+		for (Absence absence : absences) {
+			Long fixtureId = absence.getFixture().getId();
+			if (!visible.contains(fixtureId)) {
+				continue;
+			}
+			coveredFixtures.add(fixtureId);
+			outPerFixture.putIfAbsent(fixtureId, 0);
+			if (!absence.countsAsOut()) {
+				continue; // 불투명(Questionable)은 세지 않는다
+			}
+			outPerFixture.merge(fixtureId, 1, Integer::sum);
+			byReason.merge(absence.getReason(), 1, Integer::sum);
+			tallyByPlayer
+					.computeIfAbsent(absence.getPlayer().getId(),
+							id -> new PlayerTally(id, absence.getPlayer().getName()))
+					.add(absence.getReason());
+		}
+
+		if (coveredFixtures.isEmpty()) {
+			omissions.add(Omission.of("absences",
+					"받아 둔 결장 데이터가 이 팀의 현재 일정과 맞는 경기를 하나도 갖고 있지 않습니다(시즌 불일치)."));
+			return AbsenceSummary.notCovered(schedule.size());
+		}
+		if (coveredFixtures.size() < schedule.size()) {
+			omissions.add(Omission.of("absences", String.format(
+					"경기 %d건 중 %d건만 결장 데이터가 있습니다. 나머지는 '결장 0명'이 아니라 '모름'입니다.",
+					schedule.size(), coveredFixtures.size())));
+		}
+
+		int totalOut = byReason.values().stream().mapToInt(Integer::intValue).sum();
+		int maxOut = outPerFixture.values().stream().mapToInt(Integer::intValue).max().orElse(0);
+		List<AbsenceSummary.AbsentPlayer> top = tallyByPlayer.values().stream()
+				.sorted(Comparator.comparingInt(PlayerTally::matches).reversed()
+						.thenComparing(PlayerTally::name))
+				.limit(TOP_ABSENTEES)
+				.map(PlayerTally::toView)
+				.toList();
+
+		return new AbsenceSummary(true, coveredFixtures.size(), schedule.size(),
+				totalOut, tallyByPlayer.size(), maxOut, Map.copyOf(byReason), top);
+	}
+
+	/** 선수별 결장 집계 — 가장 잦았던 사유까지 함께 센다. */
+	private static final class PlayerTally {
+		private final long id;
+		private final String name;
+		private final Map<AbsenceReason, Integer> reasons = new EnumMap<>(AbsenceReason.class);
+		private int matches;
+
+		PlayerTally(long id, String name) {
+			this.id = id;
+			this.name = name;
+		}
+
+		void add(AbsenceReason reason) {
+			matches++;
+			reasons.merge(reason, 1, Integer::sum);
+		}
+
+		int matches() {
+			return matches;
+		}
+
+		String name() {
+			return name;
+		}
+
+		AbsenceSummary.AbsentPlayer toView() {
+			AbsenceReason main = reasons.entrySet().stream()
+					.max(Map.Entry.comparingByValue())
+					.map(Map.Entry::getKey)
+					.orElse(AbsenceReason.OTHER);
+			return new AbsenceSummary.AbsentPlayer(id, name, matches, main);
+		}
 	}
 
 	/** 홈/원정 한 쌍에서 "우리 쪽" 값을 고른다. */

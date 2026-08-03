@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import page.usetaehwan.gak.domain.Competition;
 import page.usetaehwan.gak.domain.CompetitionType;
@@ -35,6 +36,7 @@ import page.usetaehwan.gak.repository.TeamRepository;
 import page.usetaehwan.gak.repository.VenueRepository;
 import page.usetaehwan.gak.service.seed.CompetitionSeeder;
 import page.usetaehwan.gak.service.sync.FixtureSyncService;
+import page.usetaehwan.gak.support.DatabaseCleaner;
 
 /**
  * 진단 계산 통합 테스트 — 인메모리 DB + 저장된 응답 파일(실제 API 호출 없음).
@@ -48,6 +50,7 @@ import page.usetaehwan.gak.service.sync.FixtureSyncService;
  * </ul>
  */
 @SpringBootTest
+@Import(DatabaseCleaner.class)
 @ActiveProfiles("test")
 class TeamDiagnosticsServiceTest {
 
@@ -59,6 +62,7 @@ class TeamDiagnosticsServiceTest {
 	private static final long ARSENAL = 42L;
 	private static final long CHELSEA = 49L;
 
+	@Autowired DatabaseCleaner databaseCleaner;
 	@Autowired TeamDiagnosticsService diagnosticsService;
 	@Autowired FixtureSyncService syncService;
 	@Autowired CompetitionSeeder competitionSeeder;
@@ -73,11 +77,7 @@ class TeamDiagnosticsServiceTest {
 	void reset() {
 		// prediction 이 fixture 를 참조하므로 반드시 먼저 지운다. 이 테스트가 예측을 만들지
 		// 않더라도 필요하다 — 같은 컨텍스트를 쓰는 다른 테스트가 남긴 행이 여기 걸린다.
-		predictionRepository.deleteAll();
-		fixtureRepository.deleteAll();
-		syncLogRepository.deleteAll();
-		teamRepository.deleteAll();
-		venueRepository.deleteAll();
+		databaseCleaner.clearAllButCompetitions();
 		competitionSeeder.run(null);
 	}
 

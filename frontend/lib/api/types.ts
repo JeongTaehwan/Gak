@@ -31,6 +31,20 @@ export type CompetitionType = "LEAGUE" | "CUP" | "HYBRID";
 /** 우리 팀 관점 승·무·패. */
 export type Pick = "W" | "D" | "L";
 
+/**
+ * 결장 사유의 갈래.
+ *
+ * ⚠️ API 엔드포인트 이름은 `/injuries` 지만 부상만 오지 않는다 — 실제 응답(맨유 2023
+ * 시즌 346건)에 징계 23건·질병 2건·기타(감독 결정 등) 10건이 섞여 있었다. 그래서
+ * 화면에서도 "부상"이 아니라 "결장"으로 부르고, 갈래를 나눠 보여 준다.
+ */
+export type AbsenceReason =
+  | "INJURY"
+  | "SUSPENSION"
+  | "ILLNESS"
+  | "NATIONAL_DUTY"
+  | "OTHER";
+
 /** 표본 크기 등급 — 같은 "승점률 100%"라도 2경기와 20경기는 다른 말이다. */
 export type SampleConfidence = "NONE" | "LOW" | "MODERATE" | "SUFFICIENT";
 
@@ -63,6 +77,39 @@ export interface MatchLoad {
   extraMinutes: number;
   /** 홈경기는 0, 좌표를 모르면 null(0과 구분된다). */
   travelKm: number | null;
+  /**
+   * 이 경기에 빠진 확정 결장 인원.
+   * **결장 데이터가 없는 경기는 null** — 0(아무도 안 빠짐)과 "모름"은 다르다.
+   */
+  absentCount: number | null;
+}
+
+export interface AbsentPlayer {
+  playerId: number;
+  /** 영문 원본. 선수는 수가 많고 이적이 잦아 한글 매핑을 두지 않는다. */
+  playerName: string;
+  matches: number;
+  mainReason: AbsenceReason;
+}
+
+/**
+ * 결장 요약.
+ *
+ * `coveredMatches`가 중요하다. API가 우리 경기 전부의 결장을 주지는 않는다 — 맨유
+ * 2023 시즌은 52경기 중 44경기만 데이터가 있었다(컵대회 누락). "경기당 평균"을 쓰려면
+ * 분모가 52가 아니라 44여야 하고, 화면은 그 사실을 밝혀야 한다.
+ */
+export interface AbsenceSummary {
+  /** 결장 데이터가 하나라도 있는가. false면 "결장 0명"이 아니라 "모름"이다. */
+  covered: boolean;
+  coveredMatches: number;
+  analyzedMatches: number;
+  /** 확정 결장 연인원(경기 × 선수). 같은 선수가 5경기 빠지면 5다. */
+  totalOut: number;
+  distinctPlayers: number;
+  maxOutInOneMatch: number;
+  byReason: Partial<Record<AbsenceReason, number>>;
+  topAbsentees: AbsentPlayer[];
 }
 
 /**
@@ -152,5 +199,6 @@ export interface TeamDiagnostics {
   congestion: CongestionReport;
   form: FormSummary;
   travel: TravelSummary;
+  absences: AbsenceSummary;
   omissions: Omission[];
 }

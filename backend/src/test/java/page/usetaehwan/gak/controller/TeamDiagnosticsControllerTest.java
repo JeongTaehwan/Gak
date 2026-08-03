@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import page.usetaehwan.gak.repository.FixtureRepository;
@@ -18,6 +19,7 @@ import page.usetaehwan.gak.repository.TeamRepository;
 import page.usetaehwan.gak.repository.VenueRepository;
 import page.usetaehwan.gak.service.seed.CompetitionSeeder;
 import page.usetaehwan.gak.service.sync.FixtureSyncService;
+import page.usetaehwan.gak.support.DatabaseCleaner;
 
 /**
  * 진단 조회 엔드포인트의 <b>HTTP 계약</b>을 못박는다. 계산 자체는
@@ -29,6 +31,7 @@ import page.usetaehwan.gak.service.sync.FixtureSyncService;
  * 않는 유일한 경계라서 테스트가 대신 지킨다.
  */
 @SpringBootTest
+@Import(DatabaseCleaner.class)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class TeamDiagnosticsControllerTest {
@@ -37,6 +40,7 @@ class TeamDiagnosticsControllerTest {
 	private static final long EPL = 39L;
 	private static final long UCL = 2L;
 
+	@Autowired DatabaseCleaner databaseCleaner;
 	@Autowired MockMvc mockMvc;
 	@Autowired FixtureSyncService syncService;
 	@Autowired CompetitionSeeder competitionSeeder;
@@ -47,10 +51,7 @@ class TeamDiagnosticsControllerTest {
 
 	@BeforeEach
 	void seedReplayData() {
-		fixtureRepository.deleteAll();
-		syncLogRepository.deleteAll();
-		teamRepository.deleteAll();
-		venueRepository.deleteAll();
+		databaseCleaner.clearAllButCompetitions();
 		competitionSeeder.run(null);
 		syncService.syncCompetition(EPL);
 		syncService.syncCompetition(UCL);

@@ -13,12 +13,16 @@
  *
  *   node scripts/mock/generate-replay.mjs <출력 디렉터리>
  */
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const mockPath = resolve(here, "../../frontend/lib/api/mock/manutd-2324.ts");
+const injuriesPath = resolve(
+  here,
+  "../../backend/src/test/resources/apifootball/injuries-team33-season2023.json",
+);
 
 // Node 22.6+ 는 .ts 를 타입만 벗겨 내고 그대로 실행한다(별도 빌드 도구 불필요).
 // manutd-2324.ts 의 import 는 전부 `import type` 이라 경로 별칭(@/...) 해석도 필요 없다.
@@ -60,3 +64,45 @@ for (const [leagueId, response] of byLeague) {
   writeFileSync(`${out}/${name}`, JSON.stringify(envelope, null, 1));
   console.log(`${name}  ${response.length}경기`);
 }
+
+// ── 결장(/injuries) ─────────────────────────────────────────────────────────
+// 실제 응답은 진짜 경기 id(1035046 …)를 쓰는데 목 데이터는 합성 id(1000000+i)를 쓴다.
+// 둘 다 맨유 2023-24 실제 시즌이라 **날짜로는 정확히 맞물린다**. 그래서 날짜를 열쇠로
+// 경기 id 만 목 쪽으로 갈아끼운다 — 결장 사실 자체(선수·사유·확정 여부)는 손대지 않는다.
+//
+// 실 파이프라인에서는 이런 변환이 필요 없다. 실제 경기와 실제 결장이 같은 id 를 쓰기
+// 때문이다. 여기서만 필요한 목 데이터 준비 작업이라 생성기 안에 둔다.
+const idByDate = new Map(
+  MANUTD_2324_FIXTURES.map((f) => [f.fixture.date.slice(0, 10), f.fixture.id]),
+);
+
+const injuries = JSON.parse(readFileSync(injuriesPath, "utf8"));
+const remapped = [];
+const unmatchedDates = new Set();
+
+for (const item of injuries.response) {
+  const date = item.fixture.date.slice(0, 10);
+  const mockFixtureId = idByDate.get(date);
+  if (mockFixtureId === undefined) {
+    unmatchedDates.add(date);
+    continue;
+  }
+  remapped.push({ ...item, fixture: { ...item.fixture, id: mockFixtureId } });
+}
+
+const injuryEnvelope = {
+  get: "injuries",
+  parameters: { team: "33", season: "2023" },
+  errors: [],
+  results: remapped.length,
+  paging: { current: 1, total: 1 },
+  response: remapped,
+};
+const injuryName = "injuries-team33-season2023.json";
+writeFileSync(`${out}/${injuryName}`, JSON.stringify(injuryEnvelope, null, 1));
+console.log(
+  `${injuryName}  결장 ${remapped.length}건` +
+    (unmatchedDates.size
+      ? ` (날짜가 목 일정에 없어 제외 ${unmatchedDates.size}일)`
+      : ""),
+);

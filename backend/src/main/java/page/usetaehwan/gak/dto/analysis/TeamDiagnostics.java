@@ -20,6 +20,7 @@ import java.util.List;
  * @param congestion  일정 밀집도
  * @param form        최근 폼
  * @param travel      누적 이동거리
+ * @param absences    결장 요약(부상·징계·질병 등)
  * @param omissions   계산하지 못한 지표와 그 이유
  */
 public record TeamDiagnostics(
@@ -32,6 +33,7 @@ public record TeamDiagnostics(
 		CongestionReport congestion,
 		FormSummary form,
 		TravelSummary travel,
+		AbsenceSummary absences,
 		List<Omission> omissions
 ) {
 }
