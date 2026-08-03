@@ -59,6 +59,7 @@ public class CompetitionSeeder implements ApplicationRunner {
 			Long id,
 			String name,
 			String nameKo,
+			String shortNameKo,
 			String country,
 			CompetitionType type,
 			boolean calendarSeason
@@ -89,6 +90,7 @@ public class CompetitionSeeder implements ApplicationRunner {
 						.id(seed.id())
 						.name(seed.name())
 						.nameKo(seed.nameKo())
+						.shortNameKo(seed.shortNameKo())
 						.country(seed.country())
 						.type(seed.type())
 						.calendarSeason(seed.calendarSeason())
@@ -96,7 +98,7 @@ public class CompetitionSeeder implements ApplicationRunner {
 						.build());
 				created++;
 			} else {
-				existing.applySeed(seed.name(), seed.nameKo(), seed.country(),
+				existing.applySeed(seed.name(), seed.nameKo(), seed.shortNameKo(), seed.country(),
 						seed.type(), seed.calendarSeason(), true);
 				updated++;
 			}

@@ -11,8 +11,10 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import page.usetaehwan.gak.domain.Competition;
 import page.usetaehwan.gak.domain.Fixture;
 import page.usetaehwan.gak.domain.Pick;
+import page.usetaehwan.gak.domain.Score;
 import page.usetaehwan.gak.domain.Team;
 import page.usetaehwan.gak.domain.Venue;
 import page.usetaehwan.gak.dto.analysis.AnalysisWindow;
@@ -99,9 +101,10 @@ public class TeamDiagnosticsService {
 		return new TeamDiagnostics(
 				team.getId(),
 				team.displayName(),
+				team.getCode(),
 				Instant.now(clock),
 				schedule.window(all.size()),
-				toMatchLoads(schedule, spans),
+				toMatchLoads(teamId, schedule, spans),
 				toCongestionReport(schedule, spans, options, omissions),
 				toFormSummary(teamId, all, options.formSize(), omissions),
 				toTravelSummary(schedule, options, omissions),
@@ -186,28 +189,52 @@ public class TeamDiagnosticsService {
 
 	// --- 경기별 부하 ---------------------------------------------------------
 
-	private List<MatchLoad> toMatchLoads(Schedule schedule, List<IndexSpan> spans) {
+	private List<MatchLoad> toMatchLoads(Long teamId, Schedule schedule, List<IndexSpan> spans) {
 		Map<Integer, Integer> spanIdByIndex = indexToSpanId(spans);
 		List<MatchLoad> loads = new ArrayList<>(schedule.size());
 
 		for (int i = 0; i < schedule.size(); i++) {
 			Fixture fixture = schedule.at(i);
-			Team opponent = schedule.home()[i] ? fixture.getAwayTeam() : fixture.getHomeTeam();
+			boolean home = schedule.home()[i];
+			Team opponent = home ? fixture.getAwayTeam() : fixture.getHomeTeam();
+			Competition competition = fixture.getCompetition();
+
+			// 득점은 확정된 경기에서만 준다. 진행 중(LIVE)의 중간 스코어를 실어 보내면
+			// 화면이 그걸 최종 결과처럼 그린다 — 폼에서 LIVE를 빼는 이유와 같다.
+			boolean resolved = SchedulePolicy.countsForForm(fixture);
+			Integer goalsFor = resolved ? ourSide(fixture.getGoalsHome(), fixture.getGoalsAway(), home) : null;
+			Integer goalsAgainst = resolved ? ourSide(fixture.getGoalsAway(), fixture.getGoalsHome(), home) : null;
+
+			Score shootout = fixture.getPenalty();
+			boolean hasShootout = resolved && shootout != null && shootout.isPresent();
+
 			loads.add(new MatchLoad(
 					fixture.getId(),
 					fixture.getKickoff(),
-					fixture.getCompetition().getId(),
-					fixture.getCompetition().displayName(),
+					competition.getId(),
+					competition.displayName(),
+					competition.displayShortName(),
+					competition.getType(),
 					opponent.getId(),
 					opponent.displayName(),
-					schedule.home()[i],
+					home,
 					fixture.getStatus(),
+					fixture.resultFor(teamId),
+					goalsFor,
+					goalsAgainst,
+					hasShootout ? ourSide(shootout.getHome(), shootout.getAway(), home) : null,
+					hasShootout ? ourSide(shootout.getAway(), shootout.getHome(), home) : null,
 					schedule.gapDays()[i] == NO_GAP ? null : schedule.gapDays()[i],
 					spanIdByIndex.get(i),
 					SchedulePolicy.extraMinutes(fixture),
 					schedule.travelKm()[i]));
 		}
 		return List.copyOf(loads);
+	}
+
+	/** 홈/원정 한 쌍에서 "우리 쪽" 값을 고른다. */
+	private static Integer ourSide(Integer homeValue, Integer awayValue, boolean weAreHome) {
+		return weAreHome ? homeValue : awayValue;
 	}
 
 	// --- 밀집도 --------------------------------------------------------------
