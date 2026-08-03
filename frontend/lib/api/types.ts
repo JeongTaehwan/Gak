@@ -202,3 +202,58 @@ export interface TeamDiagnostics {
   absences: AbsenceSummary;
   omissions: Omission[];
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 예측 적중률 (`GET /api/teams/{id}/predictions`)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface PredictionRecord {
+  predictionId: number;
+  fixtureId: number;
+  kickoff: string;
+  competitionName: string;
+  competitionShortName: string;
+  opponentName: string;
+  home: boolean;
+  status: FixtureStatus;
+  pick: Pick;
+  /** 실제 결과. 미채점이면 null. */
+  resolvedResult: Pick | null;
+  /** 적중 여부. 미채점이면 null. */
+  isHit: boolean | null;
+  createdAt: string;
+  /**
+   * 킥오프까지 남았던 시간(분). **항상 양수다** — 예측은 킥오프 이전에만 만들 수 있다.
+   * 화면이 이걸 보여 주는 건 그 규칙이 지켜졌다는 걸 눈으로 확인시키기 위해서다.
+   */
+  leadTimeMinutes: number;
+}
+
+export interface PickAccuracy {
+  predicted: number;
+  hits: number;
+  /** 표본 부족 시 null. */
+  hitRate: number | null;
+}
+
+/**
+ * 적중률.
+ *
+ * 승점률과 같은 규칙으로 표본이 5건 미만이면 `hitRate`가 null이다. 적중률은 이 앱이
+ * 파는 숫자라 특히 그렇다 — 3번 맞히고 "적중률 100%"라고 적는 순간 앱이 스스로를
+ * 과장하기 시작한다.
+ */
+export interface PredictionAccuracy {
+  teamId: number;
+  teamName: string;
+  /** 채점 완료 = 비율의 분모. */
+  scored: number;
+  /** 채점을 기다리는 예측. 예측이 있는데 이게 안 줄면 채점이 멈춘 것이다. */
+  pending: number;
+  hits: number;
+  misses: number;
+  hitRate: number | null;
+  confidence: SampleConfidence;
+  byPick: Partial<Record<Pick, PickAccuracy>>;
+  recent: PredictionRecord[];
+}

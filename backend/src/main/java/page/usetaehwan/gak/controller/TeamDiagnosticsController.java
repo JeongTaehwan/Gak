@@ -6,11 +6,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import page.usetaehwan.gak.dto.analysis.TeamDiagnostics;
+import page.usetaehwan.gak.dto.prediction.PredictionAccuracy;
+import page.usetaehwan.gak.service.PredictionAccuracyService;
 import page.usetaehwan.gak.service.analysis.DiagnosticsOptions;
 import page.usetaehwan.gak.service.analysis.TeamDiagnosticsService;
 
 /**
- * 한 팀의 통합 일정 + 진단 조회. 프론트 타임라인 화면이 읽는 <b>단 하나의</b> 엔드포인트다.
+ * 한 팀을 보는 화면들이 읽는 엔드포인트 — 통합 일정 + 진단, 그리고 예측 적중률.
  *
  * <h2>왜 경기 목록과 진단을 나누지 않았나</h2>
  * <p>"경기 목록"과 "밀집도"를 따로 부르면 두 응답이 서로 다른 스냅샷을 볼 수 있다.
@@ -32,9 +34,12 @@ import page.usetaehwan.gak.service.analysis.TeamDiagnosticsService;
 public class TeamDiagnosticsController {
 
 	private final TeamDiagnosticsService diagnosticsService;
+	private final PredictionAccuracyService accuracyService;
 
-	public TeamDiagnosticsController(TeamDiagnosticsService diagnosticsService) {
+	public TeamDiagnosticsController(TeamDiagnosticsService diagnosticsService,
+	                                 PredictionAccuracyService accuracyService) {
 		this.diagnosticsService = diagnosticsService;
+		this.accuracyService = accuracyService;
 	}
 
 	/**
@@ -51,5 +56,21 @@ public class TeamDiagnosticsController {
 			@RequestParam(defaultValue = "6") int formSize) {
 		return diagnosticsService.diagnose(teamId,
 				new DiagnosticsOptions(windowDays, minMatches, formSize, null, null));
+	}
+
+	/**
+	 * 이 팀에 대한 예측 적중률 + 최근 기록.
+	 *
+	 * <p>진단과 <b>따로</b> 부른다. 진단은 매 화면 진입마다 필요하지만 적중률은 예측 탭을
+	 * 열었을 때만 필요하고, 둘은 서로 다른 속도로 변한다(진단은 동기화마다, 적중률은
+	 * 채점마다). 한 응답으로 묶으면 타임라인을 볼 때마다 예측 기록까지 읽게 된다.
+	 *
+	 * @param recentLimit 기록 목록에 몇 건까지 실을지
+	 */
+	@GetMapping("/{teamId}/predictions")
+	public PredictionAccuracy predictions(
+			@PathVariable Long teamId,
+			@RequestParam(defaultValue = "20") int recentLimit) {
+		return accuracyService.of(teamId, recentLimit);
 	}
 }

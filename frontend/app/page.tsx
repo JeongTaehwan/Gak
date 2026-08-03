@@ -3,6 +3,7 @@ import {
   BackendResponseError,
   MANCHESTER_UNITED_ID,
   getTeamDiagnostics,
+  getTeamPredictions,
 } from "@/lib/api/client";
 import { buildTimeline } from "@/lib/timeline/buildTimeline";
 import { MainScreen } from "@/components/MainScreen";
@@ -33,11 +34,18 @@ export const dynamic = "force-dynamic";
 
 export default async function Home() {
   try {
-    const { diagnostics, source } = await getTeamDiagnostics({
-      teamId: MANCHESTER_UNITED_ID,
-    });
+    // 두 엔드포인트를 나란히 부른다. 서로 다른 속도로 변하는 값이라 API 는 나뉘어
+    // 있지만, 화면 한 번 여는 데 왕복을 두 번 기다릴 이유는 없다.
+    const [{ diagnostics, source }, accuracy] = await Promise.all([
+      getTeamDiagnostics({ teamId: MANCHESTER_UNITED_ID }),
+      getTeamPredictions(MANCHESTER_UNITED_ID),
+    ]);
     return (
-      <MainScreen timeline={buildTimeline(diagnostics)} source={source} />
+      <MainScreen
+        timeline={buildTimeline(diagnostics)}
+        accuracy={accuracy}
+        source={source}
+      />
     );
   } catch (e) {
     if (e instanceof BackendUnavailableError) {

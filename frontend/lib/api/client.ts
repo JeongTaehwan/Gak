@@ -20,7 +20,7 @@
  * ※ `GAK_DATA_SOURCE`에 `NEXT_PUBLIC_` 접두어를 붙이지 않은 건 의도다. 이 모듈은
  *   서버 컴포넌트에서만 불리므로 브라우저 번들에 값이 실릴 이유가 없다.
  */
-import type { TeamDiagnostics } from "@/lib/api/types";
+import type { PredictionAccuracy, TeamDiagnostics } from "@/lib/api/types";
 
 /** 맨체스터 유나이티드. API-Football 팀 id를 그대로 쓴다. */
 export const MANCHESTER_UNITED_ID = 33;
@@ -108,6 +108,47 @@ export async function getTeamDiagnostics(
     throw new BackendResponseError(res.status, await readErrorMessage(res));
   }
   return { diagnostics: (await res.json()) as TeamDiagnostics, source: "backend" };
+}
+
+/**
+ * 이 팀의 예측 적중률 + 최근 기록.
+ *
+ * 진단과 엔드포인트를 나눈 건 둘이 서로 다른 속도로 변하기 때문이다(진단은 동기화마다,
+ * 적중률은 채점마다).
+ *
+ * 목 모드에는 예측 기록이 없다 — 목의 경기가 전부 과거라 예측을 만들 수 없기 때문이다
+ * (킥오프 이전 규칙). 빈 값을 돌려주되 그건 **적중률 0%가 아니라 "기록 없음"**이고,
+ * 화면도 그렇게 구분해 그린다.
+ */
+export async function getTeamPredictions(
+  teamId: number,
+): Promise<PredictionAccuracy> {
+  if (usingMock()) {
+    return {
+      teamId,
+      teamName: "",
+      scored: 0,
+      pending: 0,
+      hits: 0,
+      misses: 0,
+      hitRate: null,
+      confidence: "NONE",
+      byPick: {},
+      recent: [],
+    };
+  }
+
+  const url = `${baseUrl()}/api/teams/${teamId}/predictions`;
+  let res: Response;
+  try {
+    res = await fetch(url, { next: { revalidate: 60 } });
+  } catch (e) {
+    throw new BackendUnavailableError(url, e);
+  }
+  if (!res.ok) {
+    throw new BackendResponseError(res.status, await readErrorMessage(res));
+  }
+  return (await res.json()) as PredictionAccuracy;
 }
 
 /** 백엔드 공통 오류 응답(`{timestamp, status, message}`)에서 사람이 읽을 문구만 뽑는다. */

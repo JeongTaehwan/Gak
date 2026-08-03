@@ -1,6 +1,7 @@
 package page.usetaehwan.gak.repository;
 
 import java.util.List;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -36,7 +37,7 @@ public interface PredictionRepository extends JpaRepository<Prediction, Long> {
 			""")
 	List<Prediction> findPendingScoring();
 
-	/** 한 팀의 채점 완료 예측(적중률 집계용). */
+	/** 한 팀의 채점 완료 예측. */
 	@Query("""
 			select p from Prediction p
 			join fetch p.fixture f
@@ -45,4 +46,22 @@ public interface PredictionRepository extends JpaRepository<Prediction, Long> {
 			order by f.kickoff asc
 			""")
 	List<Prediction> findScoredByTeam(@Param("teamId") Long teamId);
+
+	/**
+	 * 한 팀의 예측 전부 — 적중률 집계와 기록 목록의 입력.
+	 *
+	 * <p>미채점까지 함께 읽는다. 적중률의 분모에는 안 들어가지만 "채점을 기다리는 게 몇
+	 * 건인지"를 화면이 알아야 한다 — 그게 0인데 예측이 있으면 채점이 멈춘 것이다.
+	 *
+	 * <p>화면 한 줄에 대회명·상대팀이 필요하므로 함께 읽는다. 지연 로딩에 맡기면 예측
+	 * 50건에 (경기 + 대회 + 양 팀) 조회가 200번 따라붙는다.
+	 */
+	@EntityGraph(attributePaths = {"fixture", "fixture.competition",
+			"fixture.homeTeam", "fixture.awayTeam", "team"})
+	@Query("""
+			select p from Prediction p
+			where p.team.id = :teamId
+			order by p.fixture.kickoff asc
+			""")
+	List<Prediction> findTeamPredictions(@Param("teamId") Long teamId);
 }
