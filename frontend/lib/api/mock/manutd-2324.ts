@@ -2,6 +2,16 @@
  * 맨체스터 유나이티드 2023-24 시즌 — 전 대회 실제 경기 목 데이터.
  * (Premier League · FA Cup · EFL Cup · UEFA Champions League 조별리그)
  *
+ * ⚠️ **화면이 직접 읽는 파일이 아니다.** 화면은 백엔드가 계산해 준 진단 응답만 그린다.
+ *    이 파일은 그 진단 응답의 **개발용 스냅샷을 만드는 원재료**다 — 여기 적힌 52경기를
+ *    API-Football 원본 모양 그대로 백엔드에 태우면, 백엔드의 진짜 계산 로직이 밀집
+ *    구간·폼·이동거리를 계산해 준다. 그 결과를 그대로 저장한 것이
+ *    `diagnostics-manutd-2324.json`이다.
+ *    (만드는 법: `scripts/generate-mock-snapshot.md`)
+ *
+ *    이렇게 도는 이유: 목을 위해 TS로 밀집도·폼을 다시 계산하면 같은 규칙이 Java와 TS
+ *    양쪽에 생긴다. 한쪽만 고치는 날 목 화면과 실 화면이 다른 답을 말하게 된다.
+ *
  * 왜 "시드 + 확장기" 구조인가:
  *   API-Football `/fixtures` 원소는 필드가 많다(중첩 score/venue/teams…). 53경기를
  *   손으로 풀 shape 으로 적으면 읽기 어렵고 오타가 난다. 그래서 사람이 검수하기 쉬운
@@ -16,7 +26,7 @@ import type {
   FixtureResponse,
   FixtureStatusShort,
   Score,
-} from "@/lib/api/types";
+} from "@/lib/api/mock/apiFootballTypes";
 
 /** 우리 팀. */
 export const MANCHESTER_UNITED_ID = 33;

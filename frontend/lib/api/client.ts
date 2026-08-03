@@ -1,34 +1,131 @@
 /**
- * 경기 데이터 진입점 — "교체 지점".
+ * 백엔드 진단 API 호출 — 프론트가 데이터를 얻는 **유일한** 통로.
  *
- * 지금은 목 데이터를 돌려주지만, 반환 타입(FixtureResponse[])과 함수 시그니처는
- * 실제 API 계약과 동일하다. 실제 백엔드가 준비되면 아래 함수 본문 한 곳만
- * fetch 로 바꾸면 되고, 화면·알고리즘 계층은 전혀 손대지 않는다.
+ * 화면은 API-Football을 직접 부르지 않는다. 백엔드가 주기 동기화해 둔 우리 DB가
+ * source of truth이고(무료 티어가 하루 100요청이라 이건 선택이 아니라 제약이다),
+ * 밀집도·폼 같은 파생값도 백엔드가 계산해 내려준다.
  *
- *   // 교체 예시 (백엔드가 API-Football shape 을 프록시해서 내려줄 때):
- *   const base = process.env.NEXT_PUBLIC_API_BASE_URL;
- *   const res = await fetch(`${base}/api/teams/${teamId}/fixtures?season=${season}`, {
- *     next: { revalidate: 60 },
- *   });
- *   if (!res.ok) throw new Error(`fixtures ${res.status}`);
- *   return (await res.json()) as FixtureResponse[];
+ * ## 목 데이터 전환
+ *
+ * 백엔드를 띄우지 않고 화면만 볼 때는 `.env.local`에 아래 한 줄을 넣는다.
+ *
+ * ```
+ * GAK_DATA_SOURCE=mock
+ * ```
+ *
+ * **백엔드가 죽었을 때 자동으로 목으로 넘어가지는 않는다.** 그러면 화면은 멀쩡해
+ * 보이는데 보고 있는 숫자가 가짜인 상태가 되고, 그게 가장 눈치채기 어려운 실패다.
+ * 전환은 사람이 명시적으로 한다. 백엔드가 안 뜨면 화면은 "안 뜬다"고 말한다.
+ *
+ * ※ `GAK_DATA_SOURCE`에 `NEXT_PUBLIC_` 접두어를 붙이지 않은 건 의도다. 이 모듈은
+ *   서버 컴포넌트에서만 불리므로 브라우저 번들에 값이 실릴 이유가 없다.
  */
-import type { FixtureResponse } from "@/lib/api/types";
-import {
-  MANCHESTER_UNITED_ID,
-  MANUTD_2324_FIXTURES,
-} from "@/lib/api/mock/manutd-2324";
+import type { TeamDiagnostics } from "@/lib/api/types";
 
-export interface FixturesQuery {
+/** 맨체스터 유나이티드. API-Football 팀 id를 그대로 쓴다. */
+export const MANCHESTER_UNITED_ID = 33;
+
+export interface DiagnosticsQuery {
   teamId: number;
-  season: number;
+  /** 밀집 판정 창 폭(일). 서버 기본값 14. */
+  windowDays?: number;
+  /** 그 창 안에 몇 경기부터 밀집으로 볼지. 서버 기본값 5. */
+  minMatches?: number;
+  /** 최근 폼을 몇 경기로 볼지. 서버 기본값 6. */
+  formSize?: number;
 }
 
-/** 한 팀의 한 시즌 전 대회 경기를 날짜순으로 반환. */
-export async function getTeamFixtures(
-  query: FixturesQuery = { teamId: MANCHESTER_UNITED_ID, season: 2023 },
-): Promise<FixtureResponse[]> {
-  // 목 단계: 네트워크 없이 즉시 반환. (실제 API 교체 시 위 주석 블록 참고)
-  void query;
-  return MANUTD_2324_FIXTURES;
+/** 데이터 출처 — 화면이 "지금 보고 있는 게 무엇인지" 표시할 수 있도록 함께 돌려준다. */
+export type DataSource = "backend" | "mock";
+
+export interface DiagnosticsResult {
+  diagnostics: TeamDiagnostics;
+  source: DataSource;
+}
+
+/** 백엔드에 닿지 못했다. 화면은 이걸 잡아 "연결 실패" 상태를 그린다. */
+export class BackendUnavailableError extends Error {
+  constructor(
+    readonly url: string,
+    readonly cause_: unknown,
+  ) {
+    super(`백엔드에 연결하지 못했습니다: ${url}`);
+    this.name = "BackendUnavailableError";
+  }
+}
+
+/** 백엔드는 응답했지만 우리가 원하는 답이 아니었다(404 없는 팀, 400 잘못된 기준 등). */
+export class BackendResponseError extends Error {
+  constructor(
+    readonly status: number,
+    readonly detail: string,
+  ) {
+    super(`백엔드 응답 ${status}: ${detail}`);
+    this.name = "BackendResponseError";
+  }
+}
+
+function usingMock(): boolean {
+  return process.env.GAK_DATA_SOURCE === "mock";
+}
+
+function baseUrl(): string {
+  return process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
+}
+
+/**
+ * 한 팀의 전 대회 통합 일정 + 진단을 가져온다.
+ *
+ * 경기 목록과 밀집도를 따로 부르지 않는 이유는 서버 쪽 컨트롤러 주석에 있다 —
+ * 두 번 부르면 그 사이에 동기화가 끼어들어 "5경기가 그려지는데 밀집 구간은 6경기라고
+ * 말하는" 상태가 생긴다.
+ */
+export async function getTeamDiagnostics(
+  query: DiagnosticsQuery,
+): Promise<DiagnosticsResult> {
+  if (usingMock()) {
+    return { diagnostics: await loadMock(), source: "mock" };
+  }
+
+  const params = new URLSearchParams();
+  if (query.windowDays != null) params.set("windowDays", String(query.windowDays));
+  if (query.minMatches != null) params.set("minMatches", String(query.minMatches));
+  if (query.formSize != null) params.set("formSize", String(query.formSize));
+
+  const qs = params.toString();
+  const url = `${baseUrl()}/api/teams/${query.teamId}/diagnostics${qs ? `?${qs}` : ""}`;
+
+  let res: Response;
+  try {
+    // 동기화는 매시 한 번 돈다. 매 새로고침마다 다시 물을 만큼 자주 변하는 값이 아니다.
+    res = await fetch(url, { next: { revalidate: 60 } });
+  } catch (e) {
+    // fetch 자체가 실패 = 백엔드가 안 떠 있거나 주소가 틀렸다.
+    throw new BackendUnavailableError(url, e);
+  }
+
+  if (!res.ok) {
+    throw new BackendResponseError(res.status, await readErrorMessage(res));
+  }
+  return { diagnostics: (await res.json()) as TeamDiagnostics, source: "backend" };
+}
+
+/** 백엔드 공통 오류 응답(`{timestamp, status, message}`)에서 사람이 읽을 문구만 뽑는다. */
+async function readErrorMessage(res: Response): Promise<string> {
+  try {
+    const body = (await res.json()) as { message?: string };
+    return body.message ?? res.statusText;
+  } catch {
+    return res.statusText;
+  }
+}
+
+/**
+ * 개발용 스냅샷. **백엔드가 실제로 계산해 내려준 응답을 그대로 저장한 파일**이라,
+ * 목이라도 화면이 보는 값의 규칙은 실제와 같다. (만드는 법:
+ * `scripts/generate-mock-snapshot.md`)
+ */
+async function loadMock(): Promise<TeamDiagnostics> {
+  const snapshot = await import("@/lib/api/mock/diagnostics-manutd-2324.json");
+  return (snapshot.default ?? snapshot) as unknown as TeamDiagnostics;
 }

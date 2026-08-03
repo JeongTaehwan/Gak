@@ -1,20 +1,25 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { QUESTIONS } from "@/lib/chat/script";
-import type { HighlightTag } from "@/lib/timeline/types";
+import type { QA } from "@/lib/chat/script";
+import type { HighlightTag, TeamSummary } from "@/lib/timeline/types";
+import { LogoLockup } from "@/components/brand/Logo";
 import { TeamMark } from "@/components/timeline/TeamMark";
 import { ChatBubble, type ChatMessage } from "@/components/chat/ChatBubble";
 
 /**
- * 좌측 대화 패널 — 가이드된 질문 버튼(하드코딩 답변) + 근거 클릭 강조.
+ * 좌측 대화 패널 — 가이드된 질문 버튼(답변은 진단 결과에서 생성) + 근거 클릭 강조.
  * 자유 입력은 "준비 중"으로 비활성.
  */
 export function ChatPanel({
+  team,
+  questions,
   messages,
   onAsk,
   onHighlight,
 }: {
+  team: TeamSummary;
+  questions: QA[];
   messages: ChatMessage[];
   onAsk: (key: string) => void;
   onHighlight: (tag: HighlightTag) => void;
@@ -30,19 +35,13 @@ export function ChatPanel({
   return (
     <div className="flex w-2/5 shrink-0 flex-col border-r border-line bg-panel">
       {/* 헤더 */}
-      <div className="flex items-center justify-between border-b border-line px-6 py-5">
-        <div className="font-display text-[26px] font-black leading-none tracking-tight text-volt">
-          각
-          <span className="ml-1.5 text-[13px] font-extrabold tracking-widest text-text-hi">
-            GAK
+      <div className="flex items-center justify-between gap-4 border-b border-line px-6 py-5">
+        <LogoLockup size={26} />
+        <div className="flex min-w-0 items-center gap-2 rounded-sm border border-line-strong bg-card px-3 py-2">
+          <TeamMark code={team.code} size={22} />
+          <span className="truncate text-[13px] font-bold text-text-hi">
+            {team.name}
           </span>
-        </div>
-        <div className="flex items-center gap-2 rounded-sm border border-line-strong bg-card px-3 py-2">
-          <TeamMark code="MUN" size={22} />
-          <span className="text-[13px] font-bold text-text-hi">
-            맨체스터 유나이티드
-          </span>
-          <span className="text-[10px] text-text-low">▼</span>
         </div>
       </div>
 
@@ -62,7 +61,7 @@ export function ChatPanel({
           무슨 각인지 물어보기
         </div>
         <div className="grid grid-cols-2 gap-2">
-          {QUESTIONS.map((q) => (
+          {questions.map((q) => (
             <button
               key={q.key}
               type="button"
