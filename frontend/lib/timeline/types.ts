@@ -70,6 +70,15 @@ export interface TimelineRow {
   homeAway: "H" | "A";
   /** 상대 팀명 — 한글 매핑 우선, 없으면 영문 원문(백엔드가 정해 준다). */
   opponent: string;
+  /**
+   * 이 경기 **직전**의 상대 리그 순위. 컵이거나 시즌 초면 **null**.
+   *
+   * null 은 "순위 없음"이 아니라 **"이 시점에는 순위를 말할 수 없다"**는 뜻이다.
+   * 그래서 화면도 아무것도 그리지 않는다 — "-"나 "0위"로 채우면 거짓이 된다.
+   */
+  opponentRank: number | null;
+  /** 상대가 그 시점 상위권이었나. 순위를 모르면 false(강조하지 않는다). */
+  opponentTop: boolean;
   /** 우리 관점 "4-3". 결과 미확정이면 null. */
   score: string | null;
   /** 우리 관점 승/무/패. **아직 안 치른 경기는 null** — 무승부로 접지 않는다. */
@@ -197,12 +206,20 @@ export interface DiagnosisCard {
 
 /** 계산하지 못했거나 애초에 수집하지 않는 지표 — "아는 척 안 함" 블록. */
 export interface UnknownItem {
-  label: string;
-  /** 계산 생략 사유(백엔드 omission) 또는 "수집하지 않음". */
+  /** 지표 이름. AI가 스스로 짚은 항목은 문장 자체가 내용이라 label 이 없다. */
+  label: string | null;
   reason: string;
-  /** 우리가 아예 다루지 않는 영역인가(부상·전술 등). */
-  structural: boolean;
+  kind: UnknownKind;
 }
+
+/**
+ * "모르는 것"의 갈래. 셋을 섞으면 무슨 말인지 흐려진다.
+ *
+ * - `omitted` — 계산할 수 있는데 이번엔 못 했다(데이터 범위·표본). **고치면 채워진다.**
+ * - `structural` — 애초에 수집하지 않는다. 고쳐도 안 채워진다.
+ * - `ai` — 이번 결론을 내면서 모델이 스스로 밝힌 한계. **매번 달라진다.**
+ */
+export type UnknownKind = "omitted" | "structural" | "ai";
 
 export interface Diagnosis {
   /** 한 줄 결론. 지금은 규칙 기반 문장이고, AI 연동 시 이 자리만 바뀐다. */
@@ -214,6 +231,37 @@ export interface Diagnosis {
   unknowns: UnknownItem[];
 }
 
+/**
+ * 상대 강도 — 화면이 쓰기 좋게 옮긴 것. **판정은 백엔드가 끝냈다.**
+ *
+ * 여기서 하는 일은 문구 만들기뿐이다. "상위권"의 경계도 백엔드가 정해 준
+ * `topCut` 을 그대로 쓴다 — 리그마다 팀 수가 달라 프론트가 6위 같은 상수를 들면 틀린다.
+ */
+export interface Opponents {
+  /** 이 지표를 그릴 수 있나. false면 카드를 만들지 않는다. */
+  available: boolean;
+  /** 순위를 매긴 경기 수 / 못 매긴 경기 수. */
+  measured: number;
+  unmeasured: number;
+  averageRank: number | null;
+  tableSize: number | null;
+  topCut: number | null;
+  vsTop: SplitLine;
+  vsRest: SplitLine;
+  /** 승점 삭감을 확인했나. false면 순위가 실제와 다를 수 있다. */
+  deductionsKnown: boolean;
+}
+
+export interface SplitLine {
+  matches: number;
+  /** "1승 0무 1패". */
+  recordLabel: string;
+  points: number;
+  maxPoints: number;
+  /** 표본이 얇으면 null — 화면은 비율 대신 개수로 말한다. */
+  pointsRate: number | null;
+}
+
 export interface Timeline {
   team: TeamSummary;
   rows: TimelineRow[];
@@ -222,6 +270,7 @@ export interface Timeline {
   competitionsPresent: Competition[];
   congestion: CongestionStatus;
   form: Form;
+  opponents: Opponents;
   travel: Travel;
   absences: Absences;
   diagnosis: Diagnosis;

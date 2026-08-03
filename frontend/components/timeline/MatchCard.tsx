@@ -83,8 +83,33 @@ export function MatchCard({
       </span>
 
       {/* 상대 팀명 — 유일하게 늘어나고 줄어드는 셀 */}
-      <span className="min-w-0 flex-1 truncate text-sm font-bold text-text-hi">
-        {row.opponent}
+      <span className="flex min-w-0 flex-1 items-baseline gap-1.5">
+        <span className="truncate text-sm font-bold text-text-hi">{row.opponent}</span>
+        {/*
+          그 경기 시점의 상대 순위.
+
+          **null 이면 아무것도 그리지 않는다.** 컵 경기이거나 시즌 초라 순위를 말할 수
+          없다는 뜻이고, "-"나 "0위"로 채우면 화면이 거짓을 말한다. 자리를 비워 두는 게
+          정직하다 — 순위가 붙은 줄과 안 붙은 줄이 섞여 보이는 건 의도다.
+
+          상위권 상대는 볼트로 강조한다. "4패인데 상위권은 한 번뿐"이 한눈에 보이는 게
+          이 표시의 목적이다.
+        */}
+        {row.opponentRank != null && (
+          <span
+            className={cn(
+              "shrink-0 whitespace-nowrap font-display text-[11px] font-extrabold tabular-nums",
+              row.opponentTop ? "text-volt" : "text-text-low",
+            )}
+            title={
+              row.opponentTop
+                ? "이 경기 직전 기준 상위권 상대"
+                : "이 경기 직전 기준 리그 순위"
+            }
+          >
+            {row.opponentRank}위
+          </span>
+        )}
       </span>
 
       {/*

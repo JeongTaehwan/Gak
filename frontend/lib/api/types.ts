@@ -61,6 +61,13 @@ export interface MatchLoad {
   competitionType: CompetitionType;
   opponentId: number;
   opponentName: string;
+  /**
+   * 이 경기 **직전**의 상대 리그 순위.
+   *
+   * 컵 대회이거나 시즌 초라 순위를 말할 수 없으면 **null**이다. 0이나 -1이 아니다 —
+   * 화면이 그걸 순위로 그리면 안 된다.
+   */
+  opponentRank: number | null;
   home: boolean;
   status: FixtureStatus;
   /** 결과 미확정(예정·진행 중)이면 null. */
@@ -189,6 +196,43 @@ export interface Omission {
   reason: string;
 }
 
+/**
+ * 최근 폼 구간에서 **어떤 상대를 만났나**.
+ *
+ * "6경기 4패"까지만 말하면 팀이 무너진 것처럼 읽힌다. "4패인데 그중 1경기만 상위권
+ * 상대였다"가 되면 같은 숫자가 다른 말을 한다.
+ *
+ * 순위는 **그 경기 시점**의 것이다. 시즌 최종 순위를 쓰면 그 경기 시점에 존재하지
+ * 않던 정보로 과거를 판단하게 된다 — 이 앱이 예측에서 이미 막아 둔 문제다.
+ */
+export interface OpponentStrength {
+  /** 순위를 알아낸 경기 수. 0이면 이 지표를 그리지 않는다. */
+  measured: number;
+  /** 순위를 못 매긴 경기 수(컵 대회이거나 시즌 초). **분모에서 빠졌다는 뜻**이다. */
+  unmeasured: number;
+  /** 만난 상대들의 평균 순위. measured가 0이면 null. */
+  averageRank: number | null;
+  /** 순위의 분모(그 리그 팀 수). "20팀 중 3위"와 "8팀 중 3위"는 다르다. */
+  tableSize: number | null;
+  /** "상위권"의 경계 순위(표 크기의 30%). 20팀이면 6. */
+  topCut: number | null;
+  vsTop: StrengthSplit;
+  vsRest: StrengthSplit;
+  /** 승점 삭감을 반영했는가. false면 순위가 실제와 다를 수 있다. */
+  deductionsKnown: boolean;
+}
+
+export interface StrengthSplit {
+  matches: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  points: number;
+  maxPoints: number;
+  /** 표본이 얇으면 **null** — 2경기 1승을 "50%"로 적으면 소수점이 빈약함을 가린다. */
+  pointsRate: number | null;
+}
+
 export interface TeamDiagnostics {
   teamId: number;
   teamName: string;
@@ -198,6 +242,7 @@ export interface TeamDiagnostics {
   matches: MatchLoad[];
   congestion: CongestionReport;
   form: FormSummary;
+  opponentStrength: OpponentStrength;
   travel: TravelSummary;
   absences: AbsenceSummary;
   omissions: Omission[];

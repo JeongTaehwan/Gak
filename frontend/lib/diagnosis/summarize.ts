@@ -39,8 +39,20 @@ const OMISSION_LABEL: Record<string, string> = {
  * 하필 우리가 못 보는 것들이라, 이걸 안 밝히면 진단이 실제보다 완전해 보인다.
  */
 const STRUCTURAL_UNKNOWNS: UnknownItem[] = [
-  { label: "전술 변화", reason: "포메이션·라인업을 다루지 않습니다", structural: true },
-  { label: "라커룸 분위기", reason: "애초에 데이터로 잴 수 없습니다", structural: true },
+  { label: "전술 변화", reason: "포메이션·라인업을 다루지 않습니다", kind: "structural" },
+  { label: "라커룸 분위기", reason: "애초에 데이터로 잴 수 없습니다", kind: "structural" },
+  {
+    label: "선수 개개인의 중요도",
+    reason:
+      "누가 빠졌는지는 알아도 그 선수가 팀에 얼마나 중요한지는 모릅니다",
+    kind: "structural",
+  },
+  {
+    label: "컵 상대의 강함",
+    reason:
+      "컵에는 순위표가 없어 순위를 매기지 못합니다. 컵에서 강팀을 이겨도 상대 강도에 잡히지 않습니다",
+    kind: "structural",
+  },
 ];
 
 /** 결장 갈래 라벨. "부상"으로 뭉뚱그리지 않는다 — 징계·질병이 섞여 있다. */
@@ -61,7 +73,7 @@ export function buildDiagnosis(t: Timeline): Diagnosis {
       ...t.omissions.map((o) => ({
         label: OMISSION_LABEL[o.metric] ?? o.metric,
         reason: o.reason,
-        structural: false,
+        kind: "omitted" as const,
       })),
       // 결장 데이터를 아직 안 받았다면 그것도 "모르는 것"이다. 받았다면 이미 omissions
       // 쪽에서 커버 범위를 말하므로 여기 또 적지 않는다.
@@ -72,7 +84,7 @@ export function buildDiagnosis(t: Timeline): Diagnosis {
               label: "결장(부상·징계)",
               reason:
                 "이 팀의 결장 데이터를 아직 동기화하지 않았습니다. POST /api/admin/sync/injuries/{teamId}?season=",
-              structural: false,
+              kind: "omitted" as const,
             },
           ]),
       ...STRUCTURAL_UNKNOWNS,
@@ -121,7 +133,7 @@ function conclusion(t: Timeline): { headline: string; sub: string } {
 /** 근거 카드 — 값이 없는 지표는 카드를 만들지 않는다(0으로 채우지 않는다). */
 function cards(t: Timeline): DiagnosisCard[] {
   const out: DiagnosisCard[] = [];
-  const { congestion: c, form: f, travel: tr, spans } = t;
+  const { congestion: c, form: f, travel: tr, spans, opponents: op } = t;
 
   // ① 폼 — 표본이 1경기라도 있으면 개수로는 말할 수 있다.
   if (f.sampleSize > 0) {
@@ -134,6 +146,39 @@ function cards(t: Timeline): DiagnosisCard[] {
         f.pointsRate == null
           ? `승점률은 내지 않았다 — 확정 경기가 ${f.sampleSize}건이라 비율로 말하면 한 경기가 전체를 흔든다.`
           : `승점 ${f.points}/${f.maxPoints} · 승점률 ${Math.round(f.pointsRate * 100)}%. 예정 경기는 폼에 넣지 않는다.`,
+      highlight: "form",
+    });
+  }
+
+  // ①-b 상대 강도 — 폼 바로 뒤에 둔다. "4패"를 읽은 직후에 "누구한테"가 와야
+  // 두 숫자가 한 문장으로 읽힌다. 순위를 하나도 못 매겼으면 카드를 만들지 않는다.
+  if (op.available && op.averageRank != null && op.tableSize != null) {
+    const top = op.vsTop;
+    const rest = op.vsRest;
+    // 비율은 백엔드가 null 로 준 것을 존중한다 — 표본이 얇으면 개수로 말한다.
+    const say = (s: typeof top) =>
+      s.matches === 0
+        ? "만난 적 없음"
+        : s.pointsRate == null
+          ? `${s.matches}경기 ${s.recordLabel}`
+          : `${s.matches}경기 ${s.recordLabel} · 승점률 ${Math.round(s.pointsRate * 100)}%`;
+
+    out.push({
+      key: "opponents",
+      value: `평균 ${op.averageRank}위`,
+      // 상위권을 많이 만났으면 그건 나쁜 성적의 변명이 된다 → 경고색이 아니라 볼트.
+      tone: "volt",
+      label: `상대 강도 — ${op.measured}경기 기준 (${op.tableSize}팀 중)`,
+      detail: [
+        `상위권(${op.topCut}위 이내) ${say(top)}`,
+        `그 외 ${say(rest)}`,
+        op.unmeasured > 0
+          ? `컵·시즌 초 ${op.unmeasured}경기는 순위를 매길 수 없어 뺐다.`
+          : null,
+        op.deductionsKnown ? null : "승점 삭감은 확인하지 못했다.",
+      ]
+        .filter(Boolean)
+        .join(" · "),
       highlight: "form",
     });
   }

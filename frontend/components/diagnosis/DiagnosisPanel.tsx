@@ -5,6 +5,7 @@ import type {
   DiagnosisCard,
   HighlightTag,
   Timeline as TimelineVM,
+  UnknownItem,
 } from "@/lib/timeline/types";
 import type { AiEvidence } from "@/lib/api/types";
 import { useAiDiagnosis } from "@/lib/diagnosis/useAiDiagnosis";
@@ -99,51 +100,21 @@ export function DiagnosisPanel({
         </section>
       )}
 
-      {/* ③ 모르는 것 */}
-      <section className="flex flex-col gap-2.5">
-        <h2 className="text-xs font-extrabold tracking-[1.5px] text-text-low">
-          데이터로 답 못하는 것 — 아는 척 안 함
-        </h2>
-
-        {/*
-          AI가 스스로 밝힌 한계. 우리가 미리 정한 목록(아래 카드)과 **따로** 둔다 —
-          아래는 "우리가 수집하지 않는 것"이라는 고정된 사실이고, 이건 "이번 결론을
-          내면서 아쉬웠던 것"이라 매번 달라진다. 섞으면 둘 다 무슨 말인지 흐려진다.
-        */}
-        {aiReady && ai.diagnosis!.unknowns.length > 0 && (
-          <div className="flex flex-col gap-1.5 rounded-card border border-dashed border-line-dashed px-4 py-3.5">
-            <span className="text-[11px] font-extrabold tracking-wider text-text-low">
-              AI가 이번 결론에서 모른다고 밝힌 것
-            </span>
-            <ul className="flex flex-col gap-1">
-              {ai.diagnosis!.unknowns.map((u, i) => (
-                <li key={i} className="text-[12px] leading-relaxed text-text-mid">
-                  · {u}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-          {d.unknowns.map((u) => (
-            <div
-              key={u.label}
-              className="flex flex-col gap-1 rounded-card border border-dashed border-line-dashed px-4 py-3.5"
-            >
-              <span className="text-sm font-extrabold text-text-mid">
-                {u.label}
-              </span>
-              <span className="text-[11px] font-extrabold tracking-wider text-text-low">
-                {u.structural ? "수집하지 않음" : "계산 생략"}
-              </span>
-              <span className="mt-0.5 text-[12px] leading-relaxed text-text-low">
-                {u.reason}
-              </span>
-            </div>
-          ))}
-        </div>
-      </section>
+      {/* ③ 모르는 것 — 세 갈래를 한 블록으로 모으고 기본은 접어 둔다 */}
+      <UnknownsBlock
+        items={[
+          ...d.unknowns,
+          // AI가 이번 결론에서 스스로 밝힌 한계. 위의 두 갈래와 성격이 다르다 —
+          // 앞의 것들은 고정된 사실이고 이건 결론마다 달라진다. 그래서 갈래를 나눠 둔다.
+          ...(aiReady
+            ? ai.diagnosis!.unknowns.map((u) => ({
+                label: null,
+                reason: u,
+                kind: "ai" as const,
+              }))
+            : []),
+        ]}
+      />
     </div>
   );
 }
@@ -258,5 +229,92 @@ function EvidenceCard({
         </span>
       )}
     </Wrapper>
+  );
+}
+
+const UNKNOWN_KIND: Record<
+  UnknownItem["kind"],
+  { label: string; hint: string }
+> = {
+  omitted: {
+    label: "이번엔 계산 못 함",
+    hint: "데이터를 채우면 이 자리는 메워진다",
+  },
+  structural: {
+    label: "수집하지 않음",
+    hint: "고쳐도 안 채워진다 — 애초에 우리가 다루는 영역이 아니다",
+  },
+  ai: {
+    label: "AI가 이번 결론에서 짚은 것",
+    hint: "결론마다 달라진다",
+  },
+};
+
+const KIND_ORDER: UnknownItem["kind"][] = ["omitted", "structural", "ai"];
+
+/**
+ * "데이터로 답 못하는 것" — 한 블록, 기본 접힘.
+ *
+ * ## 왜 합쳤나
+ * "계산 생략"과 "AI가 모른다고 밝힌 것"을 따로 두니 같은 말이 두 번 나오는 것처럼
+ * 보였다. 사용자에게는 둘 다 "이 앱이 모르는 것"이고, 갈래는 그 안에서 나누면 된다.
+ *
+ * ## 왜 접었나
+ * 이 블록은 **없애지 않는다.** 부진의 원인으로 가장 먼저 떠오르는 것들(전술·라커룸)이
+ * 하필 우리가 못 보는 것들이라, 안 밝히면 진단이 실제보다 완전해 보인다.
+ *
+ * 다만 펼친 채로 두면 결론·근거보다 이 목록이 길어져 화면의 무게중심이 "모르는 것"으로
+ * 옮겨간다. 접어 두되 **개수를 요약줄에 적어** 있다는 사실은 숨기지 않는다.
+ * `<details>` 를 쓰므로 JS 없이도 열리고, 브라우저 찾기(Ctrl+F)에도 걸린다.
+ */
+function UnknownsBlock({ items }: { items: UnknownItem[] }) {
+  if (items.length === 0) return null;
+
+  return (
+    <details className="group rounded-panel border border-dashed border-line-dashed">
+      <summary className="flex cursor-pointer list-none items-center gap-2 px-5 py-3.5 text-xs font-extrabold tracking-[1.5px] text-text-low hover:text-text-mid">
+        <span className="inline-block transition-transform group-open:rotate-90">
+          ▸
+        </span>
+        데이터로 답 못하는 것 — 아는 척 안 함
+        <span className="rounded-badge border border-line-strong px-1.5 py-0.5 text-[10px] font-black tabular-nums">
+          {items.length}
+        </span>
+      </summary>
+
+      <div className="flex flex-col gap-4 border-t border-line px-5 pb-5 pt-4">
+        {KIND_ORDER.map((kind) => {
+          const group = items.filter((u) => u.kind === kind);
+          if (group.length === 0) return null;
+          const meta = UNKNOWN_KIND[kind];
+          return (
+            <section key={kind} className="flex flex-col gap-2">
+              <h3 className="flex flex-wrap items-baseline gap-2">
+                <span className="text-[11px] font-extrabold tracking-wider text-text-mid">
+                  {meta.label}
+                </span>
+                <span className="text-[11px] text-text-low">{meta.hint}</span>
+              </h3>
+              <ul className="flex flex-col gap-1.5">
+                {group.map((u, i) => (
+                  <li
+                    key={`${kind}-${i}`}
+                    className="text-[12px] leading-relaxed text-text-mid"
+                  >
+                    {u.label && (
+                      <span className="font-extrabold text-text-hi">
+                        {u.label}
+                        {" — "}
+                      </span>
+                    )}
+                    {u.reason}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          );
+        })}
+      </div>
+    </details>
   );
 }

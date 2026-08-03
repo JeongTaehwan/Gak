@@ -39,6 +39,8 @@ import type {
   HighlightTag,
   RowCongestion,
   Absences,
+  Opponents,
+  SplitLine,
   Timeline,
   TimelineRow,
   Travel,
@@ -98,6 +100,13 @@ export function buildTimeline(d: TeamDiagnostics): Timeline {
       competition,
       homeAway: m.home ? "H" : "A",
       opponent: m.opponentName,
+      opponentRank: m.opponentRank,
+      // 상위권 경계는 백엔드가 정한다(표 크기의 30%). 프론트는 비교만 한다 —
+      // 여기서 "6위 이내" 같은 상수를 들면 리그마다 팀 수가 달라 틀린다.
+      opponentTop:
+        m.opponentRank != null &&
+        d.opponentStrength.topCut != null &&
+        m.opponentRank <= d.opponentStrength.topCut,
       score: toScore(m),
       result: m.result,
       pending: m.result === null,
@@ -141,6 +150,7 @@ export function buildTimeline(d: TeamDiagnostics): Timeline {
     congestion: congestionStatus(d),
     travel: travelSummary(d),
     absences: absenceSummary(d),
+    opponents: toOpponents(d.opponentStrength),
     form: {
       recent: d.form.recent,
       sampleSize: d.form.sampleSize,
@@ -321,4 +331,32 @@ function teamSubtitle(d: TeamDiagnostics): string {
   ]
     .filter(Boolean)
     .join(" · ");
+}
+
+/**
+ * 상대 강도 → 화면 표기.
+ *
+ * **판정하지 않는다.** 승/무/패 개수를 "1승 0무 1패" 문자열로 옮기고, 비율이 null 인지
+ * 그대로 전달할 뿐이다. 백엔드가 표본이 얇다고 판단해 `pointsRate` 를 null 로 준 것을
+ * 프론트가 다시 계산해 채우면, 그 순간 두 곳에 규칙이 생긴다.
+ */
+function toOpponents(o: TeamDiagnostics["opponentStrength"]): Opponents {
+  const line = (s: TeamDiagnostics["opponentStrength"]["vsTop"]): SplitLine => ({
+    matches: s.matches,
+    recordLabel: `${s.wins}승 ${s.draws}무 ${s.losses}패`,
+    points: s.points,
+    maxPoints: s.maxPoints,
+    pointsRate: s.pointsRate,
+  });
+  return {
+    available: o.measured > 0,
+    measured: o.measured,
+    unmeasured: o.unmeasured,
+    averageRank: o.averageRank,
+    tableSize: o.tableSize,
+    topCut: o.topCut,
+    vsTop: line(o.vsTop),
+    vsRest: line(o.vsRest),
+    deductionsKnown: o.deductionsKnown,
+  };
 }
