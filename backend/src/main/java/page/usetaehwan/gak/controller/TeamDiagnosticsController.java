@@ -6,11 +6,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import page.usetaehwan.gak.dto.analysis.AiDiagnosis;
+import page.usetaehwan.gak.dto.analysis.StandingsTable;
 import page.usetaehwan.gak.dto.analysis.TeamDiagnostics;
 import page.usetaehwan.gak.dto.prediction.PredictionAccuracy;
 import page.usetaehwan.gak.service.PredictionAccuracyService;
 import page.usetaehwan.gak.service.analysis.AiDiagnosisService;
 import page.usetaehwan.gak.service.analysis.DiagnosticsOptions;
+import page.usetaehwan.gak.service.analysis.StandingsQueryService;
 import page.usetaehwan.gak.service.analysis.TeamDiagnosticsService;
 
 /**
@@ -38,13 +40,16 @@ public class TeamDiagnosticsController {
 	private final TeamDiagnosticsService diagnosticsService;
 	private final PredictionAccuracyService accuracyService;
 	private final AiDiagnosisService aiDiagnosisService;
+	private final StandingsQueryService standingsQueryService;
 
 	public TeamDiagnosticsController(TeamDiagnosticsService diagnosticsService,
 	                                 PredictionAccuracyService accuracyService,
-	                                 AiDiagnosisService aiDiagnosisService) {
+	                                 AiDiagnosisService aiDiagnosisService,
+	                                 StandingsQueryService standingsQueryService) {
 		this.diagnosticsService = diagnosticsService;
 		this.accuracyService = accuracyService;
 		this.aiDiagnosisService = aiDiagnosisService;
+		this.standingsQueryService = standingsQueryService;
 	}
 
 	/**
@@ -89,6 +94,22 @@ public class TeamDiagnosticsController {
 		TeamDiagnostics diagnostics = diagnosticsService.diagnose(teamId,
 				new DiagnosticsOptions(windowDays, minMatches, formSize, null, null));
 		return aiDiagnosisService.narrate(diagnostics);
+	}
+
+	/**
+	 * 이 팀이 뛰는 리그의 순위표.
+	 *
+	 * <p><b>진단의 상대 강도와 출처가 다르다.</b> 저쪽은 우리가 경기 결과로 계산한
+	 * "그 경기 시점" 순위이고, 이건 API 가 준 지금 순위다. 둘이 어긋날 수 있는데 그건
+	 * 버그가 아니라 서로 다른 질문에 답하는 값이기 때문이다 — 화면이 이 표에
+	 * "언제 기준"인지를 반드시 밝혀야 하는 이유다.
+	 *
+	 * <p>리그를 파라미터로 받지 않는다. 사용자는 "맨유"를 보고 있지 "대회 39번"을 보고
+	 * 있지 않다 — 팀이 뛴 경기에서 리그를 찾아낸다.
+	 */
+	@GetMapping("/{teamId}/standings")
+	public StandingsTable standings(@PathVariable Long teamId) {
+		return standingsQueryService.forTeam(teamId);
 	}
 
 	/**

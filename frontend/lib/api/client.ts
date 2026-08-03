@@ -20,7 +20,11 @@
  * ※ `GAK_DATA_SOURCE`에 `NEXT_PUBLIC_` 접두어를 붙이지 않은 건 의도다. 이 모듈은
  *   서버 컴포넌트에서만 불리므로 브라우저 번들에 값이 실릴 이유가 없다.
  */
-import type { PredictionAccuracy, TeamDiagnostics } from "@/lib/api/types";
+import type {
+  PredictionAccuracy,
+  StandingsTable,
+  TeamDiagnostics,
+} from "@/lib/api/types";
 
 /** 맨체스터 유나이티드. API-Football 팀 id를 그대로 쓴다. */
 export const MANCHESTER_UNITED_ID = 33;
@@ -149,6 +153,41 @@ export async function getTeamPredictions(
     throw new BackendResponseError(res.status, await readErrorMessage(res));
   }
   return (await res.json()) as PredictionAccuracy;
+}
+
+/**
+ * 이 팀이 뛰는 리그의 순위표.
+ *
+ * 진단과 따로 부른다 — 순위표는 동기화 때만 바뀌고, 진단은 경기가 끝날 때마다 바뀐다.
+ *
+ * 목 모드에는 순위표가 없다. 목 스냅샷은 진단 응답을 찍어 둔 것이라 순위표가 들어 있지
+ * 않고, 없는 걸 만들어 넣으면 화면이 가짜 순위를 그린다. **"없음"을 그대로 돌려준다.**
+ */
+export async function getTeamStandings(teamId: number): Promise<StandingsTable> {
+  if (usingMock()) {
+    return {
+      available: false,
+      unavailableReason:
+        "목 데이터에는 순위표가 없습니다. 백엔드에 연결하면 표시됩니다.",
+      competitionId: 0,
+      competitionName: null,
+      season: null,
+      rows: [],
+      updatedAt: null,
+    };
+  }
+
+  const url = `${baseUrl()}/api/teams/${teamId}/standings`;
+  let res: Response;
+  try {
+    res = await fetch(url, { next: { revalidate: 60 } });
+  } catch (e) {
+    throw new BackendUnavailableError(url, e);
+  }
+  if (!res.ok) {
+    throw new BackendResponseError(res.status, await readErrorMessage(res));
+  }
+  return (await res.json()) as StandingsTable;
 }
 
 /** 백엔드 공통 오류 응답(`{timestamp, status, message}`)에서 사람이 읽을 문구만 뽑는다. */

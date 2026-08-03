@@ -4,12 +4,13 @@ import { TeamMark } from "@/components/timeline/TeamMark";
 import { FormStreak } from "@/components/timeline/FormStreak";
 
 /** 우측 패널이 보여 줄 화면. */
-export type Mode = "timeline" | "diagnosis" | "prediction";
+export type Mode = "timeline" | "diagnosis" | "prediction" | "standings";
 
 const TABS: { mode: Mode; label: string }[] = [
   { mode: "timeline", label: "통합 타임라인" },
   { mode: "diagnosis", label: "진단" },
   { mode: "prediction", label: "예측 · 적중 기록" },
+  { mode: "standings", label: "순위표" },
 ];
 
 /**

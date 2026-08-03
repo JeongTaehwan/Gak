@@ -9,8 +9,9 @@ import { TeamHeader, type Mode } from "@/components/layout/TeamHeader";
 import { Timeline } from "@/components/timeline/Timeline";
 import { DiagnosisPanel } from "@/components/diagnosis/DiagnosisPanel";
 import { PredictionPanel } from "@/components/prediction/PredictionPanel";
+import { StandingsPanel } from "@/components/standings/StandingsPanel";
 import type { DataSource } from "@/lib/api/client";
-import type { PredictionAccuracy } from "@/lib/api/types";
+import type { PredictionAccuracy, StandingsTable } from "@/lib/api/types";
 
 const HIGHLIGHT_LABEL: Record<HighlightTag, string> = {
   congestion: "밀집 구간",
@@ -26,10 +27,12 @@ const HIGHLIGHT_LABEL: Record<HighlightTag, string> = {
 export function MainScreen({
   timeline,
   accuracy,
+  standings,
   source,
 }: {
   timeline: TimelineVM;
   accuracy: PredictionAccuracy;
+  standings: StandingsTable;
   source: DataSource;
 }) {
   // 대화 대본은 진단 결과에서 만들어진다 — 화면과 대화가 다른 숫자를 말하지 않도록.
@@ -124,6 +127,7 @@ export function MainScreen({
           {mode === "prediction" && (
             <PredictionPanel timeline={timeline} accuracy={accuracy} />
           )}
+          {mode === "standings" && <StandingsPanel table={standings} />}
         </div>
       </div>
     </main>

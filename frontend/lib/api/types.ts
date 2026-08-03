@@ -329,3 +329,38 @@ export interface AiEvidence {
   /** 그 값 — "2일". */
   value: string;
 }
+
+/**
+ * 순위표 — `GET /api/teams/{teamId}/standings`.
+ *
+ * **진단의 상대 강도와 출처가 다르다.** 저쪽은 우리가 경기 결과로 계산한 "그 경기 시점"
+ * 순위이고, 이건 API가 준 지금 순위다. 둘이 어긋날 수 있는데 버그가 아니라 서로 다른
+ * 질문에 답하는 값이다 — 그래서 화면이 `updatedAt`으로 "언제 기준"인지 밝혀야 한다.
+ */
+export interface StandingsTable {
+  available: boolean;
+  /** 없을 때 사유. 화면에 그대로 띄울 수 있는 한국어. */
+  unavailableReason: string | null;
+  competitionId: number;
+  competitionName: string | null;
+  season: number | null;
+  rows: StandingRow[];
+  /** 이 표를 마지막으로 받아 온 시각. null이면 표가 없다. */
+  updatedAt: string | null;
+}
+
+export interface StandingRow {
+  rank: number;
+  teamId: number;
+  teamName: string;
+  teamCode: string | null;
+  played: number;
+  points: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  goalsDiff: number;
+  /** API가 붙인 순위의 의미("Promotion - Champions League" 등). 없을 수 있다. */
+  description: string | null;
+  /** 지금 보고 있는 팀인가 — 20줄 중 어디를 봐야 하는지. */
+  highlighted: boolean;
+}
