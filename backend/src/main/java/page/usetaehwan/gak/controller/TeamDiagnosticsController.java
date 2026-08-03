@@ -5,9 +5,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import page.usetaehwan.gak.dto.analysis.AiDiagnosis;
 import page.usetaehwan.gak.dto.analysis.TeamDiagnostics;
 import page.usetaehwan.gak.dto.prediction.PredictionAccuracy;
 import page.usetaehwan.gak.service.PredictionAccuracyService;
+import page.usetaehwan.gak.service.analysis.AiDiagnosisService;
 import page.usetaehwan.gak.service.analysis.DiagnosticsOptions;
 import page.usetaehwan.gak.service.analysis.TeamDiagnosticsService;
 
@@ -35,11 +37,14 @@ public class TeamDiagnosticsController {
 
 	private final TeamDiagnosticsService diagnosticsService;
 	private final PredictionAccuracyService accuracyService;
+	private final AiDiagnosisService aiDiagnosisService;
 
 	public TeamDiagnosticsController(TeamDiagnosticsService diagnosticsService,
-	                                 PredictionAccuracyService accuracyService) {
+	                                 PredictionAccuracyService accuracyService,
+	                                 AiDiagnosisService aiDiagnosisService) {
 		this.diagnosticsService = diagnosticsService;
 		this.accuracyService = accuracyService;
+		this.aiDiagnosisService = aiDiagnosisService;
 	}
 
 	/**
@@ -56,6 +61,34 @@ public class TeamDiagnosticsController {
 			@RequestParam(defaultValue = "6") int formSize) {
 		return diagnosticsService.diagnose(teamId,
 				new DiagnosticsOptions(windowDays, minMatches, formSize, null, null));
+	}
+
+	/**
+	 * 같은 진단을 AI가 문장으로 옮긴 것.
+	 *
+	 * <h2>왜 {@code /diagnostics}에 합치지 않았나</h2>
+	 * <p>둘의 속도가 두 자릿수 배 다르다. {@code /diagnostics}는 우리 DB만 읽어 수십 ms,
+	 * 이건 모델을 기다려 수 초다. 합치면 <b>밀집도 브래킷을 보러 온 사용자가 모델의
+	 * 사고가 끝날 때까지 빈 화면을 본다.</b> 갈라 두면 화면은 규칙 기반 문장으로 즉시
+	 * 완성되고, AI 문장은 도착하는 대로 갈아 끼운다.
+	 *
+	 * <p>그래서 <b>이 엔드포인트는 실패해도 화면을 깨지 않는다.</b> 200 + {@code
+	 * available: false}로 답하고(에러 상태코드가 아니다 — AI가 없는 건 정상 상태다),
+	 * 프론트는 이미 그려 둔 규칙 기반 문장을 그대로 둔다.
+	 *
+	 * <p>기준 파라미터를 {@code /diagnostics}와 똑같이 받는 이유: 사용자가 창 폭을
+	 * 10일로 바꿔 놓고 AI에게 물으면, AI도 그 10일짜리 지표를 봐야 한다. 기본값으로
+	 * 다시 계산하면 화면의 브래킷과 AI 문장이 다른 것을 가리킨다.
+	 */
+	@GetMapping("/{teamId}/diagnosis")
+	public AiDiagnosis diagnosis(
+			@PathVariable Long teamId,
+			@RequestParam(defaultValue = "14") int windowDays,
+			@RequestParam(defaultValue = "5") int minMatches,
+			@RequestParam(defaultValue = "6") int formSize) {
+		TeamDiagnostics diagnostics = diagnosticsService.diagnose(teamId,
+				new DiagnosticsOptions(windowDays, minMatches, formSize, null, null));
+		return aiDiagnosisService.narrate(diagnostics);
 	}
 
 	/**

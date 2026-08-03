@@ -85,4 +85,12 @@ gak:
 
   anthropic:
     base-url: ${ANTHROPIC_BASE_URL:https://api.anthropic.com}
+    # 비어 있으면 AI 진단이 꺼진다. 앱은 정상 기동하고 진단은 규칙 기반으로 동작한다.
     key: ${ANTHROPIC_API_KEY:}
+    model: claude-opus-5
+    # 이미 계산된 지표를 문장으로 옮기는 일이라 깊은 추론이 필요 없다.
+    effort: low
+    # 사고(thinking) + 응답을 합친 상한이다. 짧은 문장이라도 사고 자리를 남겨야 한다.
+    max-tokens: 4096
+    # 넘기면 규칙 기반 문장을 그대로 둔다 — 사용자를 기다리게 하지 않는다.
+    timeout: 30s

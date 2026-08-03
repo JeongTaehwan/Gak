@@ -49,4 +49,11 @@ gak:
     season-override: 2024
 
   anthropic:
-    key: ""           # Anthropic API 키 (진단용)
+    # AI 진단용 키. **비워 두어도 앱은 정상 동작한다** — 진단 탭이 규칙 기반 문장으로
+    # 돌아갈 뿐이고, 화면 배지도 "규칙 기반"으로 정직하게 표시된다.
+    key: ""
+    # 아래는 전부 선택. 기본값이 application.yml 에 있다.
+    # model: claude-opus-5
+    # effort: low       # 계산된 지표를 문장으로 옮기는 일이라 깊은 추론이 불필요
+    # max-tokens: 4096  # 사고 + 응답을 합친 상한
+    # timeout: 30s      # 넘기면 규칙 기반 문장을 그대로 둔다

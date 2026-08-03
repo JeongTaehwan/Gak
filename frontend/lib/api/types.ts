@@ -257,3 +257,30 @@ export interface PredictionAccuracy {
   byPick: Partial<Record<Pick, PickAccuracy>>;
   recent: PredictionRecord[];
 }
+
+/**
+ * AI가 쓴 진단 서술 — `GET /api/teams/{teamId}/diagnosis`.
+ *
+ * `available: false`가 **정상 응답**이다. 키가 없거나, 표본이 부족하거나, 모델이 느렸을
+ * 때 전부 여기로 온다. 그때 화면은 규칙 기반 문장(`lib/diagnosis/summarize.ts`)을
+ * 그대로 두고 배지도 "규칙 기반"으로 유지한다.
+ */
+export interface AiDiagnosis {
+  available: boolean;
+  /** 못 만든 이유. 사용자에게 그대로 보여줄 수 있는 한국어. */
+  unavailableReason: string | null;
+  headline: string | null;
+  sub: string | null;
+  /** 결론의 근거가 된 지표. 백엔드 스키마가 비어 있지 않음을 강제한다. */
+  evidence: AiEvidence[];
+  /** 이 결론을 더 확실히 하려면 필요하지만 우리가 갖고 있지 않은 정보. */
+  unknowns: string[];
+}
+
+export interface AiEvidence {
+  claim: string;
+  /** 근거가 된 지표 이름 — "구간 내 최단 간격". */
+  metric: string;
+  /** 그 값 — "2일". */
+  value: string;
+}
