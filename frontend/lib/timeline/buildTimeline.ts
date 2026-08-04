@@ -23,7 +23,6 @@ import {
   toDateLabel,
   toDow,
   toFormSummary,
-  toMonthLabel,
   toPeriodLabel,
   toRecordLabel,
   toSeasonLabel,
@@ -345,20 +344,19 @@ function toPeriod(d: TeamDiagnostics): Period {
   };
 }
 
-/** "전 대회 통합 · 2023-24 시즌 · 2023/08–2024/05 · 52경기". 없는 값은 조용히 빠진다. */
+/**
+ * "전 대회 통합 · 23/24 시즌 · 52경기 · 표본 충분". 없는 값은 조용히 빠진다.
+ *
+ * 월 범위(`2023/08–2024/05`)는 적지 않는다 — 시즌 이름이 이미 그 기간이라 같은 말을
+ * 두 번 하는 셈이고, 한 줄에 마디가 다섯이면 정작 봐야 할 "52경기"가 묻힌다.
+ * 정확한 시작·끝 날짜는 타임라인이 첫 줄과 마지막 줄에 그대로 보여 준다.
+ */
 function teamSubtitle(d: TeamDiagnostics): string {
-  const { from, to, analyzedFixtures } = d.window;
-  const months =
-    from && to
-      ? toMonthLabel(from) === toMonthLabel(to)
-        ? toMonthLabel(from)
-        : `${toMonthLabel(from)}–${toMonthLabel(to)}`
-      : null;
+  const { analyzedFixtures } = d.window;
 
   return [
     "전 대회 통합",
     toSeasonLabel(d.window),
-    months,
     analyzedFixtures > 0 ? `${analyzedFixtures}경기` : "경기 없음",
     d.form.sampleSize > 0 ? CONFIDENCE_LABEL[d.form.confidence] : null,
   ]
