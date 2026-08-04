@@ -89,6 +89,13 @@ export interface MatchLoad {
    * **결장 데이터가 없는 경기는 null** — 0(아무도 안 빠짐)과 "모름"은 다르다.
    */
   absentCount: number | null;
+  /**
+   * 이 경기가 **진단 계산에 들어갔는가.**
+   *
+   * 아직 치르지 않은 경기는 false다. 목록에는 그대로 실린다 — 타임라인이 다가올 일정을
+   * 그리고 예측이 그 경기에 걸리기 때문이다. **자르는 것은 계산뿐이다.**
+   */
+  inAnalysis: boolean;
 }
 
 export interface AbsentPlayer {
@@ -153,8 +160,13 @@ export interface CongestionReport {
   spans: CongestionSpanView[];
 }
 
+/**
+ * 폼 — **진단 기간 전체**의 승/무/패. "최근 6경기"가 아니다.
+ *
+ * 이 카드만 다른 기간을 보면 옆에 놓인 밀집 구간·이동거리와 분모가 어긋난다.
+ * 무엇이 기간인지는 `AnalysisWindow`가 말한다.
+ */
 export interface FormSummary {
-  requested: number;
   /** 결과가 확정된 경기만 센다 — 예정 경기는 폼에 들어가지 않는다. */
   sampleSize: number;
   /** 날짜 오름차순. 폼 스트릭이 그대로 그린다. */
@@ -181,13 +193,36 @@ export interface TravelSummary {
   longestTripKm: number | null;
 }
 
-/** 이번 계산이 무엇을 보고 무엇을 뺐는지 — 숫자보다 먼저 읽혀야 하는 값. */
+/**
+ * 이번 계산이 **어느 기간의** 무엇을 보고 무엇을 뺐는지 — 숫자보다 먼저 읽혀야 하는 값.
+ *
+ * 모든 지표가 이 기간 하나에서 나온다: **가장 최신 시즌에서 지금까지 치른 경기 전체.**
+ * 화면은 이 값으로 각 카드에 "2023-24 시즌 52경기 기준"이라고 적는다.
+ */
 export interface AnalysisWindow {
+  /** 고른 시즌(API 시즌 번호 = 시작 연도). 경기가 하나도 없으면 null. */
+  season: number | null;
+  /**
+   * 한 해 안에서 끝나는 시즌인가(브라질·아르헨티나·K리그).
+   * 표기가 "2025"인지 "2023-24"인지를 가른다 — 날짜로 추측하지 않고 서버가 정해서 준다.
+   */
+  calendarSeason: boolean;
+  /** 그 시즌 첫/마지막 킥오프(예정 경기 포함). */
+  seasonFrom: string | null;
+  seasonTo: string | null;
+  /** "여기까지 치른 경기"의 기준 시각(서버 시계). */
+  asOf: string;
+  /** 실제로 계산에 넣은 경기의 첫/마지막 킥오프. */
   from: string | null;
   to: string | null;
-  totalFixtures: number;
+  /** 그 시즌 이 팀의 경기 수(예정·연기 포함). */
+  seasonFixtures: number;
   analyzedFixtures: number;
+  /** 아직 치르지 않아 계산에서 뺀 수. **화면에는 그대로 보인다.** */
+  upcomingFixtures: number;
   excludedFixtures: number;
+  /** 다른 시즌이라 통째로 뺀 수. 0이 아니면 DB에 여러 시즌이 섞여 있다는 뜻이다. */
+  otherSeasonFixtures: number;
 }
 
 /** 계산하지 **못한** 지표와 그 이유. 모르는 것을 0으로 채우지 않기 위한 장치. */

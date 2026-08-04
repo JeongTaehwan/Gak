@@ -41,7 +41,7 @@ export async function GET(request: Request): Promise<NextResponse<AiDiagnosis>> 
 
   const base = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
   const params = new URLSearchParams({ teamId });
-  for (const key of ["windowDays", "minMatches", "formSize"]) {
+  for (const key of ["windowDays", "minMatches", "season"]) {
     const value = searchParams.get(key);
     if (value) params.set(key, value);
   }

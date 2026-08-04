@@ -24,7 +24,9 @@ import {
   toDow,
   toFormSummary,
   toMonthLabel,
+  toPeriodLabel,
   toRecordLabel,
+  toSeasonLabel,
   toScore,
   toShootoutNote,
   toSpanSummary,
@@ -40,6 +42,7 @@ import type {
   RowCongestion,
   Absences,
   Opponents,
+  Period,
   SplitLine,
   Timeline,
   TimelineRow,
@@ -79,8 +82,8 @@ export function buildTimeline(d: TeamDiagnostics): Timeline {
       summary: toSpanSummary(s),
     }));
 
-  // 폼 강조 대상 = 마지막 N개의 **확정된** 경기. 예정 경기는 폼이 아니다.
-  const formFixtureIds = recentResolvedIds(d.matches, d.form.sampleSize);
+  // 폼 강조 대상 = 진단 기간 안의 **확정된** 경기. 예정 경기는 폼이 아니다.
+  const formFixtureIds = formFixtureIdsOf(d.matches);
 
   const rows: TimelineRow[] = d.matches.map((m, i) => {
     const competition = toCompetition(m);
@@ -110,6 +113,7 @@ export function buildTimeline(d: TeamDiagnostics): Timeline {
       score: toScore(m),
       result: m.result,
       pending: m.result === null,
+      inAnalysis: m.inAnalysis,
       statusNote: toStatusNote(m.status),
       shootoutNote: toShootoutNote(m),
       gap:
@@ -144,6 +148,7 @@ export function buildTimeline(d: TeamDiagnostics): Timeline {
       code: toTeamCode(d.teamName, d.teamCode),
       subtitle: teamSubtitle(d),
     },
+    period: toPeriod(d),
     rows,
     spans,
     competitionsPresent,
@@ -154,7 +159,6 @@ export function buildTimeline(d: TeamDiagnostics): Timeline {
     form: {
       recent: d.form.recent,
       sampleSize: d.form.sampleSize,
-      requested: d.form.requested,
       confidence: d.form.confidence,
       wins: d.form.wins,
       draws: d.form.draws,
@@ -168,7 +172,9 @@ export function buildTimeline(d: TeamDiagnostics): Timeline {
     // 진단은 위에서 만든 뷰모델을 그대로 읽는다 — 화면과 진단이 같은 값을 보게.
     diagnosis: EMPTY_DIAGNOSIS,
     omissions: d.omissions,
-    upcomingCount: d.matches.filter((m) => m.status === "NS").length,
+    // "예정"의 기준은 상태 코드가 아니라 **아직 치르지 않았다**는 사실이다. 상태로 세면
+    // 동기화가 늦어 아직 NS로 남아 있는 지난 경기가 "예정"에 끼어든다.
+    upcomingCount: d.matches.filter((m) => !m.inAnalysis).length,
     excludedCount: d.window.excludedFixtures,
   };
 
@@ -211,13 +217,20 @@ function positionOfSpan(
   return { spanId: span.id, startIdx, endIdx };
 }
 
-/** 폼에 들어간 경기(= 마지막 N개의 확정 경기)의 id 집합. */
-function recentResolvedIds(
-  matches: { fixtureId: number; result: unknown }[],
-  sampleSize: number,
+/**
+ * 폼에 들어간 경기의 id 집합 = **진단 대상 중 결과가 확정된 경기.**
+ *
+ * 개수를 세어 뒤에서 N개를 자르지 않는다. 서버가 이미 `inAnalysis`로 "이 경기가 계산에
+ * 들어갔다"를 말해 주므로, 화면이 같은 규칙을 다시 구현할 이유가 없다.
+ */
+function formFixtureIdsOf(
+  matches: { fixtureId: number; result: unknown; inAnalysis: boolean }[],
 ): Set<number> {
-  const resolved = matches.filter((m) => m.result !== null);
-  return new Set(resolved.slice(-sampleSize).map((m) => m.fixtureId));
+  return new Set(
+    matches
+      .filter((m) => m.inAnalysis && m.result !== null)
+      .map((m) => m.fixtureId),
+  );
 }
 
 /**
@@ -313,10 +326,29 @@ function absenceSummary(d: TeamDiagnostics): Absences {
   };
 }
 
-/** "전 대회 통합 · 2024/08–2024/09 · 3경기". 없는 값은 조용히 빠진다. */
+/**
+ * 이번 진단이 보고 있는 기간.
+ *
+ * **자동으로 고른 시즌이라도 사용자는 어느 시즌을 보고 있는지 알아야 한다.** 우리 DB에
+ * 여러 시즌이 섞여 있으면 "최신"이 어느 쪽인지는 데이터가 정하는데, 그게 틀렸을 때
+ * 화면은 아무 이상 없이 엉뚱한 시즌을 보여 준다. 시즌을 적어 두면 눈치챌 수 있다.
+ */
+function toPeriod(d: TeamDiagnostics): Period {
+  const w = d.window;
+  return {
+    seasonLabel: toSeasonLabel(w),
+    label: toPeriodLabel(w),
+    analyzedMatches: w.analyzedFixtures,
+    upcomingMatches: w.upcomingFixtures,
+    inProgress: w.upcomingFixtures > 0,
+    otherSeasonMatches: w.otherSeasonFixtures,
+  };
+}
+
+/** "전 대회 통합 · 2023-24 시즌 · 2023/08–2024/05 · 52경기". 없는 값은 조용히 빠진다. */
 function teamSubtitle(d: TeamDiagnostics): string {
   const { from, to, analyzedFixtures } = d.window;
-  const period =
+  const months =
     from && to
       ? toMonthLabel(from) === toMonthLabel(to)
         ? toMonthLabel(from)
@@ -325,7 +357,8 @@ function teamSubtitle(d: TeamDiagnostics): string {
 
   return [
     "전 대회 통합",
-    period,
+    toSeasonLabel(d.window),
+    months,
     analyzedFixtures > 0 ? `${analyzedFixtures}경기` : "경기 없음",
     d.form.sampleSize > 0 ? CONFIDENCE_LABEL[d.form.confidence] : null,
   ]

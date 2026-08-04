@@ -1,5 +1,6 @@
 package page.usetaehwan.gak.service.analysis;
 
+import java.time.Clock;
 import java.time.Instant;
 
 /**
@@ -7,22 +8,32 @@ import java.time.Instant;
  * 말고 10일 4경기면?")이 이 앱에선 흔한 조작이라, 기준을 코드 상수로 굳히면 그때마다
  * 배포해야 한다.
  *
- * @param windowDays  밀집 판정 창 폭(일). 양 끝 포함
- * @param minMatches  그 창 안에 몇 경기부터 밀집으로 볼지
- * @param formSize    최근 폼을 몇 경기로 볼지
- * @param travelFrom  이동거리 집계 시작(포함). null이면 전체 기간
- * @param travelTo    이동거리 집계 끝(포함). null이면 전체 기간
+ * <h2>기간도 파라미터다 — 다만 지금은 UI가 없다</h2>
+ * <p>{@link #season}·{@link #asOf}가 "언제를 진단할 것인가"를 정한다. 둘 다 null이면
+ * 기본 규칙이 적용된다: <b>가장 최신 시즌의, 지금까지 치른 경기 전체</b>
+ * ({@link AnalysisPeriodResolver} 참고). 기간 선택 화면은 나중에 붙이기로 했지만, 계산
+ * 쪽이 기간을 상수로 갖고 있으면 그때 코드를 뜯어야 하므로 자리를 미리 열어 둔다.
+ *
+ * <h2>폼 경기 수가 사라진 이유</h2>
+ * <p>예전에는 {@code formSize}(최근 6경기)가 따로 있었다. 그러면 폼만 다른 기간을 보게
+ * 되고, 화면에서 "6경기 4패" 옆에 시즌 전체의 밀집 구간이 나란히 놓인다 — 그 4패가
+ * 그 밀집 구간에서 나온 것처럼 읽히지만 근거가 없다. 이제 <b>모든 지표가 같은 기간</b>을
+ * 본다.
+ *
+ * @param windowDays 밀집 판정 창 폭(일). 양 끝 포함
+ * @param minMatches 그 창 안에 몇 경기부터 밀집으로 볼지
+ * @param season     볼 시즌(API 시즌 번호). null이면 자동 — 치른 경기가 있는 최신 시즌
+ * @param asOf       "여기까지 치른 경기"의 기준 시각. null이면 서버 시계의 지금
  */
 public record DiagnosticsOptions(
 		int windowDays,
 		int minMatches,
-		int formSize,
-		Instant travelFrom,
-		Instant travelTo
+		Integer season,
+		Instant asOf
 ) {
 
-	/** 기본값 — 프론트({@code lib/timeline/congestion.ts})와 같은 14일 5경기, 최근 6경기. */
-	public static final DiagnosticsOptions DEFAULTS = new DiagnosticsOptions(14, 5, 6, null, null);
+	/** 기본값 — 14일 5경기, 기간은 자동(최신 시즌 · 치른 경기까지). */
+	public static final DiagnosticsOptions DEFAULTS = new DiagnosticsOptions(14, 5, null, null);
 
 	public DiagnosticsOptions {
 		if (windowDays < 1) {
@@ -31,23 +42,18 @@ public record DiagnosticsOptions(
 		if (minMatches < 2) {
 			throw new IllegalArgumentException("밀집 기준은 2경기 이상이어야 합니다. minMatches=" + minMatches);
 		}
-		if (formSize < 1) {
-			throw new IllegalArgumentException("폼 경기 수는 1 이상이어야 합니다. formSize=" + formSize);
-		}
-		if (travelFrom != null && travelTo != null && travelFrom.isAfter(travelTo)) {
-			throw new IllegalArgumentException("이동거리 집계 기간의 시작이 끝보다 뒤입니다.");
-		}
 	}
 
-	public DiagnosticsOptions withTravelPeriod(Instant from, Instant to) {
-		return new DiagnosticsOptions(windowDays, minMatches, formSize, from, to);
+	public DiagnosticsOptions withSeason(Integer season) {
+		return new DiagnosticsOptions(windowDays, minMatches, season, asOf);
 	}
 
-	/** 이 경기 시각이 이동거리 집계 기간 안인가(경계 포함, null이면 제한 없음). */
-	public boolean travelPeriodContains(Instant kickoff) {
-		if (travelFrom != null && kickoff.isBefore(travelFrom)) {
-			return false;
-		}
-		return travelTo == null || !kickoff.isAfter(travelTo);
+	public DiagnosticsOptions withAsOf(Instant asOf) {
+		return new DiagnosticsOptions(windowDays, minMatches, season, asOf);
+	}
+
+	/** 이번 계산의 "지금". 지정하지 않았으면 서버 시계를 쓴다 — 클라이언트 시각은 믿지 않는다. */
+	public Instant asOfOr(Clock clock) {
+		return asOf != null ? asOf : Instant.now(clock);
 	}
 }

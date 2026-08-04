@@ -9,6 +9,7 @@
  * 시간대로 옮겨 적으면 서버가 "8/17"이라 센 경기가 화면에서 "8/16"이 된다.
  */
 import type {
+  AnalysisWindow,
   CompetitionType,
   FixtureStatus,
   MatchLoad,
@@ -33,6 +34,40 @@ export function toDow(iso: string): string {
 export function toMonthLabel(iso: string): string {
   const d = new Date(iso);
   return `${d.getUTCFullYear()}/${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+/**
+ * "23/24 시즌" / "2025 시즌" — 시즌 표기.
+ *
+ * 해를 걸치는지 여부를 **날짜로 되짚지 않는다.** 서버가 대회 시드에서 읽어 준
+ * `calendarSeason`을 그대로 쓴다 — 개막 직후(8월 경기밖에 없는 시점)에 날짜로 판단하면
+ * 프리미어리그가 "2026 시즌"이 되고, 브라질 리그는 반대로 틀린다.
+ */
+export function toSeasonLabel(w: AnalysisWindow): string | null {
+  if (w.season == null) return null;
+  return w.calendarSeason
+    ? `${w.season} 시즌`
+    : `${String(w.season % 100).padStart(2, "0")}/${String((w.season + 1) % 100).padStart(2, "0")} 시즌`;
+}
+
+/**
+ * "2023-24 시즌 52경기 기준" — 모든 진단 카드가 머리에 다는 한 줄.
+ *
+ * 지표마다 기간이 다르면 한 화면에서 무엇을 진단한 것인지 흐려진다. 그래서 기간을
+ * **하나로 고정하고, 그 기간을 카드마다 적는다.** 시즌이 진행 중이면 아직 치르지 않은
+ * 경기가 계산에 없다는 사실까지 함께 적는다 — 화면에는 그 경기들이 보이기 때문이다.
+ */
+export function toPeriodLabel(w: AnalysisWindow): string {
+  if (w.analyzedFixtures === 0) {
+    const season = toSeasonLabel(w);
+    return season ? `${season} — 아직 치른 경기가 없습니다` : "경기 없음";
+  }
+  const head = [toSeasonLabel(w), `${w.analyzedFixtures}경기 기준`]
+    .filter(Boolean)
+    .join(" ");
+  return w.upcomingFixtures > 0
+    ? `${head} · 예정 ${w.upcomingFixtures}경기는 제외`
+    : head;
 }
 
 /**

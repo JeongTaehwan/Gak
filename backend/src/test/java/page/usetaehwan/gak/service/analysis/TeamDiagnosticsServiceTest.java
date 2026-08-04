@@ -152,7 +152,7 @@ class TeamDiagnosticsServiceTest {
 		void postponedMatchesAreExcludedAndCounted() {
 			TeamDiagnostics d = diagnosticsService.diagnose(CHELSEA);
 
-			assertThat(d.window().totalFixtures()).isEqualTo(2);
+			assertThat(d.window().seasonFixtures()).isEqualTo(2);
 			assertThat(d.window().analyzedFixtures()).isEqualTo(1);
 			assertThat(d.window().excludedFixtures()).isEqualTo(1);
 			assertThat(d.matches()).extracting(MatchLoad::status).containsExactly(FixtureStatus.FT);
@@ -454,28 +454,31 @@ class TeamDiagnosticsServiceTest {
 		}
 
 		@Test
-		@DisplayName("기간을 좁히면 그 기간의 원정만 누적한다")
-		void accumulatesTravelForGivenPeriod() {
+		@DisplayName("이동거리는 진단 기간의 원정만 누적한다 — 다른 지표와 같은 분모")
+		void accumulatesTravelOverTheSamePeriodAsEveryOtherMetric() {
 			TeamDiagnostics all = diagnosticsService.diagnose(TEAM);
 			assertThat(all.travel().awayMatches()).isEqualTo(3);
 			assertThat(all.travel().totalKm()).isCloseTo(786.0, within(1.5));
 			assertThat(all.travel().longestTripKm()).isCloseTo(262.0, within(1.0));
+			// 집계 구간은 진단 기간 그대로다 — 이 지표만 다른 기간을 보지 않는다
+			assertThat(all.travel().from()).isEqualTo(all.window().from());
+			assertThat(all.travel().to()).isEqualTo(all.window().to());
 
-			DiagnosticsOptions burstOnly = DiagnosticsOptions.DEFAULTS
-					.withTravelPeriod(BASE, BASE.plus(Duration.ofDays(12)));
-			TeamDiagnostics burst = diagnosticsService.diagnose(TEAM, burstOnly);
+			// 기간을 12일째까지로 좁히면 이동거리도 함께 좁아진다(같은 기간을 보므로)
+			TeamDiagnostics burst = diagnosticsService.diagnose(TEAM,
+					DiagnosticsOptions.DEFAULTS.withAsOf(BASE.plus(Duration.ofDays(12))));
 
 			assertThat(burst.travel().awayMatches()).isEqualTo(2);
 			assertThat(burst.travel().totalKm()).isCloseTo(524.0, within(1.0));
 			assertThat(burst.travel().averageKmPerMeasuredMatch()).isCloseTo(262.0, within(1.0));
-			// 기간을 좁혀도 일정·밀집 계산은 전체를 본다(이동거리만 기간 지표다)
+			// 목록은 좁아지지 않는다 — 화면은 다가올 경기까지 그려야 한다
 			assertThat(burst.matches()).hasSize(6);
 		}
 
 		@Test
 		@DisplayName("기준을 바꾸면 결과도 바뀐다 — 기준은 저장값이 아니라 인자다")
 		void thresholdsAreParameters() {
-			DiagnosticsOptions strict = new DiagnosticsOptions(7, 5, 6, null, null);
+			DiagnosticsOptions strict = new DiagnosticsOptions(7, 5, null, null);
 			TeamDiagnostics d = diagnosticsService.diagnose(TEAM, strict);
 
 			// 7일 창에는 최대 3경기(0·3·6일)뿐이라 밀집이 아니다
@@ -514,6 +517,143 @@ class TeamDiagnosticsServiceTest {
 			assertThat(d.travel().totalKm()).isNull();
 			assertThat(d.omissions()).extracting(Omission::metric)
 					.contains("congestion", "pointsRate", "opponentStrength");
+		}
+	}
+
+	// =========================================================================
+	// 진단 기간 — 최신 시즌의 "치른 경기까지"
+	// =========================================================================
+
+	@Nested
+	@DisplayName("진단 기간")
+	class Period {
+
+		static final long TEAM = 900011L;
+		static final long OPPONENT = 900012L;
+
+		/** 지난 시즌(2023) 3경기 — 8월 첫 3주. */
+		static final Instant OLD_SEASON = Instant.parse("2023-08-05T15:00:00Z");
+		/** 이번 시즌(2024) 6경기 — 0·3·6·9·12·30일. */
+		static final Instant NEW_SEASON = Instant.parse("2025-01-01T15:00:00Z");
+		static final int[] NEW_OFFSETS = {0, 3, 6, 9, 12, 30};
+
+		/** 이번 시즌 세 번째 경기까지만 치른 시점. */
+		static final Instant MIDSEASON = NEW_SEASON.plus(Duration.ofDays(7));
+
+		@BeforeEach
+		void buildTwoSeasons() {
+			Competition epl = competitionRepository.findById(EPL).orElseThrow();
+			Team team = teamRepository.save(Team.builder()
+					.id(TEAM).name("Two Seasons FC").nameKo("두시즌FC").build());
+			Team opponent = teamRepository.save(Team.builder()
+					.id(OPPONENT).name("Opponent FC").nameKo("상대FC").build());
+
+			for (int i = 0; i < 3; i++) {
+				save(920000L + i, epl, 2023, team, opponent,
+						OLD_SEASON.plus(Duration.ofDays(7L * i)), FixtureStatus.FT);
+			}
+			for (int i = 0; i < NEW_OFFSETS.length; i++) {
+				save(921000L + i, epl, 2024, team, opponent,
+						NEW_SEASON.plus(Duration.ofDays(NEW_OFFSETS[i])), FixtureStatus.FT);
+			}
+		}
+
+		private void save(long id, Competition competition, int season, Team team, Team opponent,
+		                  Instant kickoff, FixtureStatus status) {
+			fixtureRepository.save(Fixture.builder()
+					.id(id).competition(competition).season(season).round("R")
+					.homeTeam(team).awayTeam(opponent).kickoff(kickoff)
+					.status(status).goalsHome(1).goalsAway(0).build());
+		}
+
+		@Test
+		@DisplayName("지난 시즌 경기는 지표에도 목록에도 넣지 않는다 — 뺀 개수는 밝힌다")
+		void olderSeasonsAreLeftOut() {
+			TeamDiagnostics d = diagnosticsService.diagnose(TEAM,
+					DiagnosticsOptions.DEFAULTS.withAsOf(MIDSEASON));
+
+			assertThat(d.window().season()).isEqualTo(2024);
+			assertThat(d.window().otherSeasonFixtures()).isEqualTo(3);
+			assertThat(d.matches()).extracting(MatchLoad::fixtureId)
+					.allSatisfy(id -> assertThat(id).isGreaterThanOrEqualTo(921000L));
+			// 두 시즌을 가로질러 세면 밀집도와 폼이 서로 다른 해를 가리킨다 — 그 사실을 남긴다
+			assertThat(d.omissions()).extracting(Omission::metric).contains("period");
+		}
+
+		@Test
+		@DisplayName("치르지 않은 경기는 계산에서 빠지고 목록에는 남는다")
+		void upcomingMatchesStayInTheListButOutOfEveryMetric() {
+			TeamDiagnostics d = diagnosticsService.diagnose(TEAM,
+					DiagnosticsOptions.DEFAULTS.withAsOf(MIDSEASON));
+
+			// 목록은 시즌 전체 — 타임라인이 다가올 일정을 그리고 예측이 걸린다
+			assertThat(d.matches()).hasSize(6);
+			assertThat(d.matches()).extracting(MatchLoad::inAnalysis)
+					.containsExactly(true, true, true, false, false, false);
+
+			// 지표는 치른 3경기만
+			assertThat(d.window().analyzedFixtures()).isEqualTo(3);
+			assertThat(d.window().upcomingFixtures()).isEqualTo(3);
+			assertThat(d.window().seasonInProgress()).isTrue();
+			assertThat(d.window().to()).isEqualTo(NEW_SEASON.plus(Duration.ofDays(6)));
+			assertThat(d.form().sampleSize()).isEqualTo(3);
+			assertThat(d.travel().to()).isEqualTo(d.window().to());
+			assertThat(d.congestion().analyzedMatchCount()).isEqualTo(3);
+		}
+
+		@Test
+		@DisplayName("경기가 적으면 '밀집 없음'이 아니라 '판정 불가'로 답한다")
+		void tooFewMatchesMeansUndecidableNotUncongested() {
+			TeamDiagnostics d = diagnosticsService.diagnose(TEAM,
+					DiagnosticsOptions.DEFAULTS.withAsOf(MIDSEASON));
+
+			assertThat(d.congestion().detectable()).isFalse();
+			assertThat(d.congestion().spans()).isEmpty();
+			assertThat(d.omissions()).extracting(Omission::metric).contains("congestion");
+		}
+
+		@Test
+		@DisplayName("시즌이 끝났으면 그 시즌 전체가 기간이 된다")
+		void finishedSeasonMeansTheWholeSeason() {
+			TeamDiagnostics d = diagnosticsService.diagnose(TEAM,
+					DiagnosticsOptions.DEFAULTS.withAsOf(NEW_SEASON.plus(Duration.ofDays(365))));
+
+			assertThat(d.window().analyzedFixtures()).isEqualTo(6);
+			assertThat(d.window().upcomingFixtures()).isZero();
+			assertThat(d.window().seasonInProgress()).isFalse();
+			assertThat(d.congestion().detectable()).isTrue();
+		}
+
+		@Test
+		@DisplayName("한 경기도 치르지 않은 시즌으로는 넘어가지 않는다 — 일정만 먼저 들어온 경우")
+		void doesNotJumpToASeasonWithNoPlayedMatches() {
+			// 2024 시즌 일정은 이미 들어와 있지만 첫 경기 전이다.
+			TeamDiagnostics d = diagnosticsService.diagnose(TEAM,
+					DiagnosticsOptions.DEFAULTS.withAsOf(NEW_SEASON.minus(Duration.ofDays(1))));
+
+			assertThat(d.window().season()).isEqualTo(2023);
+			assertThat(d.window().analyzedFixtures()).isEqualTo(3);
+		}
+
+		@Test
+		@DisplayName("시즌을 직접 지정하면 그 시즌을 본다 — 기간은 인자다")
+		void seasonIsAParameter() {
+			TeamDiagnostics d = diagnosticsService.diagnose(TEAM,
+					DiagnosticsOptions.DEFAULTS.withSeason(2023).withAsOf(MIDSEASON));
+
+			assertThat(d.window().season()).isEqualTo(2023);
+			assertThat(d.matches()).hasSize(3);
+			assertThat(d.window().otherSeasonFixtures()).isEqualTo(6);
+		}
+
+		@Test
+		@DisplayName("걸침 시즌인지 아닌지는 대회 시드가 정한다 — 날짜로 되짚지 않는다")
+		void seasonBoundaryComesFromTheCompetitionSeed() {
+			TeamDiagnostics d = diagnosticsService.diagnose(TEAM,
+					DiagnosticsOptions.DEFAULTS.withAsOf(MIDSEASON));
+
+			// 프리미어리그는 해를 걸치는 시즌이다 → 화면이 "2024-25"로 적을 수 있다
+			assertThat(d.window().calendarSeason()).isFalse();
 		}
 	}
 

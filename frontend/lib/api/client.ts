@@ -36,8 +36,11 @@ export interface DiagnosticsQuery {
   windowDays?: number;
   /** 그 창 안에 몇 경기부터 밀집으로 볼지. 서버 기본값 5. */
   minMatches?: number;
-  /** 최근 폼을 몇 경기로 볼지. 서버 기본값 6. */
-  formSize?: number;
+  /**
+   * 볼 시즌(API 시즌 번호 = 시작 연도). 생략하면 서버가 고른다 —
+   * **치른 경기가 있는 최신 시즌.** 기간 선택 UI가 붙으면 이 값을 넘긴다.
+   */
+  season?: number;
 }
 
 /** 데이터 출처 — 화면이 "지금 보고 있는 게 무엇인지" 표시할 수 있도록 함께 돌려준다. */
@@ -95,7 +98,7 @@ export async function getTeamDiagnostics(
   const params = new URLSearchParams();
   if (query.windowDays != null) params.set("windowDays", String(query.windowDays));
   if (query.minMatches != null) params.set("minMatches", String(query.minMatches));
-  if (query.formSize != null) params.set("formSize", String(query.formSize));
+  if (query.season != null) params.set("season", String(query.season));
 
   const qs = params.toString();
   const url = `${baseUrl()}/api/teams/${query.teamId}/diagnostics${qs ? `?${qs}` : ""}`;

@@ -83,11 +83,16 @@ class AiDiagnosisServiceTest {
 		return new TeamDiagnostics(
 				33L, "맨체스터 유나이티드", "MUN", Instant.parse("2024-05-20T00:00:00Z"),
 				new AnalysisWindow(
+						2023, false,
 						Instant.parse("2023-08-11T19:00:00Z"),
-						Instant.parse("2024-05-19T15:00:00Z"), 42, 40, 2),
+						Instant.parse("2024-05-19T15:00:00Z"),
+						Instant.parse("2024-05-20T00:00:00Z"),
+						Instant.parse("2023-08-11T19:00:00Z"),
+						Instant.parse("2024-05-19T15:00:00Z"),
+						42, 40, 0, 2, 0),
 				List.of(),
 				new CongestionReport(14, 5, detectable, 40, 4, 3, 3.0, List.of()),
-				new FormSummary(6, formSample, recentPicks(formSample), 3, 1, 2, 10,
+				new FormSummary(formSample, recentPicks(formSample), 3, 1, 2, 10,
 						formSample * 3, pointsRate, null, confidence),
 				OpponentStrength.unmeasured(formSample),
 				new TravelSummary(
@@ -386,7 +391,9 @@ class AiDiagnosisServiceTest {
 
 		String prompt = client.lastUserPrompt;
 		// 계산 결과는 있다
-		assertThat(prompt).contains("일정 밀집도").contains("최근 폼").contains("원정 이동거리");
+		assertThat(prompt).contains("일정 밀집도").contains("폼").contains("원정 이동거리");
+		// 지표가 어느 기간에서 나왔는지도 함께 넘긴다 — 결론이 시점을 건너뛰지 않게
+		assertThat(prompt).contains("2023-24 시즌").contains("이 시즌은 끝났습니다");
 		// 원본 경기 목록(킥오프 타임스탬프, fixtureId)은 없다
 		assertThat(prompt).doesNotContain("fixtureId").doesNotContain("T00:00:00Z");
 	}

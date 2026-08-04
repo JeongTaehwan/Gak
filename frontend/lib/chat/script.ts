@@ -47,11 +47,16 @@ export function buildChatScript(t: Timeline): ChatScript {
 /** "대체 왜 이러냐?" — 판정할 표본이 없으면 없다고 먼저 말한다. */
 function whyQuestion(t: Timeline): QA {
   const hasSpans = t.spans.length > 0;
+  // 답도 근거도 **같은 기간**에서 나온다. 대화가 화면과 다른 경기를 세면 앱이 자기
+  // 말을 뒤집는 것으로 읽힌다.
+  const scope = t.period.seasonLabel
+    ? `${t.period.seasonLabel} ${t.period.analyzedMatches}경기를 봤다. `
+    : "";
   const answer = !t.congestion.detectable
-    ? "아직 답할 만큼의 경기가 없다. 지금 가진 건 몇 경기뿐이라, 원인을 말하면 그건 추측이지 데이터가 아니다."
+    ? `${scope}아직 답할 만큼의 경기가 없다. 원인을 말하면 그건 추측이지 데이터가 아니다.`
     : hasSpans
-      ? `일정이다. ${t.congestion.windowDays}일 ${t.congestion.minMatches}경기 기준을 넘긴 밀집 구간이 ${t.spans.length}번 있었다.`
-      : "적어도 일정 탓은 아니다. 밀집 기준을 넘긴 구간이 한 번도 없었다.";
+      ? `${scope}일정이다. ${t.congestion.windowDays}일 ${t.congestion.minMatches}경기 기준을 넘긴 밀집 구간이 ${t.spans.length}번 있었다.`
+      : `${scope}적어도 일정 탓은 아니다. 밀집 기준을 넘긴 구간이 한 번도 없었다.`;
 
   return {
     key: "why",
@@ -60,7 +65,7 @@ function whyQuestion(t: Timeline): QA {
     highlight: hasSpans ? "congestion" : null,
     evidence: [
       { text: t.congestion.note, highlight: hasSpans ? "congestion" : undefined },
-      { text: `최근 폼 ${t.form.summary}`, highlight: "form" },
+      { text: `폼 ${t.form.summary}`, highlight: "form" },
       ...t.spans.slice(0, 2).map((s) => ({
         text: `${s.fromLabel}–${s.toLabel} ${s.summary}`,
         highlight: "congestion" as HighlightTag,
@@ -99,7 +104,7 @@ function scheduleQuestion(t: Timeline): QA {
   };
 }
 
-/** "최근 폼은?" — 표본이 작으면 비율 대신 개수로 답한다. */
+/** "폼은 어땠나?" — 표본이 작으면 비율 대신 개수로 답한다. */
 function formQuestion(t: Timeline): QA {
   const answer =
     t.form.sampleSize === 0
@@ -110,11 +115,18 @@ function formQuestion(t: Timeline): QA {
 
   return {
     key: "form",
-    question: "최근 폼은?",
+    question: "폼은 어땠나?",
     answer,
     highlight: "form",
     evidence: [
-      { text: `폼 스트릭은 확정된 ${t.form.sampleSize}경기만 센다`, highlight: "form" },
+      {
+        text: `폼 스트릭은 이 기간에서 확정된 ${t.form.sampleSize}경기만 센다${
+          t.period.upcomingMatches > 0
+            ? ` — 예정 ${t.period.upcomingMatches}경기는 빠져 있다`
+            : ""
+        }`,
+        highlight: "form",
+      },
       ...t.omissions.map((o) => ({ text: o.reason })),
     ],
   };

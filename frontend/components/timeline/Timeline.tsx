@@ -55,7 +55,7 @@ export function Timeline({
       {/* 헤더 + 범례 */}
       <div className="mb-3.5 flex items-center justify-between gap-4">
         <div className="min-w-0 text-xs font-extrabold tracking-wider text-text-low">
-          리그 · 컵 · 유럽대항전 통합 — 간격이 곧 일정
+          리그 · 컵 · 유럽대항전 통합 — {timeline.period.label}
         </div>
         <div className="flex shrink-0 gap-1.5">
           {timeline.competitionsPresent.map((c) => (
@@ -82,8 +82,11 @@ export function Timeline({
       </div>
 
       {/* 경기 흐름 */}
-      {timeline.rows.map((row) => {
+      {timeline.rows.map((row, i) => {
         const cong = row.congestion;
+        // 진단이 끊긴 자리. 여기 아래로는 화면에는 보이지만 어떤 지표에도 안 들어간다.
+        const boundary =
+          !row.inAnalysis && (i === 0 || timeline.rows[i - 1].inAnalysis);
         const span = cong ? spanById.get(cong.spanId) : undefined;
         // 간격: 밀집 구간 내부 전이면 레일 안, 아니면(휴식/시작 진입) 레일 밖.
         const gapInRail = !!cong && cong.pos !== "start";
@@ -91,6 +94,9 @@ export function Timeline({
 
         return (
           <Fragment key={row.id}>
+            {boundary && timeline.period.analyzedMatches > 0 && (
+              <AnalysisBoundary period={timeline.period} />
+            )}
             {row.gap && !gapInRail && <GapMarker gap={row.gap} />}
 
             {cong && span ? (
@@ -127,6 +133,27 @@ export function Timeline({
         upcoming={timeline.upcomingCount}
         excluded={timeline.excludedCount}
       />
+    </div>
+  );
+}
+
+/**
+ * "여기까지 치렀다" — 진단이 끊기는 자리.
+ *
+ * 이 선이 없으면 아래의 예정 경기들이 위 카드의 숫자에 들어갔다고 읽힌다. 목록에는
+ * 남기고 계산에서만 뺀 것이라, **뺐다는 사실을 화면이 말해야** 목록과 지표가 어긋나
+ * 보이지 않는다. 밀집 브래킷이 여기서 끊기는 것도 같은 이유다.
+ */
+function AnalysisBoundary({ period }: { period: TimelineVM["period"] }) {
+  return (
+    <div className="my-2 flex items-center gap-3">
+      <span className="rounded-badge border border-dashed border-line-dashed px-2 py-0.5 text-[10px] font-black tracking-wider text-text-low">
+        여기까지 치름 · {period.analyzedMatches}경기
+      </span>
+      <span className="h-px flex-1 bg-line-dashed" />
+      <span className="text-[11px] font-bold text-text-low">
+        아래 {period.upcomingMatches}경기는 진단에 들어가지 않습니다
+      </span>
     </div>
   );
 }

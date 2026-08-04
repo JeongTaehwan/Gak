@@ -2,13 +2,20 @@
     "teamId": 33,
     "teamName": "맨유",
     "teamCode": "MUN",
-    "generatedAt": "2026-08-03T07:16:17.390297351Z",
+    "generatedAt": "2026-08-04T13:46:23.375663634Z",
     "window": {
+        "season": 2023,
+        "calendarSeason": false,
+        "seasonFrom": "2023-08-14T20:00:00Z",
+        "seasonTo": "2024-05-25T15:00:00Z",
+        "asOf": "2026-08-04T13:46:23.357520874Z",
         "from": "2023-08-14T20:00:00Z",
         "to": "2024-05-25T15:00:00Z",
-        "totalFixtures": 52,
+        "seasonFixtures": 52,
         "analyzedFixtures": 52,
-        "excludedFixtures": 0
+        "upcomingFixtures": 0,
+        "excludedFixtures": 0,
+        "otherSeasonFixtures": 0
     },
     "matches": [
         {
@@ -20,6 +27,7 @@
             "competitionType": "LEAGUE",
             "opponentId": 39,
             "opponentName": "Wolverhampton Wanderers",
+            "opponentRank": null,
             "home": true,
             "status": "FT",
             "result": "W",
@@ -31,7 +39,8 @@
             "congestionSpanId": null,
             "extraMinutes": 0,
             "travelKm": 0.0,
-            "absentCount": 5
+            "absentCount": 5,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000001,
@@ -42,6 +51,7 @@
             "competitionType": "LEAGUE",
             "opponentId": 47,
             "opponentName": "Tottenham Hotspur",
+            "opponentRank": null,
             "home": false,
             "status": "FT",
             "result": "L",
@@ -53,7 +63,8 @@
             "congestionSpanId": null,
             "extraMinutes": 0,
             "travelKm": 262.0,
-            "absentCount": 6
+            "absentCount": 6,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000002,
@@ -64,6 +75,7 @@
             "competitionType": "LEAGUE",
             "opponentId": 65,
             "opponentName": "노팅엄",
+            "opponentRank": null,
             "home": true,
             "status": "FT",
             "result": "W",
@@ -75,7 +87,8 @@
             "congestionSpanId": null,
             "extraMinutes": 0,
             "travelKm": 0.0,
-            "absentCount": 6
+            "absentCount": 6,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000003,
@@ -86,6 +99,7 @@
             "competitionType": "LEAGUE",
             "opponentId": 42,
             "opponentName": "아스날",
+            "opponentRank": null,
             "home": false,
             "status": "FT",
             "result": "L",
@@ -97,7 +111,8 @@
             "congestionSpanId": null,
             "extraMinutes": 0,
             "travelKm": 262.0,
-            "absentCount": 7
+            "absentCount": 7,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000004,
@@ -108,6 +123,7 @@
             "competitionType": "LEAGUE",
             "opponentId": 51,
             "opponentName": "Brighton & Hove Albion",
+            "opponentRank": null,
             "home": true,
             "status": "FT",
             "result": "L",
@@ -119,7 +135,8 @@
             "congestionSpanId": 0,
             "extraMinutes": 0,
             "travelKm": 0.0,
-            "absentCount": 8
+            "absentCount": 8,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000005,
@@ -130,6 +147,7 @@
             "competitionType": "HYBRID",
             "opponentId": 157,
             "opponentName": "Bayern München",
+            "opponentRank": null,
             "home": false,
             "status": "FT",
             "result": "L",
@@ -141,7 +159,8 @@
             "congestionSpanId": 0,
             "extraMinutes": 0,
             "travelKm": 1136.0,
-            "absentCount": 11
+            "absentCount": 11,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000006,
@@ -152,6 +171,7 @@
             "competitionType": "LEAGUE",
             "opponentId": 44,
             "opponentName": "Burnley",
+            "opponentRank": null,
             "home": false,
             "status": "FT",
             "result": "W",
@@ -162,8 +182,9 @@
             "gapDays": 3,
             "congestionSpanId": 0,
             "extraMinutes": 0,
-            "travelKm": null,
-            "absentCount": 7
+            "travelKm": 34.3,
+            "absentCount": 7,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000007,
@@ -174,6 +195,7 @@
             "competitionType": "CUP",
             "opponentId": 52,
             "opponentName": "Crystal Palace",
+            "opponentRank": null,
             "home": true,
             "status": "FT",
             "result": "W",
@@ -185,7 +207,8 @@
             "congestionSpanId": 0,
             "extraMinutes": 0,
             "travelKm": 0.0,
-            "absentCount": null
+            "absentCount": null,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000008,
@@ -196,6 +219,7 @@
             "competitionType": "LEAGUE",
             "opponentId": 52,
             "opponentName": "Crystal Palace",
+            "opponentRank": null,
             "home": true,
             "status": "FT",
             "result": "L",
@@ -207,7 +231,8 @@
             "congestionSpanId": 0,
             "extraMinutes": 0,
             "travelKm": 0.0,
-            "absentCount": 8
+            "absentCount": 8,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000009,
@@ -218,6 +243,7 @@
             "competitionType": "HYBRID",
             "opponentId": 645,
             "opponentName": "Galatasaray",
+            "opponentRank": null,
             "home": true,
             "status": "FT",
             "result": "L",
@@ -229,7 +255,8 @@
             "congestionSpanId": 0,
             "extraMinutes": 0,
             "travelKm": 0.0,
-            "absentCount": 8
+            "absentCount": 8,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000010,
@@ -240,6 +267,7 @@
             "competitionType": "LEAGUE",
             "opponentId": 55,
             "opponentName": "Brentford",
+            "opponentRank": null,
             "home": true,
             "status": "FT",
             "result": "W",
@@ -251,7 +279,8 @@
             "congestionSpanId": 0,
             "extraMinutes": 0,
             "travelKm": 0.0,
-            "absentCount": 8
+            "absentCount": 8,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000011,
@@ -262,6 +291,7 @@
             "competitionType": "LEAGUE",
             "opponentId": 62,
             "opponentName": "Sheffield Utd",
+            "opponentRank": null,
             "home": false,
             "status": "FT",
             "result": "W",
@@ -272,8 +302,9 @@
             "gapDays": 14,
             "congestionSpanId": 1,
             "extraMinutes": 0,
-            "travelKm": null,
-            "absentCount": 6
+            "travelKm": 52.4,
+            "absentCount": 6,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000012,
@@ -284,6 +315,7 @@
             "competitionType": "HYBRID",
             "opponentId": 569,
             "opponentName": "FC Copenhagen",
+            "opponentRank": null,
             "home": true,
             "status": "FT",
             "result": "W",
@@ -295,7 +327,8 @@
             "congestionSpanId": 1,
             "extraMinutes": 0,
             "travelKm": 0.0,
-            "absentCount": 6
+            "absentCount": 6,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000013,
@@ -306,6 +339,7 @@
             "competitionType": "LEAGUE",
             "opponentId": 50,
             "opponentName": "맨시티",
+            "opponentRank": null,
             "home": true,
             "status": "FT",
             "result": "L",
@@ -317,7 +351,8 @@
             "congestionSpanId": 1,
             "extraMinutes": 0,
             "travelKm": 0.0,
-            "absentCount": 5
+            "absentCount": 5,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000014,
@@ -328,6 +363,7 @@
             "competitionType": "CUP",
             "opponentId": 34,
             "opponentName": "Newcastle United",
+            "opponentRank": null,
             "home": true,
             "status": "FT",
             "result": "L",
@@ -339,7 +375,8 @@
             "congestionSpanId": 1,
             "extraMinutes": 0,
             "travelKm": 0.0,
-            "absentCount": null
+            "absentCount": null,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000015,
@@ -350,6 +387,7 @@
             "competitionType": "LEAGUE",
             "opponentId": 36,
             "opponentName": "Fulham",
+            "opponentRank": null,
             "home": false,
             "status": "FT",
             "result": "W",
@@ -361,7 +399,8 @@
             "congestionSpanId": 1,
             "extraMinutes": 0,
             "travelKm": 262.0,
-            "absentCount": 7
+            "absentCount": 7,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000016,
@@ -372,6 +411,7 @@
             "competitionType": "HYBRID",
             "opponentId": 569,
             "opponentName": "FC Copenhagen",
+            "opponentRank": null,
             "home": false,
             "status": "FT",
             "result": "L",
@@ -382,8 +422,9 @@
             "gapDays": 4,
             "congestionSpanId": 1,
             "extraMinutes": 0,
-            "travelKm": null,
-            "absentCount": 6
+            "travelKm": 983.1,
+            "absentCount": 6,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000017,
@@ -394,6 +435,7 @@
             "competitionType": "LEAGUE",
             "opponentId": 1359,
             "opponentName": "Luton Town",
+            "opponentRank": null,
             "home": true,
             "status": "FT",
             "result": "W",
@@ -405,7 +447,8 @@
             "congestionSpanId": 1,
             "extraMinutes": 0,
             "travelKm": 0.0,
-            "absentCount": 7
+            "absentCount": 7,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000018,
@@ -416,6 +459,7 @@
             "competitionType": "LEAGUE",
             "opponentId": 45,
             "opponentName": "Everton",
+            "opponentRank": null,
             "home": false,
             "status": "FT",
             "result": "W",
@@ -427,7 +471,8 @@
             "congestionSpanId": 2,
             "extraMinutes": 0,
             "travelKm": 50.3,
-            "absentCount": 8
+            "absentCount": 8,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000019,
@@ -438,6 +483,7 @@
             "competitionType": "HYBRID",
             "opponentId": 645,
             "opponentName": "Galatasaray",
+            "opponentRank": null,
             "home": false,
             "status": "FT",
             "result": "D",
@@ -449,7 +495,8 @@
             "congestionSpanId": 2,
             "extraMinutes": 0,
             "travelKm": null,
-            "absentCount": 9
+            "absentCount": 9,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000020,
@@ -460,6 +507,7 @@
             "competitionType": "LEAGUE",
             "opponentId": 34,
             "opponentName": "Newcastle United",
+            "opponentRank": null,
             "home": false,
             "status": "FT",
             "result": "L",
@@ -471,7 +519,8 @@
             "congestionSpanId": 2,
             "extraMinutes": 0,
             "travelKm": 171.4,
-            "absentCount": 7
+            "absentCount": 7,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000021,
@@ -482,6 +531,7 @@
             "competitionType": "LEAGUE",
             "opponentId": 49,
             "opponentName": "첼시",
+            "opponentRank": null,
             "home": true,
             "status": "FT",
             "result": "W",
@@ -493,7 +543,8 @@
             "congestionSpanId": 2,
             "extraMinutes": 0,
             "travelKm": 0.0,
-            "absentCount": 7
+            "absentCount": 7,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000022,
@@ -504,6 +555,7 @@
             "competitionType": "LEAGUE",
             "opponentId": 35,
             "opponentName": "AFC Bournemouth",
+            "opponentRank": null,
             "home": true,
             "status": "FT",
             "result": "L",
@@ -515,7 +567,8 @@
             "congestionSpanId": 2,
             "extraMinutes": 0,
             "travelKm": 0.0,
-            "absentCount": 8
+            "absentCount": 8,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000023,
@@ -526,6 +579,7 @@
             "competitionType": "HYBRID",
             "opponentId": 157,
             "opponentName": "Bayern München",
+            "opponentRank": null,
             "home": true,
             "status": "FT",
             "result": "L",
@@ -537,7 +591,8 @@
             "congestionSpanId": 2,
             "extraMinutes": 0,
             "travelKm": 0.0,
-            "absentCount": 8
+            "absentCount": 8,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000024,
@@ -548,6 +603,7 @@
             "competitionType": "LEAGUE",
             "opponentId": 40,
             "opponentName": "리버풀",
+            "opponentRank": null,
             "home": false,
             "status": "FT",
             "result": "D",
@@ -559,7 +615,8 @@
             "congestionSpanId": null,
             "extraMinutes": 0,
             "travelKm": 50.3,
-            "absentCount": 9
+            "absentCount": 9,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000025,
@@ -570,6 +627,7 @@
             "competitionType": "LEAGUE",
             "opponentId": 48,
             "opponentName": "West Ham United",
+            "opponentRank": null,
             "home": false,
             "status": "FT",
             "result": "L",
@@ -581,7 +639,8 @@
             "congestionSpanId": null,
             "extraMinutes": 0,
             "travelKm": 262.0,
-            "absentCount": 9
+            "absentCount": 9,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000026,
@@ -592,6 +651,7 @@
             "competitionType": "LEAGUE",
             "opponentId": 66,
             "opponentName": "빌라",
+            "opponentRank": null,
             "home": true,
             "status": "FT",
             "result": "W",
@@ -603,7 +663,8 @@
             "congestionSpanId": null,
             "extraMinutes": 0,
             "travelKm": 0.0,
-            "absentCount": 9
+            "absentCount": 9,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000027,
@@ -614,6 +675,7 @@
             "competitionType": "LEAGUE",
             "opponentId": 65,
             "opponentName": "노팅엄",
+            "opponentRank": null,
             "home": false,
             "status": "FT",
             "result": "W",
@@ -625,7 +687,8 @@
             "congestionSpanId": null,
             "extraMinutes": 0,
             "travelKm": 92.9,
-            "absentCount": 8
+            "absentCount": 8,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000028,
@@ -636,6 +699,7 @@
             "competitionType": "CUP",
             "opponentId": 1148,
             "opponentName": "Wigan Athletic",
+            "opponentRank": null,
             "home": false,
             "status": "FT",
             "result": "W",
@@ -646,8 +710,9 @@
             "gapDays": 9,
             "congestionSpanId": null,
             "extraMinutes": 0,
-            "travelKm": null,
-            "absentCount": null
+            "travelKm": 26.7,
+            "absentCount": null,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000029,
@@ -658,6 +723,7 @@
             "competitionType": "LEAGUE",
             "opponentId": 47,
             "opponentName": "Tottenham Hotspur",
+            "opponentRank": null,
             "home": true,
             "status": "FT",
             "result": "D",
@@ -669,7 +735,8 @@
             "congestionSpanId": null,
             "extraMinutes": 0,
             "travelKm": 0.0,
-            "absentCount": 2
+            "absentCount": 2,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000030,
@@ -680,6 +747,7 @@
             "competitionType": "CUP",
             "opponentId": 1785,
             "opponentName": "Newport County",
+            "opponentRank": null,
             "home": false,
             "status": "FT",
             "result": "W",
@@ -691,7 +759,8 @@
             "congestionSpanId": null,
             "extraMinutes": 0,
             "travelKm": null,
-            "absentCount": null
+            "absentCount": null,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000031,
@@ -702,6 +771,7 @@
             "competitionType": "LEAGUE",
             "opponentId": 39,
             "opponentName": "Wolverhampton Wanderers",
+            "opponentRank": null,
             "home": false,
             "status": "FT",
             "result": "W",
@@ -713,7 +783,8 @@
             "congestionSpanId": null,
             "extraMinutes": 0,
             "travelKm": 99.7,
-            "absentCount": 3
+            "absentCount": 3,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000032,
@@ -724,6 +795,7 @@
             "competitionType": "LEAGUE",
             "opponentId": 48,
             "opponentName": "West Ham United",
+            "opponentRank": null,
             "home": true,
             "status": "FT",
             "result": "W",
@@ -735,7 +807,8 @@
             "congestionSpanId": null,
             "extraMinutes": 0,
             "travelKm": 0.0,
-            "absentCount": 2
+            "absentCount": 2,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000033,
@@ -746,6 +819,7 @@
             "competitionType": "LEAGUE",
             "opponentId": 66,
             "opponentName": "빌라",
+            "opponentRank": null,
             "home": false,
             "status": "FT",
             "result": "W",
@@ -757,7 +831,8 @@
             "congestionSpanId": null,
             "extraMinutes": 0,
             "travelKm": 113.1,
-            "absentCount": 4
+            "absentCount": 4,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000034,
@@ -768,6 +843,7 @@
             "competitionType": "LEAGUE",
             "opponentId": 1359,
             "opponentName": "Luton Town",
+            "opponentRank": null,
             "home": false,
             "status": "FT",
             "result": "W",
@@ -778,8 +854,9 @@
             "gapDays": 7,
             "congestionSpanId": null,
             "extraMinutes": 0,
-            "travelKm": null,
-            "absentCount": 5
+            "travelKm": 216.4,
+            "absentCount": 5,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000035,
@@ -790,6 +867,7 @@
             "competitionType": "LEAGUE",
             "opponentId": 36,
             "opponentName": "Fulham",
+            "opponentRank": null,
             "home": true,
             "status": "FT",
             "result": "L",
@@ -801,7 +879,8 @@
             "congestionSpanId": null,
             "extraMinutes": 0,
             "travelKm": 0.0,
-            "absentCount": 7
+            "absentCount": 7,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000036,
@@ -812,6 +891,7 @@
             "competitionType": "CUP",
             "opponentId": 65,
             "opponentName": "노팅엄",
+            "opponentRank": null,
             "home": false,
             "status": "FT",
             "result": "W",
@@ -823,7 +903,8 @@
             "congestionSpanId": null,
             "extraMinutes": 0,
             "travelKm": 92.9,
-            "absentCount": null
+            "absentCount": null,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000037,
@@ -834,6 +915,7 @@
             "competitionType": "LEAGUE",
             "opponentId": 50,
             "opponentName": "맨시티",
+            "opponentRank": null,
             "home": false,
             "status": "FT",
             "result": "L",
@@ -845,7 +927,8 @@
             "congestionSpanId": null,
             "extraMinutes": 0,
             "travelKm": 0.0,
-            "absentCount": 7
+            "absentCount": 7,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000038,
@@ -856,6 +939,7 @@
             "competitionType": "LEAGUE",
             "opponentId": 45,
             "opponentName": "Everton",
+            "opponentRank": null,
             "home": true,
             "status": "FT",
             "result": "W",
@@ -867,7 +951,8 @@
             "congestionSpanId": null,
             "extraMinutes": 0,
             "travelKm": 0.0,
-            "absentCount": 6
+            "absentCount": 6,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000039,
@@ -878,6 +963,7 @@
             "competitionType": "CUP",
             "opponentId": 40,
             "opponentName": "리버풀",
+            "opponentRank": null,
             "home": true,
             "status": "AET",
             "result": "W",
@@ -889,7 +975,8 @@
             "congestionSpanId": null,
             "extraMinutes": 30,
             "travelKm": 0.0,
-            "absentCount": null
+            "absentCount": null,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000040,
@@ -900,6 +987,7 @@
             "competitionType": "LEAGUE",
             "opponentId": 55,
             "opponentName": "Brentford",
+            "opponentRank": null,
             "home": false,
             "status": "FT",
             "result": "D",
@@ -911,7 +999,8 @@
             "congestionSpanId": null,
             "extraMinutes": 0,
             "travelKm": 262.0,
-            "absentCount": 4
+            "absentCount": 4,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000041,
@@ -922,6 +1011,7 @@
             "competitionType": "LEAGUE",
             "opponentId": 49,
             "opponentName": "첼시",
+            "opponentRank": null,
             "home": false,
             "status": "FT",
             "result": "L",
@@ -933,7 +1023,8 @@
             "congestionSpanId": null,
             "extraMinutes": 0,
             "travelKm": 262.0,
-            "absentCount": 5
+            "absentCount": 5,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000042,
@@ -944,6 +1035,7 @@
             "competitionType": "LEAGUE",
             "opponentId": 40,
             "opponentName": "리버풀",
+            "opponentRank": null,
             "home": true,
             "status": "FT",
             "result": "D",
@@ -955,7 +1047,8 @@
             "congestionSpanId": null,
             "extraMinutes": 0,
             "travelKm": 0.0,
-            "absentCount": 7
+            "absentCount": 7,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000043,
@@ -966,6 +1059,7 @@
             "competitionType": "LEAGUE",
             "opponentId": 35,
             "opponentName": "AFC Bournemouth",
+            "opponentRank": null,
             "home": false,
             "status": "FT",
             "result": "D",
@@ -976,8 +1070,9 @@
             "gapDays": 6,
             "congestionSpanId": null,
             "extraMinutes": 0,
-            "travelKm": null,
-            "absentCount": 8
+            "travelKm": 308.1,
+            "absentCount": 8,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000044,
@@ -988,6 +1083,7 @@
             "competitionType": "CUP",
             "opponentId": 1343,
             "opponentName": "Coventry City",
+            "opponentRank": null,
             "home": false,
             "status": "PEN",
             "result": "D",
@@ -999,7 +1095,8 @@
             "congestionSpanId": null,
             "extraMinutes": 30,
             "travelKm": 262.0,
-            "absentCount": null
+            "absentCount": null,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000045,
@@ -1010,6 +1107,7 @@
             "competitionType": "LEAGUE",
             "opponentId": 62,
             "opponentName": "Sheffield Utd",
+            "opponentRank": null,
             "home": true,
             "status": "FT",
             "result": "W",
@@ -1021,7 +1119,8 @@
             "congestionSpanId": null,
             "extraMinutes": 0,
             "travelKm": 0.0,
-            "absentCount": 7
+            "absentCount": 7,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000046,
@@ -1032,6 +1131,7 @@
             "competitionType": "LEAGUE",
             "opponentId": 44,
             "opponentName": "Burnley",
+            "opponentRank": null,
             "home": true,
             "status": "FT",
             "result": "D",
@@ -1043,7 +1143,8 @@
             "congestionSpanId": null,
             "extraMinutes": 0,
             "travelKm": 0.0,
-            "absentCount": 8
+            "absentCount": 8,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000047,
@@ -1054,6 +1155,7 @@
             "competitionType": "LEAGUE",
             "opponentId": 52,
             "opponentName": "Crystal Palace",
+            "opponentRank": null,
             "home": false,
             "status": "FT",
             "result": "L",
@@ -1065,7 +1167,8 @@
             "congestionSpanId": null,
             "extraMinutes": 0,
             "travelKm": 262.0,
-            "absentCount": 7
+            "absentCount": 7,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000048,
@@ -1076,6 +1179,7 @@
             "competitionType": "LEAGUE",
             "opponentId": 42,
             "opponentName": "아스날",
+            "opponentRank": null,
             "home": true,
             "status": "FT",
             "result": "L",
@@ -1087,7 +1191,8 @@
             "congestionSpanId": null,
             "extraMinutes": 0,
             "travelKm": 0.0,
-            "absentCount": 6
+            "absentCount": 6,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000049,
@@ -1098,6 +1203,7 @@
             "competitionType": "LEAGUE",
             "opponentId": 34,
             "opponentName": "Newcastle United",
+            "opponentRank": null,
             "home": true,
             "status": "FT",
             "result": "W",
@@ -1109,7 +1215,8 @@
             "congestionSpanId": null,
             "extraMinutes": 0,
             "travelKm": 0.0,
-            "absentCount": 5
+            "absentCount": 5,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000050,
@@ -1120,6 +1227,7 @@
             "competitionType": "LEAGUE",
             "opponentId": 51,
             "opponentName": "Brighton & Hove Albion",
+            "opponentRank": null,
             "home": false,
             "status": "FT",
             "result": "W",
@@ -1131,7 +1239,8 @@
             "congestionSpanId": null,
             "extraMinutes": 0,
             "travelKm": 328.6,
-            "absentCount": 4
+            "absentCount": 4,
+            "inAnalysis": true
         },
         {
             "fixtureId": 1000051,
@@ -1142,6 +1251,7 @@
             "competitionType": "CUP",
             "opponentId": 50,
             "opponentName": "맨시티",
+            "opponentRank": null,
             "home": false,
             "status": "FT",
             "result": "W",
@@ -1153,7 +1263,8 @@
             "congestionSpanId": null,
             "extraMinutes": 0,
             "travelKm": 262.0,
-            "absentCount": null
+            "absentCount": null,
+            "inAnalysis": true
         }
     ],
     "congestion": {
@@ -1177,8 +1288,8 @@
                 "extraTimeMatchCount": 0,
                 "extraMinutes": 0,
                 "shortestGapDays": 3,
-                "travelKm": 1136.0,
-                "travelUnknownCount": 1
+                "travelKm": 1170.3,
+                "travelUnknownCount": 0
             },
             {
                 "id": 1,
@@ -1192,8 +1303,8 @@
                 "extraTimeMatchCount": 0,
                 "extraMinutes": 0,
                 "shortestGapDays": 3,
-                "travelKm": 262.0,
-                "travelUnknownCount": 2
+                "travelKm": 1297.5,
+                "travelUnknownCount": 0
             },
             {
                 "id": 2,
@@ -1213,9 +1324,54 @@
         ]
     },
     "form": {
-        "requested": 6,
-        "sampleSize": 6,
+        "sampleSize": 52,
         "recent": [
+            "W",
+            "L",
+            "W",
+            "L",
+            "L",
+            "L",
+            "W",
+            "W",
+            "L",
+            "L",
+            "W",
+            "W",
+            "W",
+            "L",
+            "L",
+            "W",
+            "L",
+            "W",
+            "W",
+            "D",
+            "L",
+            "W",
+            "L",
+            "L",
+            "D",
+            "L",
+            "W",
+            "W",
+            "W",
+            "D",
+            "W",
+            "W",
+            "W",
+            "W",
+            "W",
+            "L",
+            "W",
+            "L",
+            "W",
+            "W",
+            "D",
+            "L",
+            "D",
+            "D",
+            "D",
+            "W",
             "D",
             "L",
             "L",
@@ -1223,23 +1379,49 @@
             "W",
             "W"
         ],
-        "wins": 3,
-        "draws": 1,
-        "losses": 2,
-        "points": 10,
-        "maxPoints": 18,
-        "pointsRate": 0.556,
+        "wins": 26,
+        "draws": 8,
+        "losses": 18,
+        "points": 86,
+        "maxPoints": 156,
+        "pointsRate": 0.551,
         "opponentStrength": null,
-        "confidence": "MODERATE"
+        "confidence": "SUFFICIENT"
+    },
+    "opponentStrength": {
+        "measured": 0,
+        "unmeasured": 52,
+        "averageRank": null,
+        "tableSize": null,
+        "topCut": null,
+        "vsTop": {
+            "matches": 0,
+            "wins": 0,
+            "draws": 0,
+            "losses": 0,
+            "points": 0,
+            "maxPoints": 0,
+            "pointsRate": null
+        },
+        "vsRest": {
+            "matches": 0,
+            "wins": 0,
+            "draws": 0,
+            "losses": 0,
+            "points": 0,
+            "maxPoints": 0,
+            "pointsRate": null
+        },
+        "deductionsKnown": false
     },
     "travel": {
-        "from": null,
-        "to": null,
+        "from": "2023-08-14T20:00:00Z",
+        "to": "2024-05-25T15:00:00Z",
         "awayMatches": 27,
-        "measuredMatches": 19,
-        "unknownCoordinateMatches": 8,
-        "totalKm": 4493.2,
-        "averageKmPerMeasuredMatch": 236.5,
+        "measuredMatches": 25,
+        "unknownCoordinateMatches": 2,
+        "totalKm": 6114.2,
+        "averageKmPerMeasuredMatch": 244.6,
         "longestTripKm": 1136.0
     },
     "absences": {
@@ -1252,8 +1434,8 @@
         "byReason": {
             "ILLNESS": 2,
             "INJURY": 253,
-            "SUSPENSION": 23,
             "OTHER": 10,
+            "SUSPENSION": 23,
             "NATIONAL_DUTY": 2
         },
         "topAbsentees": [
@@ -1292,11 +1474,11 @@
     "omissions": [
         {
             "metric": "opponentStrength",
-            "reason": "상대 강도는 순위 데이터가 필요합니다. 현재 순위표(/standings)를 동기화하지 않아 계산을 생략합니다."
+            "reason": "상대 강도를 낼 수 없습니다. 이 기간의 경기가 컵 대회이거나(순위표가 없습니다) 상대의 경기 수가 적어 순위를 말할 수 없는 시점입니다."
         },
         {
             "metric": "travelDistance",
-            "reason": "원정 27경기 중 8경기는 경기장 좌표가 없어 이동거리에 넣지 못했습니다. 합계는 부분합입니다."
+            "reason": "원정 27경기 중 2경기는 경기장 좌표가 없어 이동거리에 넣지 못했습니다. 합계는 부분합입니다."
         },
         {
             "metric": "absences",

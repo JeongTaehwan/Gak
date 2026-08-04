@@ -1,5 +1,5 @@
 import { cn } from "@usetaehwan/ui";
-import type { Form, TeamSummary } from "@/lib/timeline/types";
+import type { Form, Period, TeamSummary } from "@/lib/timeline/types";
 import { TeamMark } from "@/components/timeline/TeamMark";
 import { FormStreak } from "@/components/timeline/FormStreak";
 
@@ -23,11 +23,13 @@ const TABS: { mode: Mode; label: string }[] = [
 export function TeamHeader({
   team,
   form,
+  period,
   mode,
   onModeChange,
 }: {
   team: TeamSummary;
   form: Form;
+  period: Period;
   mode: Mode;
   onModeChange: (mode: Mode) => void;
 }) {
@@ -45,7 +47,7 @@ export function TeamHeader({
             </div>
           </div>
         </div>
-        <FormStreak form={form} />
+        <FormStreak form={form} period={period} />
       </div>
 
       <div className="mt-4 flex gap-1" role="tablist">

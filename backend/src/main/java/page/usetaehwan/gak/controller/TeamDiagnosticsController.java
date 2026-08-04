@@ -30,6 +30,12 @@ import page.usetaehwan.gak.service.analysis.TeamDiagnosticsService;
  * {@link DiagnosticsOptions}의 생성자가 검증한다 — 위반은
  * {@link IllegalArgumentException} → HTTP 400으로 나간다.
  *
+ * <h2>기간은 파라미터로 열려 있고, "지금"은 아니다</h2>
+ * <p>{@code season}으로 볼 시즌을 지정할 수 있다(생략하면 치른 경기가 있는 최신 시즌).
+ * 반면 <b>"어디까지 치렀나"의 기준 시각은 열지 않는다</b> — 서버 시계로만 판정한다.
+ * 클라이언트가 시각을 보낼 수 있으면 아직 열리지 않은 경기를 "치른 것"으로 만들 수 있고,
+ * 이 앱은 이미 예측 쪽에서 같은 이유로 클라이언트 시각을 거절하고 있다.
+ *
  * <p>팀이 없으면 서비스가 {@code NoSuchElementException}을 던지고, 공통 핸들러가
  * 404로 옮긴다. 컨트롤러는 HTTP 관심사만 다루고 판단하지 않는다.
  */
@@ -56,16 +62,16 @@ public class TeamDiagnosticsController {
 	 * @param teamId     API-Football 팀 id (맨유 = 33)
 	 * @param windowDays 밀집 판정 창 폭(일). 기본 14
 	 * @param minMatches 그 창 안에 몇 경기부터 밀집으로 볼지. 기본 5
-	 * @param formSize   최근 폼을 몇 경기로 볼지. 기본 6
+	 * @param season     볼 시즌(API 시즌 번호). 생략하면 자동 — 치른 경기가 있는 최신 시즌
 	 */
 	@GetMapping("/{teamId}/diagnostics")
 	public TeamDiagnostics diagnostics(
 			@PathVariable Long teamId,
 			@RequestParam(defaultValue = "14") int windowDays,
 			@RequestParam(defaultValue = "5") int minMatches,
-			@RequestParam(defaultValue = "6") int formSize) {
+			@RequestParam(required = false) Integer season) {
 		return diagnosticsService.diagnose(teamId,
-				new DiagnosticsOptions(windowDays, minMatches, formSize, null, null));
+				new DiagnosticsOptions(windowDays, minMatches, season, null));
 	}
 
 	/**
@@ -90,9 +96,9 @@ public class TeamDiagnosticsController {
 			@PathVariable Long teamId,
 			@RequestParam(defaultValue = "14") int windowDays,
 			@RequestParam(defaultValue = "5") int minMatches,
-			@RequestParam(defaultValue = "6") int formSize) {
+			@RequestParam(required = false) Integer season) {
 		TeamDiagnostics diagnostics = diagnosticsService.diagnose(teamId,
-				new DiagnosticsOptions(windowDays, minMatches, formSize, null, null));
+				new DiagnosticsOptions(windowDays, minMatches, season, null));
 		return aiDiagnosisService.narrate(diagnostics);
 	}
 

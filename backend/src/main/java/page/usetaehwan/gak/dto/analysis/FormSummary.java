@@ -4,7 +4,12 @@ import java.util.List;
 import page.usetaehwan.gak.domain.Pick;
 
 /**
- * 최근 폼 — 전 대회를 통합한 승/무/패와 승점률.
+ * 폼 — 전 대회를 통합한 승/무/패와 승점률.
+ *
+ * <h2>"최근 N경기"가 아니다</h2>
+ * <p>예전에는 최근 6경기만 셌다. 그러면 이 카드만 다른 기간을 보게 되고, 옆에 놓인
+ * 밀집 구간·이동거리와 분모가 어긋난다. 지금은 <b>진단 기간 전체</b>(그 시즌에서 치른
+ * 경기)를 센다 — 기간이 무엇인지는 {@link AnalysisWindow}가 말한다.
  *
  * <p>비율({@link #pointsRate})은 표본이 {@link SampleConfidence#MIN_SAMPLE_FOR_RATE}경기
  * 미만이면 <b>계산하지 않는다</b>(null). 대신 {@link #wins}/{@link #draws}/{@link #losses}
@@ -15,8 +20,8 @@ import page.usetaehwan.gak.domain.Pick;
  * 이 앱이 폼에서 재려는 건 "진출했는가"가 아니라 "90/120분 동안 얼마나 잘했는가"이기
  * 때문이다. (진출 여부는 밀집도 쪽에서 "연장을 뛰었다"는 부하로 이미 반영된다.)
  *
- * @param requested        요청한 최근 경기 수(예: 6)
- * @param sampleSize       실제로 셀 수 있었던 경기 수(결과 확정 경기만)
+ * @param sampleSize       실제로 셀 수 있었던 경기 수(결과가 확정된 경기만). 기간 안의
+ *                         경기라도 진행 중이거나 득점이 안 들어왔으면 여기서 빠진다
  * @param recent           날짜 오름차순 승/무/패. 화면의 폼 스트릭이 그대로 그린다
  * @param wins             승
  * @param draws            무
@@ -28,7 +33,6 @@ import page.usetaehwan.gak.domain.Pick;
  * @param confidence       표본 크기 등급
  */
 public record FormSummary(
-		int requested,
 		int sampleSize,
 		List<Pick> recent,
 		int wins,
@@ -41,8 +45,8 @@ public record FormSummary(
 		SampleConfidence confidence
 ) {
 
-	public static FormSummary empty(int requested) {
-		return new FormSummary(requested, 0, List.of(), 0, 0, 0, 0, 0,
+	public static FormSummary empty() {
+		return new FormSummary(0, List.of(), 0, 0, 0, 0, 0,
 				null, null, SampleConfidence.NONE);
 	}
 }

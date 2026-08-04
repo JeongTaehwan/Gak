@@ -116,6 +116,7 @@ export function MainScreen({
         <TeamHeader
           team={timeline.team}
           form={timeline.form}
+          period={timeline.period}
           mode={mode}
           onModeChange={setMode}
         />

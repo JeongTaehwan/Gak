@@ -85,6 +85,13 @@ export interface TimelineRow {
   result: MatchResult | null;
   /** 아직 결과가 없는 경기(예정·진행 중)인가. */
   pending: boolean;
+  /**
+   * 이 경기가 **진단 계산에 들어갔는가**(= 이미 치른 경기인가).
+   *
+   * `pending`과 다르다 — 진행 중이거나 득점이 아직 안 들어온 경기는 `pending`이면서도
+   * 일정 부하로는 이미 발생한 사실이라 계산에 들어간다.
+   */
+  inAnalysis: boolean;
   /** "예정" · "진행 중" · "연장" 등 상태 문구. 평범한 종료 경기는 null. */
   statusNote: string | null;
   /** "PK 승 4-2" — 승부차기가 있었을 때만. 결과 집계(result)와는 별개의 표시다. */
@@ -140,12 +147,11 @@ export interface Travel {
   summary: string;
 }
 
-/** 최근 폼 — 개수와 표본 크기를 함께 들고 다닌다. */
+/** 폼 — **진단 기간 전체**의 승/무/패. "최근 N경기"가 아니다. */
 export interface Form {
   /** 날짜 오름차순 승/무/패. 확정된 경기만. */
   recent: MatchResult[];
   sampleSize: number;
-  requested: number;
   confidence: SampleConfidence;
   wins: number;
   draws: number;
@@ -262,8 +268,31 @@ export interface SplitLine {
   pointsRate: number | null;
 }
 
+/**
+ * 이 화면이 보고 있는 기간 — **모든 진단 카드가 같은 값을 머리에 단다.**
+ *
+ * 기간이 지표마다 다르면 "12경기 4패" 옆의 밀집 구간이 그 12경기에서 나온 것처럼
+ * 읽힌다. 실제로 그렇다는 걸 화면이 말할 수 있어야 한다.
+ */
+export interface Period {
+  /** "2023-24 시즌". 시즌을 모르면 null. */
+  seasonLabel: string | null;
+  /** "2023-24 시즌 52경기 기준 · 예정 3경기는 제외" — 카드 머리말. */
+  label: string;
+  /** 계산에 들어간 경기 수. */
+  analyzedMatches: number;
+  /** 아직 치르지 않아 계산에서 빠진 경기 수(목록에는 보인다). */
+  upcomingMatches: number;
+  /** 시즌이 아직 진행 중인가. */
+  inProgress: boolean;
+  /** 다른 시즌이라 통째로 뺀 경기 수. 0이 아니면 화면이 그 사실을 밝힌다. */
+  otherSeasonMatches: number;
+}
+
 export interface Timeline {
   team: TeamSummary;
+  /** 이번 진단이 보고 있는 기간. */
+  period: Period;
   rows: TimelineRow[];
   spans: CongestionSpan[];
   /** 범례에 실제로 등장한 대회만. */

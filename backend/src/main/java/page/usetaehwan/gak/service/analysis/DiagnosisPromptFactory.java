@@ -70,6 +70,9 @@ final class DiagnosisPromptFactory {
 			   "밀집이 원인이다"는 주장입니다. 후자를 말하려면 그럴 만한 근거가 있어야 하고,
 			   없으면 관측으로만 적으세요.
 			5. 데이터가 일부만 있는 지표(부분합·일부 경기만 측정)를 전체인 것처럼 말하지 마세요.
+			6. 모든 지표는 **하나의 기간**(한 시즌에서 지금까지 치른 경기)에서 나왔습니다.
+			   그 기간 밖으로 결론을 옮기지 마세요 — 지난 시즌과 비교하거나, 아직 치르지 않은
+			   경기를 근거로 삼거나, 시즌이 진행 중인데 최종 성적을 말하는 것 전부 해당합니다.
 
 			## 출력
 			- headline: 한 줄 결론. 30자 안팎. 근거의 요지가 드러나야 합니다.
@@ -93,7 +96,10 @@ final class DiagnosisPromptFactory {
 		sb.append("# ").append(d.teamName()).append(" 진단 요청\n\n");
 
 		var w = d.window();
-		sb.append("## 대상\n");
+		sb.append("## 대상 기간 — 아래 모든 지표가 이 기간에서 나왔습니다\n");
+		if (w.season() != null) {
+			sb.append("- 시즌: ").append(seasonLabel(w)).append("\n");
+		}
 		sb.append("- 분석 경기: ").append(w.analyzedFixtures()).append("경기");
 		if (w.excludedFixtures() > 0) {
 			sb.append(" (연기·취소 ").append(w.excludedFixtures()).append("경기는 제외)");
@@ -101,6 +107,17 @@ final class DiagnosisPromptFactory {
 		sb.append("\n");
 		if (w.from() != null && w.to() != null) {
 			sb.append("- 기간: ").append(day(w.from())).append(" ~ ").append(day(w.to())).append("\n");
+		}
+		if (w.seasonInProgress()) {
+			sb.append("- 시즌 진행 중입니다. 아직 치르지 않은 ").append(w.upcomingFixtures())
+					.append("경기는 어떤 지표에도 들어가 있지 않습니다 — ")
+					.append("다가올 일정을 근거로 삼거나 시즌 최종 성적을 예단하지 마세요\n");
+		} else {
+			sb.append("- 이 시즌은 끝났습니다. 위 경기가 시즌 전체입니다\n");
+		}
+		if (w.otherSeasonFixtures() > 0) {
+			sb.append("- 다른 시즌 경기 ").append(w.otherSeasonFixtures())
+					.append("건은 이번 진단에서 뺐습니다. 다른 시즌 이야기를 하지 마세요\n");
 		}
 
 		// --- 밀집도 ---
@@ -133,11 +150,11 @@ final class DiagnosisPromptFactory {
 
 		// --- 폼 ---
 		var f = d.form();
-		sb.append("\n## 최근 폼 (확정된 경기만)\n");
+		sb.append("\n## 폼 — 위 기간 전체 (결과가 확정된 경기만)\n");
 		if (f.sampleSize() == 0) {
 			sb.append("- 결과가 확정된 경기가 없습니다\n");
 		} else {
-			sb.append("- 최근 ").append(f.sampleSize()).append("경기: ")
+			sb.append("- ").append(f.sampleSize()).append("경기: ")
 					.append(f.wins()).append("승 ").append(f.draws()).append("무 ")
 					.append(f.losses()).append("패\n");
 			sb.append("- 획득 승점 ").append(f.points()).append("/").append(f.maxPoints()).append("\n");
@@ -234,6 +251,18 @@ final class DiagnosisPromptFactory {
 		return s.pointsRate() == null
 				? line + " (표본이 작아 승점률은 내지 않았습니다 — 비율로 말하지 마세요)"
 				: line + ", 승점률 %d%%".formatted(Math.round(s.pointsRate() * 100));
+	}
+
+	/**
+	 * "2023-24" / "2025" — 시즌 표기.
+	 *
+	 * <p>연도를 걸치는지 여부는 대회 시드가 정한 사실({@code calendarSeason})로 가른다.
+	 * 경기 날짜로 되짚으면 시즌 초(8월 경기밖에 없는 시점)에 유럽 리그가 "2026 시즌"이 된다.
+	 */
+	private static String seasonLabel(page.usetaehwan.gak.dto.analysis.AnalysisWindow w) {
+		return w.calendarSeason()
+				? w.season() + " 시즌"
+				: "%d-%02d 시즌".formatted(w.season(), (w.season() + 1) % 100);
 	}
 
 	/** Instant 를 날짜만 남긴 문자열로 — 모델에게 초 단위 정밀도는 필요 없다. */

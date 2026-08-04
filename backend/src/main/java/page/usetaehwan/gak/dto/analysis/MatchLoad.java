@@ -53,6 +53,9 @@ import page.usetaehwan.gak.domain.Pick;
  * @param travelKm             이 경기를 위한 이동거리(km). 홈경기는 0, 좌표를 모르면 <b>null</b>
  * @param absentCount          이 경기에 빠진 확정 결장 인원. <b>결장 데이터가 없는 경기는 null</b>
  *                             — 0(아무도 안 빠짐)과 "모름"은 다르다
+ * @param inAnalysis           이 경기가 진단 계산에 들어갔는가. 아직 치르지 않은 경기는 false다
+ *                             — 목록에는 실리지만(타임라인·예측이 쓴다) 폼·밀집도·이동거리
+ *                             어디에도 들어가지 않는다. 화면이 "여기까지 치렀다"를 그릴 근거
  */
 public record MatchLoad(
 		long fixtureId,
@@ -76,6 +79,7 @@ public record MatchLoad(
 		Integer congestionSpanId,
 		int extraMinutes,
 		Double travelKm,
-		Integer absentCount
+		Integer absentCount,
+		boolean inAnalysis
 ) {
 }

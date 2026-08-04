@@ -59,6 +59,7 @@ export function DiagnosisPanel({
           <span className="text-[11px] font-black tracking-[2px] text-volt">
             진단 결론
           </span>
+          <PeriodBadge period={timeline.period} />
           <AuthorBadge authored={aiReady ? "ai" : "rule"} />
           {ai.state === "loading" && (
             <span className="text-[10px] font-extrabold tracking-wider text-text-low">
@@ -92,7 +93,8 @@ export function DiagnosisPanel({
       {d.cards.length > 0 && (
         <section className="flex flex-col gap-2.5">
           <h2 className="text-xs font-extrabold tracking-[1.5px] text-text-low">
-            근거 — 실제 수치 · 카드를 누르면 타임라인에서 해당 경기를 강조
+            근거 — {timeline.period.label} · 카드를 누르면 타임라인에서 해당 경기를
+            강조
           </h2>
           {d.cards.map((c) => (
             <EvidenceCard key={c.key} card={c} onInspect={onInspect} />
@@ -116,6 +118,30 @@ export function DiagnosisPanel({
         ]}
       />
     </div>
+  );
+}
+
+/**
+ * 이 진단이 **어느 기간을 본 것인지** 밝힌다.
+ *
+ * 아래의 모든 수치가 이 기간 하나에서 나온다. 기간을 적지 않으면 "12경기 4패"와
+ * "밀집 구간 3개"가 같은 경기들을 가리키는지 아무도 알 수 없고, 시즌이 진행 중일 때는
+ * 화면에 보이는 예정 경기가 계산에 들어갔다고 오해하게 된다.
+ *
+ * <p>자동으로 고른 시즌이라도 **사용자는 어느 시즌을 보고 있는지 알아야 한다.**
+ */
+function PeriodBadge({ period }: { period: TimelineVM["period"] }) {
+  return (
+    <span
+      className="rounded-badge border border-line-strong px-2 py-0.5 text-[10px] font-black tracking-wider text-text-mid"
+      title={
+        period.inProgress
+          ? "시즌이 진행 중입니다. 아직 치르지 않은 경기는 어떤 지표에도 들어가 있지 않습니다"
+          : "이 시즌은 끝났습니다 — 시즌 전체가 진단 대상입니다"
+      }
+    >
+      {period.label}
+    </span>
   );
 }
 

@@ -26,6 +26,7 @@ import type {
 
 /** 백엔드 omission의 metric 코드 → 화면 라벨. */
 const OMISSION_LABEL: Record<string, string> = {
+  period: "진단 기간",
   congestion: "밀집 판정",
   pointsRate: "승점률",
   opponentStrength: "상대 강도",
@@ -98,12 +99,19 @@ export function buildDiagnosis(t: Timeline): Diagnosis {
  * "3경기 중 2패라 부진"처럼 표본이 빈약한 단정이 나온다.
  */
 function conclusion(t: Timeline): { headline: string; sub: string } {
-  const { congestion: c, form: f, spans } = t;
+  const { congestion: c, form: f, spans, period: p } = t;
+
+  // 결론 문장은 **기간을 먼저 말한다.** 같은 "3승 4패"라도 어느 시즌의 몇 경기인지에
+  // 따라 다른 말이고, 시즌이 진행 중이면 아직 끝나지 않은 이야기다.
+  const scope = p.seasonLabel ? `${p.seasonLabel} ${p.analyzedMatches}경기 기준. ` : "";
 
   if (!c.detectable) {
     return {
-      headline: "아직 진단할 만큼의 경기가 없다",
-      sub: `${c.note}. 지금 원인을 말하면 그건 데이터가 아니라 추측이다 — 경기가 쌓이면 다시 본다.`,
+      headline:
+        p.analyzedMatches === 0 && p.upcomingMatches > 0
+          ? "이 시즌은 아직 시작되지 않았다"
+          : "아직 진단할 만큼의 경기가 없다",
+      sub: `${scope}${c.note}. 지금 원인을 말하면 그건 데이터가 아니라 추측이다 — 경기가 쌓이면 다시 본다.`,
     };
   }
 
@@ -112,7 +120,7 @@ function conclusion(t: Timeline): { headline: string; sub: string } {
     return {
       headline: `일정이다 — ${c.windowDays}일 ${c.minMatches}경기 기준을 ${spans.length}번 넘겼다`,
       sub:
-        `가장 빡빡했던 구간은 ${worst.fromLabel}–${worst.toLabel}의 ${worst.summary}. ` +
+        `${scope}가장 빡빡했던 구간은 ${worst.fromLabel}–${worst.toLabel}의 ${worst.summary}. ` +
         `보통 ${c.medianGapDays}일 만에 다시 뛰었고 가장 짧을 땐 ${c.shortestGapDays}일이었다.`,
     };
   }
@@ -120,13 +128,13 @@ function conclusion(t: Timeline): { headline: string; sub: string } {
   if (f.pointsRate != null && f.pointsRate < 0.4) {
     return {
       headline: "일정 탓은 아니다 — 성적 쪽을 봐야 한다",
-      sub: `밀집 기준을 넘긴 구간이 한 번도 없었다. 그런데 최근 ${f.summary}. 원인이 일정 밖에 있다는 뜻이다.`,
+      sub: `${scope}밀집 기준을 넘긴 구간이 한 번도 없었다. 그런데 ${f.summary}. 원인이 일정 밖에 있다는 뜻이다.`,
     };
   }
 
   return {
     headline: "특별히 짚을 일정 부하가 없다",
-    sub: `${c.note}. 최근 ${f.summary}.`,
+    sub: `${scope}${c.note}. ${f.summary}.`,
   };
 }
 
@@ -141,11 +149,14 @@ function cards(t: Timeline): DiagnosisCard[] {
       key: "form",
       value: f.recordLabel,
       tone: f.pointsRate == null ? "draw" : f.pointsRate >= 0.5 ? "win" : "loss",
-      label: `최근 ${f.sampleSize}경기 성적`,
+      label: `${t.period.seasonLabel ?? "기간"} ${f.sampleSize}경기 성적`,
       detail:
         f.pointsRate == null
           ? `승점률은 내지 않았다 — 확정 경기가 ${f.sampleSize}건이라 비율로 말하면 한 경기가 전체를 흔든다.`
-          : `승점 ${f.points}/${f.maxPoints} · 승점률 ${Math.round(f.pointsRate * 100)}%. 예정 경기는 폼에 넣지 않는다.`,
+          : `승점 ${f.points}/${f.maxPoints} · 승점률 ${Math.round(f.pointsRate * 100)}%.` +
+            (t.period.upcomingMatches > 0
+              ? ` 아직 치르지 않은 ${t.period.upcomingMatches}경기는 들어가지 않았다.`
+              : " 이 시즌 전체다."),
       highlight: "form",
     });
   }

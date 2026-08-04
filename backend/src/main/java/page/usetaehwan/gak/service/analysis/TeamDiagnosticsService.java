@@ -37,10 +37,21 @@ import page.usetaehwan.gak.dto.analysis.TravelSummary;
 import page.usetaehwan.gak.repository.AbsenceRepository;
 import page.usetaehwan.gak.repository.FixtureRepository;
 import page.usetaehwan.gak.repository.TeamRepository;
+import page.usetaehwan.gak.service.analysis.AnalysisPeriodResolver.Period;
 import page.usetaehwan.gak.service.analysis.CongestionDetector.IndexSpan;
 
 /**
  * 팀 진단 계산의 조립부. 경기 "사실"을 읽어 파생값(간격·밀집도·폼·이동거리)을 만든다.
+ *
+ * <h2>모든 지표가 같은 기간을 본다</h2>
+ * <p>기간은 <b>가장 최신 시즌에서 지금까지 치른 경기 전체</b> 하나뿐이다
+ * ({@link AnalysisPeriodResolver}). 지표마다 기간이 다르면 — 폼만 최근 6경기, 밀집도는
+ * 가진 경기 전부 — 한 화면에 놓였을 때 서로의 근거처럼 읽히지만 실제로는 다른 경기들을
+ * 센 값이다.
+ *
+ * <p><b>자르는 것은 계산뿐이다.</b> 아직 치르지 않은 경기도 {@link MatchLoad} 목록에는
+ * 그대로 실린다 — 타임라인이 다가올 일정을 그려야 하고 예측은 그 경기에 걸린다. 대신
+ * {@code inAnalysis} 로 "이 경기가 진단에 들어갔는지"를 밝힌다.
  *
  * <h2>저장하지 않는다</h2>
  * <p>여기서 나온 어떤 값도 DB에 쓰지 않는다. 파생값을 저장하면 원본이 바뀌는 순간
@@ -109,23 +120,28 @@ public class TeamDiagnosticsService {
 				.orElseThrow(() -> new NoSuchElementException("팀을 찾을 수 없습니다. teamId=" + teamId));
 
 		List<Fixture> all = fixtureRepository.findTeamScheduleWithDetails(teamId);
-		Schedule schedule = Schedule.of(team, all);
+		Period period = AnalysisPeriodResolver.resolve(all, options.season(), options.asOfOr(clock));
+		Schedule schedule = Schedule.of(team, period);
 		List<Omission> omissions = new ArrayList<>();
+		notePeriodLimits(period, schedule, omissions);
 
 		// 경기별 확정 결장 인원. 결장 데이터가 없는 경기는 이 맵에 아예 없다 —
 		// "0명"과 "모름"을 가르는 유일한 장치라 getOrDefault(…, 0) 로 접으면 안 된다.
 		List<Absence> absences = absenceRepository.findTeamAbsencesWithPlayer(teamId);
 		Map<Long, Integer> outByFixture = outCountByFixture(absences);
 
-		List<IndexSpan> spans = schedule.size() >= options.minMatches()
-				? CongestionDetector.detect(schedule.epochDays(), options.windowDays(), options.minMatches())
+		// 밀집 판정은 **치른 경기**만 본다. 다가올 일정을 함께 세면 "3주 뒤에 잡힌 7경기"가
+		// 지금 부진의 원인처럼 진단문에 끼어든다 — 아직 일어나지 않은 일이다.
+		List<IndexSpan> spans = schedule.played() >= options.minMatches()
+				? CongestionDetector.detect(schedule.playedEpochDays(), options.windowDays(), options.minMatches())
 				: List.of();
 
-		FormResult form = toFormSummary(teamId, all, options.formSize(), omissions);
-		// 경기별 상대 순위 — 타임라인이 "vs 아스날 (2위)"를 그릴 수 있게
-		Map<Long, Integer> rankByFixture = opponentStrengthService.ranksByFixture(teamId, all);
+		FormResult form = toFormSummary(teamId, schedule, omissions);
+		// 경기별 상대 순위 — 타임라인이 "vs 아스날 (2위)"를 그릴 수 있게. 예정 경기에도
+		// 붙인다(그 시점 표 = 지금 표). 순위는 표기용이고 지표 계산과 무관하다.
+		Map<Long, Integer> rankByFixture = opponentStrengthService.ranksByFixture(teamId, schedule.fixtures());
 		// 상대 강도는 폼과 **같은 경기 목록**을 본다. 각자 고르면 분모가 어긋난다.
-		OpponentStrength opponents = opponentStrengthService.of(teamId, form.recentFixtures());
+		OpponentStrength opponents = opponentStrengthService.of(teamId, form.playedFixtures());
 		noteOpponentLimits(opponents, omissions);
 
 		return new TeamDiagnostics(
@@ -133,12 +149,12 @@ public class TeamDiagnosticsService {
 				team.displayName(),
 				team.getCode(),
 				Instant.now(clock),
-				schedule.window(all.size()),
+				schedule.window(period),
 				toMatchLoads(teamId, schedule, spans, outByFixture, rankByFixture),
 				toCongestionReport(schedule, spans, options, omissions),
 				form.summary(),
 				opponents,
-				toTravelSummary(schedule, options, omissions),
+				toTravelSummary(schedule, omissions),
 				toAbsenceSummary(schedule, absences, omissions),
 				List.copyOf(omissions));
 	}
@@ -146,14 +162,20 @@ public class TeamDiagnosticsService {
 	// --- 한 번의 계산이 들고 다니는 상태 --------------------------------------
 
 	/**
-	 * 진단 대상 팀 관점으로 정리한 경기 목록. 여러 지표가 같은 배열을 나눠 쓰므로
-	 * 한 번만 만들어 넘긴다(간격을 세 번 다시 계산하지 않게).
+	 * 진단 대상 팀 관점으로 정리한 <b>한 시즌</b>의 경기 목록. 여러 지표가 같은 배열을
+	 * 나눠 쓰므로 한 번만 만들어 넘긴다(간격을 세 번 다시 계산하지 않게).
 	 *
 	 * <p>배열들은 모두 {@link #fixtures}와 같은 순서·같은 길이다. i번째 원소는 전부
 	 * i번째 경기의 값이다.
+	 *
+	 * <p>앞쪽 {@link #played}개가 <b>이미 치른 경기</b>이고 나머지가 예정 경기다. 킥오프
+	 * 오름차순이라 치른 경기는 언제나 앞에 모인다 — 지표 계산은 이 앞부분만 보고, 목록은
+	 * 전체를 싣는다.
 	 */
 	private record Schedule(
 			List<Fixture> fixtures,
+			/** 그중 앞에서 몇 개가 이미 치른 경기인가(= 진단 대상 수). */
+			int played,
 			/** UTC 에포크 일수(오름차순). 간격·창 계산의 단일 근거. */
 			long[] epochDays,
 			/** 직전 경기와의 간격(일). 첫 경기는 {@link #NO_GAP}. */
@@ -164,9 +186,11 @@ public class TeamDiagnosticsService {
 			Double[] travelKm
 	) {
 
-		static Schedule of(Team team, List<Fixture> all) {
+		static Schedule of(Team team, Period period) {
 			// 일정에 실재하는 경기만 남긴다(연기·취소·중단 제외). 규칙은 SchedulePolicy에 모여 있다.
-			List<Fixture> fixtures = all.stream().filter(SchedulePolicy::countsForSchedule).toList();
+			List<Fixture> fixtures = period.seasonFixtures().stream()
+					.filter(SchedulePolicy::countsForSchedule)
+					.toList();
 			int n = fixtures.size();
 
 			long[] epochDays = new long[n];
@@ -174,6 +198,7 @@ public class TeamDiagnosticsService {
 			boolean[] home = new boolean[n];
 			Double[] travelKm = new Double[n];
 			Venue homeVenue = team.getHomeVenue();
+			int played = 0;
 
 			for (int i = 0; i < n; i++) {
 				Fixture fixture = fixtures.get(i);
@@ -181,8 +206,11 @@ public class TeamDiagnosticsService {
 				gapDays[i] = (i == 0) ? NO_GAP : (int) (epochDays[i] - epochDays[i - 1]);
 				home[i] = fixture.getHomeTeam().getId().equals(team.getId());
 				travelKm[i] = travelFor(homeVenue, fixture.getVenue(), home[i]);
+				if (period.played(fixture)) {
+					played++;
+				}
 			}
-			return new Schedule(fixtures, epochDays, gapDays, home, travelKm);
+			return new Schedule(fixtures, played, epochDays, gapDays, home, travelKm);
 		}
 
 		/**
@@ -209,13 +237,65 @@ public class TeamDiagnosticsService {
 			return fixtures.get(i);
 		}
 
-		AnalysisWindow window(int totalFixtures) {
+		/** i번째 경기가 진단 계산에 들어갔는가. */
+		boolean analyzed(int i) {
+			return i < played;
+		}
+
+		/** 치른 경기만의 에포크 일수 — 밀집·간격 계산의 입력. */
+		long[] playedEpochDays() {
+			return Arrays.copyOf(epochDays, played);
+		}
+
+		/** 치른 경기 목록(폼·상대 강도가 본다). */
+		List<Fixture> playedFixtures() {
+			return fixtures.subList(0, played);
+		}
+
+		AnalysisWindow window(Period period) {
+			List<Fixture> season = period.seasonFixtures();
 			return new AnalysisWindow(
-					fixtures.isEmpty() ? null : fixtures.get(0).getKickoff(),
-					fixtures.isEmpty() ? null : fixtures.get(size() - 1).getKickoff(),
-					totalFixtures,
-					size(),
-					totalFixtures - size());
+					period.season(),
+					period.calendarSeason(),
+					season.isEmpty() ? null : season.get(0).getKickoff(),
+					season.isEmpty() ? null : season.get(season.size() - 1).getKickoff(),
+					period.asOf(),
+					played == 0 ? null : at(0).getKickoff(),
+					played == 0 ? null : at(played - 1).getKickoff(),
+					season.size(),
+					played,
+					size() - played,
+					season.size() - size(),
+					period.otherSeasons());
+		}
+	}
+
+	// --- 기간이 말하지 못하는 것 ----------------------------------------------
+
+	/**
+	 * 기간 자체의 한계를 남긴다.
+	 *
+	 * <p>특히 <b>다른 시즌 경기가 있었다는 사실</b>을 밝힌다. 우리 DB에 두 시즌이 섞여
+	 * 있으면 "최신 시즌"이 어느 쪽인지는 데이터가 정하는데, 그 데이터가 틀렸을 때(개막 전
+	 * 표본이 섞여 있다든지) 화면은 아무 이상 없이 엉뚱한 시즌을 보여 준다. 숫자로 드러나
+	 * 있으면 최소한 눈치챌 수 있다.
+	 */
+	private void notePeriodLimits(Period period, Schedule schedule, List<Omission> omissions) {
+		if (period.season() == null) {
+			omissions.add(Omission.of("period", "이 팀의 경기를 아직 하나도 받지 못했습니다."));
+			return;
+		}
+		if (schedule.played() == 0) {
+			omissions.add(Omission.of("period", String.format(
+					"%d 시즌에서 아직 치른 경기가 없습니다. 예정된 %d경기는 일정으로만 보여 주고 "
+							+ "지표는 내지 않습니다 — '문제 없음'이 아니라 '아직 판정할 수 없음'입니다.",
+					period.season(), schedule.size())));
+		}
+		if (period.otherSeasons() > 0) {
+			omissions.add(Omission.of("period", String.format(
+					"다른 시즌 경기 %d건은 이번 진단에서 뺐습니다(진단은 %d 시즌만 봅니다). "
+							+ "시즌을 가로질러 세면 밀집도와 폼이 서로 다른 해의 경기를 가리킵니다.",
+					period.otherSeasons(), period.season())));
 		}
 	}
 
@@ -264,7 +344,8 @@ public class TeamDiagnosticsService {
 					spanIdByIndex.get(i),
 					SchedulePolicy.extraMinutes(fixture),
 					schedule.travelKm()[i],
-					outByFixture.get(fixture.getId())));
+					outByFixture.get(fixture.getId()),
+					schedule.analyzed(i)));
 		}
 		return List.copyOf(loads);
 	}
@@ -294,14 +375,14 @@ public class TeamDiagnosticsService {
 			omissions.add(Omission.of("absences",
 					"결장(부상·징계) 데이터를 아직 동기화하지 않았습니다. "
 							+ "POST /api/admin/sync/injuries/{teamId}?season= 으로 받을 수 있습니다."));
-			return AbsenceSummary.notCovered(schedule.size());
+			return AbsenceSummary.notCovered(schedule.played());
 		}
 
-		// 진단이 보는 경기(연기·취소 제외) 안의 결장만 센다 — 화면에 없는 경기의 결장을
-		// 합계에 넣으면 "경기당 평균"이 화면과 안 맞는다.
+		// 진단이 보는 경기(다른 시즌·예정·연기 제외) 안의 결장만 센다 — 화면의 진단 대상에
+		// 없는 경기의 결장을 합계에 넣으면 "경기당 평균"이 화면과 안 맞는다.
 		Set<Long> visible = new HashSet<>();
-		for (int i = 0; i < schedule.size(); i++) {
-			visible.add(schedule.at(i).getId());
+		for (Fixture fixture : schedule.playedFixtures()) {
+			visible.add(fixture.getId());
 		}
 
 		Map<Long, Integer> outPerFixture = new HashMap<>();
@@ -329,13 +410,13 @@ public class TeamDiagnosticsService {
 
 		if (coveredFixtures.isEmpty()) {
 			omissions.add(Omission.of("absences",
-					"받아 둔 결장 데이터가 이 팀의 현재 일정과 맞는 경기를 하나도 갖고 있지 않습니다(시즌 불일치)."));
-			return AbsenceSummary.notCovered(schedule.size());
+					"받아 둔 결장 데이터가 이 진단 기간의 경기를 하나도 갖고 있지 않습니다(시즌 불일치)."));
+			return AbsenceSummary.notCovered(schedule.played());
 		}
-		if (coveredFixtures.size() < schedule.size()) {
+		if (coveredFixtures.size() < schedule.played()) {
 			omissions.add(Omission.of("absences", String.format(
 					"경기 %d건 중 %d건만 결장 데이터가 있습니다. 나머지는 '결장 0명'이 아니라 '모름'입니다.",
-					schedule.size(), coveredFixtures.size())));
+					schedule.played(), coveredFixtures.size())));
 		}
 
 		int totalOut = byReason.values().stream().mapToInt(Integer::intValue).sum();
@@ -347,7 +428,7 @@ public class TeamDiagnosticsService {
 				.map(PlayerTally::toView)
 				.toList();
 
-		return new AbsenceSummary(true, coveredFixtures.size(), schedule.size(),
+		return new AbsenceSummary(true, coveredFixtures.size(), schedule.played(),
 				totalOut, tallyByPlayer.size(), maxOut, Map.copyOf(byReason), top);
 	}
 
@@ -406,11 +487,11 @@ public class TeamDiagnosticsService {
 
 	private CongestionReport toCongestionReport(Schedule schedule, List<IndexSpan> spans,
 	                                            DiagnosticsOptions options, List<Omission> omissions) {
-		boolean detectable = schedule.size() >= options.minMatches();
+		boolean detectable = schedule.played() >= options.minMatches();
 		if (!detectable) {
 			omissions.add(Omission.of("congestion", String.format(
-					"밀집 판정에는 최소 %d경기가 필요한데 이 팀의 경기가 %d건뿐입니다.",
-					options.minMatches(), schedule.size())));
+					"밀집 판정에는 최소 %d경기가 필요한데 이 기간에 치른 경기가 %d건뿐입니다.",
+					options.minMatches(), schedule.played())));
 		}
 
 		List<CongestionSpanView> views = new ArrayList<>(spans.size());
@@ -418,16 +499,17 @@ public class TeamDiagnosticsService {
 			views.add(toSpanView(spanId, spans.get(spanId), schedule));
 		}
 
+		int[] playedGaps = Arrays.copyOf(schedule.gapDays(), schedule.played());
 		return CongestionReport.of(
 				options.windowDays(),
 				options.minMatches(),
 				detectable,
-				schedule.size(),
-				schedule.size() == 0
+				schedule.played(),
+				schedule.played() == 0
 						? 0
-						: CongestionDetector.busiestWindowMatchCount(schedule.epochDays(), options.windowDays()),
-				shortestGap(schedule.gapDays()),
-				medianGap(schedule.gapDays()),
+						: CongestionDetector.busiestWindowMatchCount(schedule.playedEpochDays(), options.windowDays()),
+				shortestGap(playedGaps),
+				medianGap(playedGaps),
 				views);
 	}
 
@@ -506,30 +588,32 @@ public class TeamDiagnosticsService {
 	/**
 	 * 폼 요약과 <b>그 계산에 쓰인 경기 목록</b>을 함께 돌려준다.
 	 *
-	 * <p>상대 강도는 "이 6경기의 상대가 누구였나"를 묻는 것이라 <b>폼과 정확히 같은 목록</b>을
-	 * 봐야 한다. 각자 다시 고르면 "6경기 4패"와 "5경기 상대 평균 8위"처럼 분모가 어긋난다.
+	 * <p>상대 강도는 "이 경기들의 상대가 누구였나"를 묻는 것이라 <b>폼과 정확히 같은 목록</b>을
+	 * 봐야 한다. 각자 다시 고르면 "12경기 4패"와 "10경기 상대 평균 8위"처럼 분모가 어긋난다.
 	 */
-	private record FormResult(FormSummary summary, List<Fixture> recentFixtures) {
+	private record FormResult(FormSummary summary, List<Fixture> playedFixtures) {
 	}
 
-	private FormResult toFormSummary(Long teamId, List<Fixture> all, int formSize,
-	                                 List<Omission> omissions) {
+	/**
+	 * 폼은 <b>기간 전체</b>를 센다. "최근 N경기"로 따로 자르지 않는다 — 그러면 이 카드만
+	 * 다른 기간을 보게 되고, 옆의 밀집 구간과 분모가 어긋난다.
+	 */
+	private FormResult toFormSummary(Long teamId, Schedule schedule, List<Omission> omissions) {
 		// 결과가 확정된 경기만. LIVE는 아직 사실이 아니라 여기서 빠진다(SchedulePolicy 참고).
-		List<Fixture> finished = all.stream().filter(SchedulePolicy::countsForForm).toList();
-		List<Fixture> recentFixtures = finished.size() <= formSize
-				? finished
-				: finished.subList(finished.size() - formSize, finished.size());
+		List<Fixture> resolved = schedule.playedFixtures().stream()
+				.filter(SchedulePolicy::countsForForm)
+				.toList();
 
-		List<Pick> recent = new ArrayList<>(recentFixtures.size());
+		List<Pick> picks = new ArrayList<>(resolved.size());
 		int wins = 0;
 		int draws = 0;
 		int losses = 0;
-		for (Fixture fixture : recentFixtures) {
+		for (Fixture fixture : resolved) {
 			Pick result = fixture.resultFor(teamId);
 			if (result == null) {
 				continue;
 			}
-			recent.add(result);
+			picks.add(result);
 			switch (result) {
 				case W -> wins++;
 				case D -> draws++;
@@ -537,7 +621,7 @@ public class TeamDiagnosticsService {
 			}
 		}
 
-		int sampleSize = recent.size();
+		int sampleSize = picks.size();
 		int points = wins * POINTS_FOR_WIN + draws * POINTS_FOR_DRAW;
 		int maxPoints = sampleSize * POINTS_FOR_WIN;
 		SampleConfidence confidence = SampleConfidence.of(sampleSize);
@@ -555,9 +639,9 @@ public class TeamDiagnosticsService {
 		// 이제 OpponentStrength 가 그것보다 많은 걸 담으므로(상위권/그 외 분리, 분모, 한계)
 		// 여기서는 채우지 않고 TeamDiagnostics 최상위에 따로 싣는다.
 		return new FormResult(
-				new FormSummary(formSize, sampleSize, List.copyOf(recent),
+				new FormSummary(sampleSize, List.copyOf(picks),
 						wins, draws, losses, points, maxPoints, pointsRate, null, confidence),
-				recentFixtures);
+				resolved);
 	}
 
 
@@ -565,19 +649,19 @@ public class TeamDiagnosticsService {
 	 * 상대 강도가 <b>말하지 못하는 것</b>을 남긴다.
 	 *
 	 * <p>값이 나왔다고 끝이 아니다. 컵 경기에는 순위가 없고, 시즌 초 상대는 경기 수가 얇아
-	 * 순위를 매기지 않는다. 그 경기들이 분모에서 빠졌다는 사실을 밝히지 않으면 "6경기 상대
-	 * 평균 8위"가 실제로는 4경기 기준이라는 걸 아무도 모른다.
+	 * 순위를 매기지 않는다. 그 경기들이 분모에서 빠졌다는 사실을 밝히지 않으면 "상대
+	 * 평균 8위"가 실제로는 절반의 경기 기준이라는 걸 아무도 모른다.
 	 */
 	private void noteOpponentLimits(OpponentStrength o, List<Omission> omissions) {
 		if (!o.available()) {
 			omissions.add(Omission.of("opponentStrength",
-					"상대 강도를 낼 수 없습니다. 최근 경기가 컵 대회이거나(순위표가 없습니다) "
+					"상대 강도를 낼 수 없습니다. 이 기간의 경기가 컵 대회이거나(순위표가 없습니다) "
 							+ "상대의 경기 수가 적어 순위를 말할 수 없는 시점입니다."));
 			return;
 		}
 		if (o.unmeasured() > 0) {
 			omissions.add(Omission.of("opponentStrength",
-					"최근 %d경기 중 %d경기는 상대 순위를 매기지 못했습니다(컵 대회이거나 시즌 초). "
+					"%d경기 중 %d경기는 상대 순위를 매기지 못했습니다(컵 대회이거나 시즌 초). "
 							.formatted(o.measured() + o.unmeasured(), o.unmeasured())
 							+ "아래 상대 강도는 나머지 %d경기 기준입니다.".formatted(o.measured())));
 		}
@@ -590,17 +674,20 @@ public class TeamDiagnosticsService {
 
 	// --- 이동거리 ------------------------------------------------------------
 
-	private TravelSummary toTravelSummary(Schedule schedule, DiagnosticsOptions options,
-	                                      List<Omission> omissions) {
+	/**
+	 * 이동거리도 <b>다른 지표와 같은 기간</b>을 본다. 예전에는 이 지표만 따로 기간을
+	 * 받을 수 있었는데, 그 자유도가 실제로 만든 건 "폼은 6경기, 이동은 시즌 전체"처럼
+	 * 한 화면 안에서 분모가 다른 상태였다.
+	 */
+	private TravelSummary toTravelSummary(Schedule schedule, List<Omission> omissions) {
 		int awayMatches = 0;
 		int measured = 0;
 		int unknown = 0;
 		double total = 0.0;
 		double longest = 0.0;
 
-		for (int i = 0; i < schedule.size(); i++) {
-			Fixture fixture = schedule.at(i);
-			if (!options.travelPeriodContains(fixture.getKickoff()) || schedule.home()[i]) {
+		for (int i = 0; i < schedule.played(); i++) {
+			if (schedule.home()[i]) {
 				continue;
 			}
 			awayMatches++;
@@ -620,12 +707,12 @@ public class TeamDiagnosticsService {
 					awayMatches, unknown)));
 		}
 
+		Instant from = schedule.played() == 0 ? null : schedule.at(0).getKickoff();
+		Instant to = schedule.played() == 0 ? null : schedule.at(schedule.played() - 1).getKickoff();
 		if (measured == 0) {
-			return new TravelSummary(options.travelFrom(), options.travelTo(),
-					awayMatches, 0, unknown, null, null, null);
+			return new TravelSummary(from, to, awayMatches, 0, unknown, null, null, null);
 		}
-		return new TravelSummary(options.travelFrom(), options.travelTo(),
-				awayMatches, measured, unknown,
+		return new TravelSummary(from, to, awayMatches, measured, unknown,
 				round1(total), round1(total / measured), round1(longest));
 	}
 
