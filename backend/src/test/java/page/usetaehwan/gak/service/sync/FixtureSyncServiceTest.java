@@ -10,6 +10,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
+import page.usetaehwan.gak.domain.Competition;
+import page.usetaehwan.gak.domain.CompetitionType;
 import page.usetaehwan.gak.domain.Fixture;
 import page.usetaehwan.gak.domain.FixtureStatus;
 import page.usetaehwan.gak.domain.SyncLog;
@@ -58,9 +60,20 @@ class FixtureSyncServiceTest {
 	}
 
 	@Test
-	@DisplayName("시드가 대회 20개를 심는다")
-	void seedsTwentyCompetitions() {
-		assertThat(competitionRepository.findByDisplayedTrue()).hasSize(20);
+	@DisplayName("시드가 대회 16개를 심고, 시드에 없는 대회는 노출에서 내린다")
+	void seedsSixteenCompetitionsAndRetiresTheRest() {
+		assertThat(competitionRepository.findByDisplayedTrue()).hasSize(16);
+
+		// 시드에서 뺀 대회(브라질 세리에 A)가 DB에 남아 있어도 동기화 대상에서는 빠진다.
+		// 예전에는 displayed 를 항상 true 로 덮어써서, 시드에서 지워도 요청이 계속 나갔다.
+		competitionRepository.save(Competition.builder()
+				.id(71L).name("Serie A").nameKo("브라질 세리에 A").country("Brazil")
+				.type(CompetitionType.LEAGUE).calendarSeason(true).displayed(true).build());
+		competitionSeeder.run(null);
+
+		assertThat(competitionRepository.findByDisplayedTrue()).hasSize(16);
+		assertThat(competitionRepository.findById(71L)).get()
+				.satisfies(c -> assertThat(c.isDisplayed()).isFalse());
 	}
 
 	@Test

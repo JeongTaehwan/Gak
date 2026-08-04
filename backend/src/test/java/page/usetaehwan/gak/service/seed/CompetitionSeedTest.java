@@ -18,7 +18,7 @@ import page.usetaehwan.gak.domain.CompetitionType;
 import page.usetaehwan.gak.service.seed.CompetitionSeeder.CompetitionSeed;
 
 /**
- * 시드에 적은 20개 id가 <b>정말 그 대회가 맞는지</b>를 저장해 둔 실제 {@code /leagues} 응답
+ * 시드에 적은 id가 <b>정말 그 대회가 맞는지</b>를 저장해 둔 실제 {@code /leagues} 응답
  * ({@code leagues-raw.json}, 940개 대회)과 대조한다.
  *
  * <p>이 검증이 필요한 이유는 이름이 유일하지 않기 때문이다. "Premier League"는 31개 나라에,
@@ -58,11 +58,29 @@ class CompetitionSeedTest {
 	}
 
 	@Test
-	@DisplayName("시드는 대회 20개이고 id가 중복되지 않는다")
-	void seedHasTwentyUniqueCompetitions() {
-		assertThat(seeds).hasSize(20);
+	@DisplayName("시드는 대회 16개이고 id가 중복되지 않는다")
+	void seedHasSixteenUniqueCompetitions() {
+		assertThat(seeds).hasSize(16);
 		assertThat(seeds.stream().map(CompetitionSeed::id).collect(Collectors.toSet()))
-				.hasSize(20);
+				.hasSize(16);
+	}
+
+	@Test
+	@DisplayName("커버 범위는 유럽 5대 리그 + K리그1 — 각 리그에 자국컵이 하나씩 있다")
+	void everyLeagueHasItsDomesticCup() {
+		Set<String> leagueCountries = seeds.stream()
+				.filter(s -> s.type() == CompetitionType.LEAGUE)
+				.map(CompetitionSeed::country)
+				.collect(Collectors.toSet());
+		Set<String> cupCountries = seeds.stream()
+				.filter(s -> s.type() == CompetitionType.CUP)
+				.map(CompetitionSeed::country)
+				.collect(Collectors.toSet());
+
+		assertThat(leagueCountries).containsExactlyInAnyOrder(
+				"England", "Spain", "Germany", "Italy", "France", "South-Korea");
+		// 자국컵이 빠진 리그가 있으면 그 팀들만 일정이 헐거워 보인다 — 밀집도가 거짓이 된다.
+		assertThat(cupCountries).containsAll(leagueCountries);
 	}
 
 	@Test
@@ -89,7 +107,8 @@ class CompetitionSeedTest {
 				.collect(Collectors.groupingBy(e -> e.getValue().name(),
 						Collectors.mapping(Map.Entry::getKey, Collectors.toList())));
 
-		// "Serie A" = 이탈리아 135 + 브라질 71. 우리 시드는 둘 다 쓴다.
+		// "Serie A" = 이탈리아 135 + 브라질 71. 우리 시드는 135만 쓴다 — 이름으로 골랐으면
+		// 브라질 리그를 동기화하고 있었을 것이다.
 		assertThat(byName.get("Serie A")).contains(135L, 71L);
 		// "FA Cup" = 잉글랜드 45 + 한국 294 + 그 밖의 나라들.
 		assertThat(byName.get("FA Cup")).contains(45L, 294L).hasSizeGreaterThan(2);
@@ -132,14 +151,16 @@ class CompetitionSeedTest {
 	@Test
 	@DisplayName("시즌 캘린더 구분 — 한 해로 끝나는 대회만 calendarSeason=true")
 	void calendarSeasonFlagsAreCorrect() {
-		// 브라질·아르헨티나·한국은 3~12월 시즌이라 시즌 번호 = 그 해 연도.
-		for (long id : List.of(71L, 128L, 292L, 294L)) {
+		// 한국은 3~12월 시즌이라 시즌 번호 = 그 해 연도.
+		// (브라질 71·아르헨티나 128 도 같은 부류였는데 커버 범위에서 빠졌다. 다시 넣으면
+		//  calendarSeason=true 로 넣어야 한다.)
+		for (long id : List.of(292L, 294L)) {
 			assertThat(seedOf(id).calendarSeason())
 					.as("id %d는 한 해로 끝나는 시즌입니다", id)
 					.isTrue();
 		}
-		// 유럽·사우디는 8월~다음 해 5월 걸침 시즌.
-		for (long id : List.of(39L, 140L, 2L, 45L, 307L)) {
+		// 유럽은 8월~다음 해 5월 걸침 시즌.
+		for (long id : List.of(39L, 140L, 2L, 45L, 66L)) {
 			assertThat(seedOf(id).calendarSeason())
 					.as("id %d는 걸침 시즌입니다", id)
 					.isFalse();
