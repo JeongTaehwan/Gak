@@ -25,9 +25,16 @@ import type {
   StandingsTable,
   TeamDiagnostics,
   TeamNewsResponse,
+  TeamSelection,
 } from "@/lib/api/types";
 
-/** 맨체스터 유나이티드. API-Football 팀 id를 그대로 쓴다. */
+/**
+ * 맨체스터 유나이티드. API-Football 팀 id를 그대로 쓴다.
+ *
+ * ⚠️ **선택 가능 팀 목록의 출처가 아니다.** 목록은 서버가 조회 시즌에서 파생 계산해
+ * 내려준다(`getTeamSelection`). 이 상수는 URL에 팀이 없을 때의 <b>첫 진입 기본값</b>일
+ * 뿐이고, 그 팀이 그 시즌의 선택 대상인지는 서버가 따로 답한다.
+ */
 export const MANCHESTER_UNITED_ID = 33;
 
 export interface DiagnosticsQuery {
@@ -82,6 +89,67 @@ function baseUrl(): string {
 }
 
 /**
+ * 입력 화면의 선행 요청 — 시즌과 그 시즌 선택 가능 팀.
+ *
+ * **가장 먼저, 혼자 부른다.** 나머지 네 요청은 여기서 확정된 `season`을 받아야 하므로
+ * 나란히 부칠 수 없다. 왕복이 하나 늘지만, 병렬로 부르면 시즌이 정해지기 전에 다른
+ * 화면들이 각자 시즌을 고르게 되고 그게 정확히 우리가 없애려는 상태다.
+ *
+ * **목 모드에서도 실제로 부르지 않는다.** 목 스냅샷은 맨유 한 팀·한 시즌짜리 진단 응답을
+ * 찍어 둔 것이라, 여기서 그럴듯한 시즌 목록을 지어내면 화면에 "지난 시즌 보기" 버튼이
+ * 살아 있는데 눌러도 같은 데이터가 나오는 상태가 된다.
+ */
+export async function getTeamSelection(query: {
+  season?: number;
+  teamId?: number;
+}): Promise<TeamSelection> {
+  if (usingMock()) {
+    return mockSelection(query.teamId ?? MANCHESTER_UNITED_ID);
+  }
+
+  const params = new URLSearchParams();
+  if (query.season != null) params.set("season", String(query.season));
+  if (query.teamId != null) params.set("teamId", String(query.teamId));
+
+  const qs = params.toString();
+  const url = `${baseUrl()}/api/teams/selection${qs ? `?${qs}` : ""}`;
+
+  let res: Response;
+  try {
+    res = await fetch(url, { next: { revalidate: 60 } });
+  } catch (e) {
+    // 실패를 "선택 가능 팀 0개"로 옮기지 않는다 — 그건 다른 사실이다.
+    throw new BackendUnavailableError(url, e);
+  }
+  if (!res.ok) {
+    throw new BackendResponseError(res.status, await readErrorMessage(res));
+  }
+  return (await res.json()) as TeamSelection;
+}
+
+/**
+ * 목 모드의 선택 상태. 스냅샷이 담고 있는 시즌 하나·팀 하나를 그대로 말한다 —
+ * **앞뒤 시즌이 없다는 사실을 숨기지 않는다.**
+ */
+function mockSelection(teamId: number): TeamSelection {
+  const season = MOCK_SEASON;
+  return {
+    season,
+    calendarSeason: false,
+    currentSeason: season,
+    current: true,
+    previousSeason: null,
+    nextSeason: null,
+    teams: [{ teamId, name: "맨유", code: "MUN" }],
+    restricted: true,
+    selected: { teamId, name: "맨유", code: "MUN", eligible: true },
+  };
+}
+
+/** 목 스냅샷이 찍힌 시즌(맨유 2023-24). 파일과 함께 움직이는 값이다. */
+const MOCK_SEASON = 2023;
+
+/**
  * 한 팀의 전 대회 통합 일정 + 진단을 가져온다.
  *
  * 경기 목록과 밀집도를 따로 부르지 않는 이유는 서버 쪽 컨트롤러 주석에 있다 —
@@ -130,11 +198,13 @@ export async function getTeamDiagnostics(
  */
 export async function getTeamPredictions(
   teamId: number,
+  season: number,
 ): Promise<PredictionAccuracy> {
   if (usingMock()) {
     return {
       teamId,
       teamName: "",
+      season,
       scored: 0,
       pending: 0,
       hits: 0,
@@ -146,7 +216,7 @@ export async function getTeamPredictions(
     };
   }
 
-  const url = `${baseUrl()}/api/teams/${teamId}/predictions`;
+  const url = `${baseUrl()}/api/teams/${teamId}/predictions?season=${season}`;
   let res: Response;
   try {
     res = await fetch(url, { next: { revalidate: 60 } });
@@ -167,7 +237,10 @@ export async function getTeamPredictions(
  * 목 모드에는 순위표가 없다. 목 스냅샷은 진단 응답을 찍어 둔 것이라 순위표가 들어 있지
  * 않고, 없는 걸 만들어 넣으면 화면이 가짜 순위를 그린다. **"없음"을 그대로 돌려준다.**
  */
-export async function getTeamStandings(teamId: number): Promise<StandingsTable> {
+export async function getTeamStandings(
+  teamId: number,
+  season: number,
+): Promise<StandingsTable> {
   if (usingMock()) {
     return {
       available: false,
@@ -181,7 +254,7 @@ export async function getTeamStandings(teamId: number): Promise<StandingsTable> 
     };
   }
 
-  const url = `${baseUrl()}/api/teams/${teamId}/standings`;
+  const url = `${baseUrl()}/api/teams/${teamId}/standings?season=${season}`;
   let res: Response;
   try {
     res = await fetch(url, { next: { revalidate: 60 } });

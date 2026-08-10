@@ -326,6 +326,13 @@ export interface PickAccuracy {
 export interface PredictionAccuracy {
   teamId: number;
   teamName: string;
+  /**
+   * 이 집계가 센 시즌. 다른 시즌 기록은 들어 있지 않다.
+   *
+   * 예전에는 팀의 **모든 시즌**을 한꺼번에 셌다. 그러면 2023-24 회고를 보면서 읽는
+   * 적중률이 실제로는 여러 해의 합계가 된다 — 분모에 다른 시간축이 섞이는 것이다.
+   */
+  season: number | null;
   /** 채점 완료 = 비율의 분모. */
   scored: number;
   /** 채점을 기다리는 예측. 예측이 있는데 이게 안 줄면 채점이 멈춘 것이다. */
@@ -450,4 +457,108 @@ export interface NewsCoverage {
 export interface TeamNewsResponse {
   items: NewsItem[];
   coverage: NewsCoverage;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * 입력 화면 — 팀 선택과 시즌 (requirements.md 2~5장)
+ * ────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * 선택 가능한 팀 한 줄.
+ *
+ * ⚠️ 이 목록은 **저장된 팀 목록이 아니다.** `team` 테이블에는 805개가 있고(FA컵 예선까지
+ * 동기화하며 비리그 클럽이 따라 들어왔다), 그중 **조회 시즌에 선택 기준 대회 경기가 있는
+ * 팀**만 서버가 파생 계산해 내려준다.
+ */
+export interface TeamOption {
+  teamId: number;
+  /** 표기명(한글 우선). */
+  name: string;
+  /** 3글자 코드. 팀 마크가 쓴다. 없을 수 있다. */
+  code: string | null;
+}
+
+/** 지금 고른 팀. 그 시즌 선택 대상이 아니어도 **다른 팀으로 바뀌지 않는다.** */
+export interface SelectedTeam extends TeamOption {
+  /**
+   * 이 시즌의 선택 대상인가.
+   *
+   * false는 "선택 기준 리그 기록이 없다"는 뜻일 뿐이다 — 2부라거나 동기화가 빠졌다는
+   * 뜻이 아니다. 화면도 그 이상을 말하지 않는다.
+   */
+  eligible: boolean;
+}
+
+/**
+ * `GET /api/teams/selection` — 입력 화면이 **가장 먼저** 읽는 응답.
+ *
+ * 다른 네 화면은 여기서 정해진 `teamId + season`을 받아 움직인다. 시즌은 조회 필터가
+ * 아니라 팀 목록을 만드는 **선행 입력**이다(승격·강등 때문에 그 시즌의 1부가 그 시즌의
+ * 선택 대상이다).
+ */
+export interface TeamSelection {
+  /** 보고 있는 시즌. URL이 고정하는 값. 조회 가능 시즌이 없으면 null. */
+  season: number | null;
+  /** 한 해 안에서 끝나는 시즌인가(K리그). 표기가 "2025"인지 "23/24"인지를 가른다. */
+  calendarSeason: boolean;
+  /** 자동 판정한 현재 시즌 — 치른 경기가 있는 시즌 중 가장 큰 값. */
+  currentSeason: number | null;
+  /** 지금 보는 시즌이 그 현재 시즌인가. */
+  current: boolean;
+  /** 한 칸 이전 조회 가능 시즌. null이면 "이전 시즌 데이터가 없습니다". */
+  previousSeason: number | null;
+  /** 한 칸 이후(현재 시즌을 넘지 않는다). null이면 앞으로 갈 곳이 없다. */
+  nextSeason: number | null;
+  teams: TeamOption[];
+  /** 출시 단계 제한(1차 비공개 검증)이 걸려 있는가. */
+  restricted: boolean;
+  selected: SelectedTeam | null;
+}
+
+/**
+ * 자유 질문의 답변 상태.
+ *
+ * 넷을 갈라 말하는 이유는 **사용자가 다음에 할 일이 전부 다르기 때문**이다 —
+ * 데이터를 기다려야 하는지, 다른 걸 물어야 하는지, 다시 눌러 보면 되는지,
+ * 말을 바꿔야 하는지.
+ */
+export type AnswerStatus =
+  | "ANSWERED"
+  | "INSUFFICIENT_DATA"
+  | "OUT_OF_SCOPE"
+  | "ANALYSIS_FAILED"
+  | "UNINTELLIGIBLE";
+
+/** 답이 선 자리 — **분모는 모델이 아니라 서버가 계산해 채운다.** */
+export interface AnswerBasis {
+  season: number | null;
+  calendarSeason: boolean;
+  /** 실제로 계산에 들어간 경기 수 = 분모. */
+  analyzedFixtures: number;
+  /** 그 시즌 전체 경기 수(예정·연기 포함). `analyzedFixtures`와 합치지 않는다. */
+  seasonFixtures: number;
+  /** 아직 안 치러 뺀 수. 무승부로 접지 않았다는 사실이 여기 남는다. */
+  upcomingFixtures: number;
+  excludedFixtures: number;
+  from: string | null;
+  to: string | null;
+  /** 그 시즌에 선택 기준 리그 기록이 있었는가. false면 컵만 있는 시즌이다. */
+  leagueRecord: boolean;
+}
+
+/** `POST /api/teams/{teamId}/questions` 응답. 답을 못 내도 200이다. */
+export interface TeamAnswer {
+  status: AnswerStatus;
+  /** 못 냈을 때 화면에 그대로 띄울 한 줄. 답했으면 null. */
+  statusMessage: string | null;
+  answer: string | null;
+  evidence: AnswerEvidence[];
+  unknowns: string[];
+  basis: AnswerBasis;
+}
+
+export interface AnswerEvidence {
+  metric: string;
+  value: string;
+  claim: string;
 }

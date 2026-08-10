@@ -112,10 +112,18 @@ public class TeamDiagnosticsController {
 	 *
 	 * <p>리그를 파라미터로 받지 않는다. 사용자는 "맨유"를 보고 있지 "대회 39번"을 보고
 	 * 있지 않다 — 팀이 뛴 경기에서 리그를 찾아낸다.
+	 *
+	 * <h2>{@code season} 은 필수다</h2>
+	 * <p>생략을 허용하면 서버가 시즌을 골라야 하고, 그러면 <b>화면이 보는 시즌과 표의 시즌이
+	 * 갈리는</b> 경로가 다시 열린다(2023-24 타임라인 옆의 다른 시즌 순위표). 넘겨야만
+	 * 답하도록 닫아 두면 그 상태가 구조적으로 생기지 않는다.
+	 *
+	 * @param season 볼 시즌(API 시즌 번호). 입력 화면이 고정한 값
 	 */
 	@GetMapping("/{teamId}/standings")
-	public StandingsTable standings(@PathVariable Long teamId) {
-		return standingsQueryService.forTeam(teamId);
+	public StandingsTable standings(@PathVariable Long teamId,
+	                                @RequestParam Integer season) {
+		return standingsQueryService.forTeam(teamId, season);
 	}
 
 	/**
@@ -125,12 +133,18 @@ public class TeamDiagnosticsController {
 	 * 열었을 때만 필요하고, 둘은 서로 다른 속도로 변한다(진단은 동기화마다, 적중률은
 	 * 채점마다). 한 응답으로 묶으면 타임라인을 볼 때마다 예측 기록까지 읽게 된다.
 	 *
+	 * <h2>{@code season} 은 필수다</h2>
+	 * <p>생략을 허용하면 "이 팀의 전 시즌 합계"라는 답이 다시 가능해진다. 그건 회고 화면에서
+	 * <b>분모에 다른 시간축을 섞는</b> 것이고, 화면은 멀쩡한 채 숫자만 틀린다.
+	 *
+	 * @param season      집계할 시즌. 이 시즌 경기에 걸린 예측만 센다
 	 * @param recentLimit 기록 목록에 몇 건까지 실을지
 	 */
 	@GetMapping("/{teamId}/predictions")
 	public PredictionAccuracy predictions(
 			@PathVariable Long teamId,
+			@RequestParam Integer season,
 			@RequestParam(defaultValue = "20") int recentLimit) {
-		return accuracyService.of(teamId, recentLimit);
+		return accuracyService.of(teamId, season, recentLimit);
 	}
 }

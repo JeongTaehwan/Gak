@@ -24,8 +24,14 @@ import page.usetaehwan.gak.dto.analysis.SampleConfidence;
  * <p>{@link #byPick}은 "무승부를 유난히 못 맞힌다" 같은 편향을 드러낸다. 전체 적중률
  * 하나만 보면 그게 안 보인다. 여기도 표본이 작으면 비율은 null 이고 개수만 남는다.
  *
+ * <h2>시즌이 분모의 일부다</h2>
+ * <p>{@link #season}은 장식이 아니라 <b>이 숫자들이 무엇을 센 것인지</b>를 말한다. 예전에는
+ * 팀의 모든 시즌 예측을 한꺼번에 셌는데, 그러면 2023-24 회고를 보면서 읽는 적중률이 실제로는
+ * 여러 해의 합계였다. 지금은 한 시즌만 세고, 그 시즌을 응답에 적어 화면이 밝힐 수 있게 한다.
+ *
  * @param teamId     대상 팀
  * @param teamName   표기명(한글 우선)
+ * @param season     이 집계가 센 시즌. 다른 시즌 기록은 들어 있지 않다
  * @param scored     채점 완료된 예측 수 = 비율의 분모
  * @param pending    아직 채점되지 않은 예측 수(경기 전이거나 결과 대기)
  * @param hits       적중
@@ -38,6 +44,7 @@ import page.usetaehwan.gak.dto.analysis.SampleConfidence;
 public record PredictionAccuracy(
 		long teamId,
 		String teamName,
+		Integer season,
 		int scored,
 		int pending,
 		int hits,
@@ -58,9 +65,12 @@ public record PredictionAccuracy(
 	public record PickAccuracy(int predicted, int hits, Double hitRate) {
 	}
 
-	/** 예측이 하나도 없을 때. "적중률 0%"와 구분된다. */
-	public static PredictionAccuracy empty(long teamId, String teamName) {
-		return new PredictionAccuracy(teamId, teamName, 0, 0, 0, 0,
+	/**
+	 * 그 시즌 예측이 하나도 없을 때. <b>"적중률 0%"와 구분된다</b> — 그리고 "이 팀은 예측
+	 * 기록이 없다"와도 다르다. 다른 시즌에는 있을 수 있으므로 {@code season}을 함께 남긴다.
+	 */
+	public static PredictionAccuracy empty(long teamId, String teamName, Integer season) {
+		return new PredictionAccuracy(teamId, teamName, season, 0, 0, 0, 0,
 				null, SampleConfidence.NONE, Map.of(), List.of());
 	}
 }

@@ -43,7 +43,7 @@ export function DiagnosisPanel({
     이미 완성돼 있다 — 규칙 기반 결론이 서버 렌더에 실려 왔기 때문이다. 그래서
     스켈레톤도 스피너도 없다. 있는 문장을 가리면서 기다리게 할 이유가 없다.
   */
-  const ai = useAiDiagnosis(timeline.team.id);
+  const ai = useAiDiagnosis(timeline.team.id, timeline.period.season);
   const aiReady = ai.state === "done" && ai.diagnosis?.available === true;
 
   // 결론 자리만 갈아 끼운다. 근거 카드(아래 ②)는 그대로 둔다 — 그건 우리가 계산한

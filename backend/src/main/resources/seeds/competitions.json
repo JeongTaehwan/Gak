@@ -1,23 +1,23 @@
 {
-  "_comment": "동기화 대상 대회 16개. 유럽 5대 리그 + K리그1, 각 자국컵, 유럽대항전 3개다. 리그를 빼려면 여기서 지우면 된다 — CompetitionSeeder 가 시드에 없는 대회를 displayed=false 로 내려 동기화 대상에서 빠진다(행은 남는다. 이미 받아 둔 경기가 고아가 되면 안 되므로). API-Football league id 를 그대로 PK 로 쓴다. type 은 API 가 알려 주지 않으므로(API 는 League/Cup 두 값뿐) 여기서 직접 정한다 — 조별리그+녹아웃인 유럽대항전은 HYBRID. 이름은 유일하지 않다('Serie A' 는 이탈리아 135 와 브라질 71 에 모두 있고 'Premier League' 는 31개 나라에 있다). 여자부·유소년·하부 리그도 이름이 거의 같으므로(DFB Pokal 81 / 여자 947 / 유소년 715, Coppa Italia 137 / 세리에C 891 / 세리에D 892) 반드시 아래 id 로만 다룬다. calendarSeason=true 는 한 해 안에서 끝나는 시즌(한국. 브라질·아르헨티나를 다시 넣으면 그쪽도), false 는 유럽식 걸침 시즌(8월~다음 해 5월). shortNameKo 는 타임라인 뱃지처럼 폭이 좁은 자리에 쓰는 표기다 — 한 팀의 통합 일정 안에서는 자국 리그가 하나뿐이라 리그는 전부 '리그'로 충분하고, 오히려 대회 성격이 한눈에 들어온다. 비우면 nameKo 로 대체된다.",
+  "_comment": "동기화 대상 대회 16개. 유럽 5대 리그 + K리그1, 각 자국컵, 유럽대항전 3개다. 리그를 빼려면 여기서 지우면 된다 — CompetitionSeeder 가 시드에 없는 대회를 displayed=false 로 내려 동기화 대상에서 빠진다(행은 남는다. 이미 받아 둔 경기가 고아가 되면 안 되므로). API-Football league id 를 그대로 PK 로 쓴다. type 은 API 가 알려 주지 않으므로(API 는 League/Cup 두 값뿐) 여기서 직접 정한다 — 조별리그+녹아웃인 유럽대항전은 HYBRID. 이름은 유일하지 않다('Serie A' 는 이탈리아 135 와 브라질 71 에 모두 있고 'Premier League' 는 31개 나라에 있다). 여자부·유소년·하부 리그도 이름이 거의 같으므로(DFB Pokal 81 / 여자 947 / 유소년 715, Coppa Italia 137 / 세리에C 891 / 세리에D 892) 반드시 아래 id 로만 다룬다. calendarSeason=true 는 한 해 안에서 끝나는 시즌(한국. 브라질·아르헨티나를 다시 넣으면 그쪽도), false 는 유럽식 걸침 시즌(8월~다음 해 5월). shortNameKo 는 타임라인 뱃지처럼 폭이 좁은 자리에 쓰는 표기다 — 한 팀의 통합 일정 안에서는 자국 리그가 하나뿐이라 리그는 전부 '리그'로 충분하고, 오히려 대회 성격이 한눈에 들어온다. 비우면 nameKo 로 대체된다. selectable=true 는 '팀 선택 기준 대회'다 — 입력 화면의 선택 가능 팀은 저장된 팀 목록이 아니라 조회 시즌에 이 대회들의 경기가 있는 팀에서 파생 계산한다(requirements.md 2장). 동기화 대상(=여기 실린 16개 전부)과는 다른 개념이고, displayed 와도 다르다 — 컵·유럽대항전은 동기화하고 노출하지만 선택 기준이 아니다. 시드가 저장하는 것은 '어떤 대회가 선택 기준인가' 뿐이고 팀 목록 자체는 어디에도 저장하지 않는다.",
   "competitions": [
-    { "id": 39,  "name": "Premier League",             "nameKo": "프리미어리그",        "shortNameKo": "리그",     "country": "England",      "type": "LEAGUE", "calendarSeason": false },
-    { "id": 140, "name": "La Liga",                    "nameKo": "라리가",              "shortNameKo": "리그",     "country": "Spain",        "type": "LEAGUE", "calendarSeason": false },
-    { "id": 78,  "name": "Bundesliga",                 "nameKo": "분데스리가",          "shortNameKo": "리그",     "country": "Germany",      "type": "LEAGUE", "calendarSeason": false },
-    { "id": 135, "name": "Serie A",                    "nameKo": "세리에 A",            "shortNameKo": "리그",     "country": "Italy",        "type": "LEAGUE", "calendarSeason": false },
-    { "id": 61,  "name": "Ligue 1",                    "nameKo": "리그 1",              "shortNameKo": "리그",     "country": "France",       "type": "LEAGUE", "calendarSeason": false },
-    { "id": 292, "name": "K League 1",                 "nameKo": "K리그1",              "shortNameKo": "리그",     "country": "South-Korea",  "type": "LEAGUE", "calendarSeason": true  },
+    { "id": 39,  "name": "Premier League",             "nameKo": "프리미어리그",        "shortNameKo": "리그",     "country": "England",      "type": "LEAGUE", "calendarSeason": false, "selectable": true },
+    { "id": 140, "name": "La Liga",                    "nameKo": "라리가",              "shortNameKo": "리그",     "country": "Spain",        "type": "LEAGUE", "calendarSeason": false, "selectable": true },
+    { "id": 78,  "name": "Bundesliga",                 "nameKo": "분데스리가",          "shortNameKo": "리그",     "country": "Germany",      "type": "LEAGUE", "calendarSeason": false, "selectable": true },
+    { "id": 135, "name": "Serie A",                    "nameKo": "세리에 A",            "shortNameKo": "리그",     "country": "Italy",        "type": "LEAGUE", "calendarSeason": false, "selectable": true },
+    { "id": 61,  "name": "Ligue 1",                    "nameKo": "리그 1",              "shortNameKo": "리그",     "country": "France",       "type": "LEAGUE", "calendarSeason": false, "selectable": true },
+    { "id": 292, "name": "K League 1",                 "nameKo": "K리그1",              "shortNameKo": "리그",     "country": "South-Korea",  "type": "LEAGUE", "calendarSeason": true, "selectable": true },
 
-    { "id": 2,   "name": "UEFA Champions League",         "nameKo": "UEFA 챔피언스리그",   "shortNameKo": "챔스",     "country": "World", "type": "HYBRID", "calendarSeason": false },
-    { "id": 3,   "name": "UEFA Europa League",            "nameKo": "UEFA 유로파리그",     "shortNameKo": "유로파",   "country": "World", "type": "HYBRID", "calendarSeason": false },
-    { "id": 848, "name": "UEFA Europa Conference League",  "nameKo": "UEFA 컨퍼런스리그",   "shortNameKo": "컨퍼런스", "country": "World", "type": "HYBRID", "calendarSeason": false },
+    { "id": 2,   "name": "UEFA Champions League",         "nameKo": "UEFA 챔피언스리그",   "shortNameKo": "챔스",     "country": "World", "type": "HYBRID", "calendarSeason": false, "selectable": false },
+    { "id": 3,   "name": "UEFA Europa League",            "nameKo": "UEFA 유로파리그",     "shortNameKo": "유로파",   "country": "World", "type": "HYBRID", "calendarSeason": false, "selectable": false },
+    { "id": 848, "name": "UEFA Europa Conference League",  "nameKo": "UEFA 컨퍼런스리그",   "shortNameKo": "컨퍼런스", "country": "World", "type": "HYBRID", "calendarSeason": false, "selectable": false },
 
-    { "id": 45,  "name": "FA Cup",       "nameKo": "FA컵",         "shortNameKo": "FA컵",     "country": "England",     "type": "CUP", "calendarSeason": false },
-    { "id": 48,  "name": "League Cup",   "nameKo": "EFL컵",        "shortNameKo": "리그컵",   "country": "England",     "type": "CUP", "calendarSeason": false },
-    { "id": 143, "name": "Copa del Rey", "nameKo": "코파 델 레이", "shortNameKo": "국왕컵",   "country": "Spain",       "type": "CUP", "calendarSeason": false },
-    { "id": 81,  "name": "DFB Pokal",    "nameKo": "DFB 포칼",     "shortNameKo": "포칼",     "country": "Germany",     "type": "CUP", "calendarSeason": false },
-    { "id": 137, "name": "Coppa Italia", "nameKo": "코파 이탈리아", "shortNameKo": "코파",     "country": "Italy",       "type": "CUP", "calendarSeason": false },
-    { "id": 66,  "name": "Coupe de France", "nameKo": "쿠프 드 프랑스", "shortNameKo": "프랑스컵", "country": "France",    "type": "CUP", "calendarSeason": false },
-    { "id": 294, "name": "FA Cup",       "nameKo": "코리아컵",     "shortNameKo": "코리아컵", "country": "South-Korea", "type": "CUP", "calendarSeason": true  }
+    { "id": 45,  "name": "FA Cup",       "nameKo": "FA컵",         "shortNameKo": "FA컵",     "country": "England",     "type": "CUP", "calendarSeason": false, "selectable": false },
+    { "id": 48,  "name": "League Cup",   "nameKo": "EFL컵",        "shortNameKo": "리그컵",   "country": "England",     "type": "CUP", "calendarSeason": false, "selectable": false },
+    { "id": 143, "name": "Copa del Rey", "nameKo": "코파 델 레이", "shortNameKo": "국왕컵",   "country": "Spain",       "type": "CUP", "calendarSeason": false, "selectable": false },
+    { "id": 81,  "name": "DFB Pokal",    "nameKo": "DFB 포칼",     "shortNameKo": "포칼",     "country": "Germany",     "type": "CUP", "calendarSeason": false, "selectable": false },
+    { "id": 137, "name": "Coppa Italia", "nameKo": "코파 이탈리아", "shortNameKo": "코파",     "country": "Italy",       "type": "CUP", "calendarSeason": false, "selectable": false },
+    { "id": 66,  "name": "Coupe de France", "nameKo": "쿠프 드 프랑스", "shortNameKo": "프랑스컵", "country": "France",    "type": "CUP", "calendarSeason": false, "selectable": false },
+    { "id": 294, "name": "FA Cup",       "nameKo": "코리아컵",     "shortNameKo": "코리아컵", "country": "South-Korea", "type": "CUP", "calendarSeason": true, "selectable": false }
   ]
 }
