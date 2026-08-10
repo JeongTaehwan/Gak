@@ -44,10 +44,23 @@ export function toMonthLabel(iso: string): string {
  * 프리미어리그가 "2026 시즌"이 되고, 브라질 리그는 반대로 틀린다.
  */
 export function toSeasonLabel(w: AnalysisWindow): string | null {
-  if (w.season == null) return null;
-  return w.calendarSeason
-    ? `${w.season} 시즌`
-    : `${String(w.season % 100).padStart(2, "0")}/${String((w.season + 1) % 100).padStart(2, "0")} 시즌`;
+  return seasonLabel(w.season, w.calendarSeason);
+}
+
+/**
+ * 위와 같은 규칙을, 진단 응답 밖에서도 쓸 수 있게 값만 받는 형태로.
+ *
+ * 입력 화면(시즌 이동)과 대화 답변(분모 표기)이 같은 표기를 써야 한다. 표기 규칙을
+ * 두 번 적으면 한쪽만 고치는 날 화면 위쪽과 아래쪽이 다른 시즌 이름을 말한다.
+ */
+export function seasonLabel(
+  season: number | null,
+  calendarSeason: boolean,
+): string | null {
+  if (season == null) return null;
+  return calendarSeason
+    ? `${season} 시즌`
+    : `${String(season % 100).padStart(2, "0")}/${String((season + 1) % 100).padStart(2, "0")} 시즌`;
 }
 
 /**

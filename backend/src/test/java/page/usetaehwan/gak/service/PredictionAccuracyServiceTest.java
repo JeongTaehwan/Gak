@@ -41,6 +41,9 @@ class PredictionAccuracyServiceTest {
 
 	private static final Instant KICKOFF = Instant.parse("2024-08-17T14:00:00Z");
 
+	/** 아래 경기들이 전부 이 시즌이다. 적중률은 한 번에 한 시즌만 센다. */
+	private static final int SEASON = 2024;
+
 	@Autowired DatabaseCleaner databaseCleaner;
 	@Autowired PredictionAccuracyService accuracyService;
 	@Autowired PredictionScoringService scoringService;
@@ -66,8 +69,13 @@ class PredictionAccuracyServiceTest {
 
 	/** 홈 승(2-0) 경기 하나 + 그에 대한 예측. 예측은 킥오프 한 시간 전에 남긴 것으로. */
 	private void predict(long fixtureId, FixtureStatus status, Integer gh, Integer ga, Pick pick) {
+		predictInSeason(fixtureId, SEASON, status, gh, ga, pick);
+	}
+
+	private void predictInSeason(long fixtureId, int season, FixtureStatus status,
+	                             Integer gh, Integer ga, Pick pick) {
 		Fixture fixture = fixtureRepository.save(Fixture.builder()
-				.id(fixtureId).competition(league).season(2024).round("Regular Season - 1")
+				.id(fixtureId).competition(league).season(season).round("Regular Season - 1")
 				.homeTeam(home).awayTeam(away)
 				.kickoff(KICKOFF.plus(fixtureId, ChronoUnit.DAYS))
 				.status(status).goalsHome(gh).goalsAway(ga).build());
@@ -78,7 +86,7 @@ class PredictionAccuracyServiceTest {
 	@Test
 	@DisplayName("예측이 없으면 '적중률 0%'가 아니라 '기록 없음'이다")
 	void noPredictionsIsNotZeroPercent() {
-		PredictionAccuracy a = accuracyService.of(home.getId(), 20);
+		PredictionAccuracy a = accuracyService.of(home.getId(), SEASON, 20);
 
 		assertThat(a.scored()).isZero();
 		assertThat(a.hitRate()).isNull();
@@ -94,7 +102,7 @@ class PredictionAccuracyServiceTest {
 		predict(3L, FixtureStatus.FT, 0, 2, Pick.W);   // 빗나감
 		scoringService.scorePending();
 
-		PredictionAccuracy a = accuracyService.of(home.getId(), 20);
+		PredictionAccuracy a = accuracyService.of(home.getId(), SEASON, 20);
 
 		assertThat(a.scored()).isEqualTo(3);
 		assertThat(a.hits()).isEqualTo(2);
@@ -113,7 +121,7 @@ class PredictionAccuracyServiceTest {
 		predict(5L, FixtureStatus.FT, 0, 2, Pick.W);       // 빗나감 1
 		scoringService.scorePending();
 
-		PredictionAccuracy a = accuracyService.of(home.getId(), 20);
+		PredictionAccuracy a = accuracyService.of(home.getId(), SEASON, 20);
 
 		assertThat(a.scored()).isEqualTo(5);
 		assertThat(a.hitRate()).isEqualTo(0.8);
@@ -127,13 +135,13 @@ class PredictionAccuracyServiceTest {
 			predict(i, FixtureStatus.FT, 2, 0, Pick.W);
 		}
 		scoringService.scorePending();
-		double before = accuracyService.of(home.getId(), 20).hitRate();
+		double before = accuracyService.of(home.getId(), SEASON, 20).hitRate();
 
 		// 아직 안 치른 경기에 예측을 더 남긴다 — 적중률이 흔들리면 안 된다
 		predict(6L, FixtureStatus.NS, null, null, Pick.L);
 		predict(7L, FixtureStatus.NS, null, null, Pick.D);
 
-		PredictionAccuracy a = accuracyService.of(home.getId(), 20);
+		PredictionAccuracy a = accuracyService.of(home.getId(), SEASON, 20);
 
 		assertThat(a.hitRate()).isEqualTo(before);
 		assertThat(a.scored()).isEqualTo(5);
@@ -149,7 +157,7 @@ class PredictionAccuracyServiceTest {
 		predict(4L, FixtureStatus.FT, 1, 1, Pick.D);   // D 적중
 		scoringService.scorePending();
 
-		PredictionAccuracy a = accuracyService.of(home.getId(), 20);
+		PredictionAccuracy a = accuracyService.of(home.getId(), SEASON, 20);
 
 		assertThat(a.byPick().get(Pick.W).predicted()).isEqualTo(2);
 		assertThat(a.byPick().get(Pick.W).hits()).isEqualTo(2);
@@ -165,7 +173,7 @@ class PredictionAccuracyServiceTest {
 		predict(1L, FixtureStatus.FT, 2, 0, Pick.W);
 		scoringService.scorePending();
 
-		var record = accuracyService.of(home.getId(), 20).recent().get(0);
+		var record = accuracyService.of(home.getId(), SEASON, 20).recent().get(0);
 
 		assertThat(record.leadTimeMinutes()).isEqualTo(60);
 		assertThat(record.pick()).isEqualTo(Pick.W);
@@ -179,7 +187,7 @@ class PredictionAccuracyServiceTest {
 	void queryingDoesNotScore() {
 		predict(1L, FixtureStatus.FT, 2, 0, Pick.W);
 
-		PredictionAccuracy a = accuracyService.of(home.getId(), 20);
+		PredictionAccuracy a = accuracyService.of(home.getId(), SEASON, 20);
 
 		assertThat(a.scored()).isZero();
 		assertThat(a.pending()).isEqualTo(1);
@@ -187,9 +195,49 @@ class PredictionAccuracyServiceTest {
 	}
 
 	@Test
+	@DisplayName("다른 시즌 기록을 분모에 섞지 않는다")
+	void otherSeasonsNeverEnterTheDenominator() {
+		for (long i = 1; i <= 5; i++) {
+			predict(i, FixtureStatus.FT, 2, 0, Pick.W);           // 이 시즌 5건, 전부 적중
+		}
+		for (long i = 6; i <= 10; i++) {
+			predictInSeason(i, SEASON - 1, FixtureStatus.FT, 0, 2, Pick.W); // 지난 시즌 5건, 전부 빗나감
+		}
+		scoringService.scorePending();
+
+		PredictionAccuracy thisSeason = accuracyService.of(home.getId(), SEASON, 20);
+		PredictionAccuracy lastSeason = accuracyService.of(home.getId(), SEASON - 1, 20);
+
+		assertThat(thisSeason.season()).isEqualTo(SEASON);
+		assertThat(thisSeason.scored()).isEqualTo(5);
+		assertThat(thisSeason.hitRate()).isEqualTo(1.0);
+
+		assertThat(lastSeason.scored()).isEqualTo(5);
+		assertThat(lastSeason.hitRate()).isZero();
+		// 합쳐서 10건 50%가 되면 회고 화면이 다른 시간축의 성적을 자기 것으로 말한다.
+		assertThat(thisSeason.recent()).hasSize(5);
+	}
+
+	@Test
+	@DisplayName("이 시즌 기록이 없으면 '적중률 0%'가 아니라 '이 시즌 기록 없음'이다")
+	void emptySeasonIsNotZeroPercent() {
+		for (long i = 1; i <= 5; i++) {
+			predict(i, FixtureStatus.FT, 2, 0, Pick.W);
+		}
+		scoringService.scorePending();
+
+		PredictionAccuracy other = accuracyService.of(home.getId(), SEASON - 1, 20);
+
+		assertThat(other.season()).isEqualTo(SEASON - 1);
+		assertThat(other.scored()).isZero();
+		assertThat(other.hitRate()).isNull();
+		assertThat(other.confidence()).isEqualTo(SampleConfidence.NONE);
+	}
+
+	@Test
 	@DisplayName("없는 팀은 예외")
 	void unknownTeamIsRejected() {
-		assertThatThrownBy(() -> accuracyService.of(999999L, 20))
+		assertThatThrownBy(() -> accuracyService.of(999999L, SEASON, 20))
 				.isInstanceOf(NoSuchElementException.class);
 	}
 }

@@ -73,7 +73,9 @@ public class CompetitionSeeder implements ApplicationRunner {
 			String shortNameKo,
 			String country,
 			CompetitionType type,
-			boolean calendarSeason
+			boolean calendarSeason,
+			/** 팀 선택 기준 대회인가. 저장하는 건 이 여부뿐이고 팀 목록은 저장하지 않는다. */
+			boolean selectable
 	) {
 	}
 
@@ -106,11 +108,12 @@ public class CompetitionSeeder implements ApplicationRunner {
 						.type(seed.type())
 						.calendarSeason(seed.calendarSeason())
 						.displayed(true)
+						.selectable(seed.selectable())
 						.build());
 				created++;
 			} else {
 				existing.applySeed(seed.name(), seed.nameKo(), seed.shortNameKo(), seed.country(),
-						seed.type(), seed.calendarSeason(), true);
+						seed.type(), seed.calendarSeason(), true, seed.selectable());
 				updated++;
 			}
 		}

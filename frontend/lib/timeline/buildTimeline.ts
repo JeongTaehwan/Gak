@@ -335,6 +335,7 @@ function absenceSummary(d: TeamDiagnostics): Absences {
 function toPeriod(d: TeamDiagnostics): Period {
   const w = d.window;
   return {
+    season: w.season,
     seasonLabel: toSeasonLabel(w),
     label: toPeriodLabel(w),
     analyzedMatches: w.analyzedFixtures,

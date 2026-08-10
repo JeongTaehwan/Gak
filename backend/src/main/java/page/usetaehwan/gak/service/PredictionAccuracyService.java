@@ -24,6 +24,11 @@ import page.usetaehwan.gak.repository.TeamRepository;
  * 기록에 영향을 준다. 채점은 {@link PredictionScoringService}가 배치로만 한다.
  *
  * <p>파생값이라 저장하지 않는다(프로젝트 원칙). 예측 기록이 늘면 자동으로 따라온다.
+ *
+ * <h2>⚠️ 한 번에 한 시즌만 센다</h2>
+ * <p>예전에는 팀의 <b>모든 시즌</b> 예측을 한꺼번에 집계했다. 그러면 2023-24 회고를 보면서
+ * 읽는 적중률이 실제로는 여러 해의 합계가 된다 — 분모에 다른 시간축이 섞이는 것이고,
+ * 이 앱이 파는 게 적중률이라 특히 나쁘다. 시즌은 입력 화면이 정해서 넘겨준다.
  */
 @Service
 public class PredictionAccuracyService {
@@ -38,16 +43,19 @@ public class PredictionAccuracyService {
 	}
 
 	/**
+	 * @param season      집계할 시즌. 이 시즌 경기에 걸린 예측만 센다
+	 * @param recentLimit 기록 목록에 몇 건까지 실을지
 	 * @throws NoSuchElementException 팀이 없을 때
 	 */
 	@Transactional(readOnly = true)
-	public PredictionAccuracy of(Long teamId, int recentLimit) {
+	public PredictionAccuracy of(Long teamId, Integer season, int recentLimit) {
 		Team team = teamRepository.findById(teamId)
 				.orElseThrow(() -> new NoSuchElementException("팀을 찾을 수 없습니다. teamId=" + teamId));
 
-		List<Prediction> all = predictionRepository.findTeamPredictions(teamId);
+		List<Prediction> all = predictionRepository.findTeamPredictionsInSeason(teamId, season);
 		if (all.isEmpty()) {
-			return PredictionAccuracy.empty(team.getId(), team.displayName());
+			// 이 시즌 기록이 없다는 뜻이지 이 팀의 기록이 없다는 뜻이 아니다.
+			return PredictionAccuracy.empty(team.getId(), team.displayName(), season);
 		}
 
 		int hits = 0;
@@ -85,7 +93,7 @@ public class PredictionAccuracyService {
 				.toList();
 
 		return new PredictionAccuracy(
-				team.getId(), team.displayName(),
+				team.getId(), team.displayName(), season,
 				scored, pending, hits, misses,
 				confidence.allowsRates() ? rate(hits, scored) : null,
 				confidence,

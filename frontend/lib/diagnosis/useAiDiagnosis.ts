@@ -25,9 +25,20 @@ import type { AiDiagnosis } from "@/lib/api/types";
  * 경고를 내고, 무엇보다 **다음에 탭을 열었을 때 이전 요청의 답이 스칠 수** 있다.
  * `AbortController` 로 끊는다.
  *
+ * ## 시즌을 함께 보낸다
+ *
+ * 화면이 그리고 있는 진단과 **같은 기간**을 물어야 한다. 빼먹으면 서버가 최신 시즌으로
+ * 다시 판정하므로, 2023-24 회고를 열어 둔 채 다른 시즌 지표로 쓴 문장이 결론 자리에
+ * 덧칠된다 — 근거 카드와 결론이 서로 다른 해를 말하는데 화면은 멀쩡해 보인다.
+ *
  * @param teamId  조회할 팀. null 이면 부르지 않는다(탭이 안 열린 상태)
+ * @param season  화면이 보고 있는 시즌. null 이면 부르지 않는다 — 시즌을 모르는 채로
+ *                물으면 서버가 대신 고르게 되고, 그게 위 문제다
  */
-export function useAiDiagnosis(teamId: number | null): {
+export function useAiDiagnosis(
+  teamId: number | null,
+  season: number | null,
+): {
   state: "idle" | "loading" | "done";
   diagnosis: AiDiagnosis | null;
 } {
@@ -35,12 +46,14 @@ export function useAiDiagnosis(teamId: number | null): {
   const [diagnosis, setDiagnosis] = useState<AiDiagnosis | null>(null);
 
   useEffect(() => {
-    if (teamId == null) return;
+    if (teamId == null || season == null) return;
 
     const controller = new AbortController();
     setState("loading");
 
-    fetch(`/api/diagnosis?teamId=${teamId}`, { signal: controller.signal })
+    fetch(`/api/diagnosis?teamId=${teamId}&season=${season}`, {
+      signal: controller.signal,
+    })
       .then((res) => res.json() as Promise<AiDiagnosis>)
       .then((result) => {
         setDiagnosis(result);
@@ -54,7 +67,7 @@ export function useAiDiagnosis(teamId: number | null): {
       });
 
     return () => controller.abort();
-  }, [teamId]);
+  }, [teamId, season]);
 
   return { state, diagnosis };
 }

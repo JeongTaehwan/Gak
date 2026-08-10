@@ -64,4 +64,24 @@ public interface PredictionRepository extends JpaRepository<Prediction, Long> {
 			order by p.fixture.kickoff asc
 			""")
 	List<Prediction> findTeamPredictions(@Param("teamId") Long teamId);
+
+	/**
+	 * 한 팀의 <b>한 시즌</b> 예측 전부.
+	 *
+	 * <p>시즌을 거르지 않으면 회고에서 <b>다른 시즌 기록이 분모에 섞인다</b> — 2023-24를
+	 * 보고 있는데 적중률은 전 시즌 합계인 상태다. 화면은 멀쩡하고 숫자만 틀리므로
+	 * 눈치채기 어렵다.
+	 *
+	 * <p>시즌은 예측이 아니라 <b>경기</b>가 들고 있다. 예측 시점이 아니라 어느 시즌 경기를
+	 * 맞혔는지가 이 집계의 기준이기 때문이다.
+	 */
+	@EntityGraph(attributePaths = {"fixture", "fixture.competition",
+			"fixture.homeTeam", "fixture.awayTeam", "team"})
+	@Query("""
+			select p from Prediction p
+			where p.team.id = :teamId and p.fixture.season = :season
+			order by p.fixture.kickoff asc
+			""")
+	List<Prediction> findTeamPredictionsInSeason(@Param("teamId") Long teamId,
+	                                             @Param("season") Integer season);
 }

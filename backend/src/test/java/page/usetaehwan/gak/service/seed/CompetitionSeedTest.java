@@ -167,6 +167,27 @@ class CompetitionSeedTest {
 		}
 	}
 
+	@Test
+	@DisplayName("팀 선택 기준은 1부 리그 6개뿐 — 컵·유럽대항전은 선택 기준이 아니다")
+	void onlyTopFlightLeaguesAreSelectionBasis() {
+		Set<Long> selectable = seeds.stream()
+				.filter(CompetitionSeed::selectable)
+				.map(CompetitionSeed::id)
+				.collect(Collectors.toSet());
+
+		assertThat(selectable).containsExactlyInAnyOrder(39L, 140L, 78L, 135L, 61L, 292L);
+
+		// 챔피언스리그만 나온 팀이 선택 목록에 뜨면, 그 팀엔 순위표도 리그 진단도 없다.
+		// FA컵 예선으로 들어온 비리그 클럽 711개가 빠지는 것도 이 플래그 하나 덕분이다.
+		for (CompetitionSeed seed : seeds) {
+			if (seed.type() != CompetitionType.LEAGUE) {
+				assertThat(seed.selectable())
+						.as("id %d(%s)는 리그가 아니므로 선택 기준이 될 수 없습니다", seed.id(), seed.name())
+						.isFalse();
+			}
+		}
+	}
+
 	private static CompetitionSeed seedOf(long id) {
 		return seeds.stream().filter(s -> s.id() == id).findFirst().orElseThrow();
 	}

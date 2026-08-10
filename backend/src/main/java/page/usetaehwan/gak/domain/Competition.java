@@ -71,9 +71,29 @@ public class Competition {
 	@Column(nullable = false)
 	private boolean displayed = true;
 
+	/**
+	 * <b>팀 선택 기준 대회</b>인가 — 시드({@code seeds/competitions.json})가 정한다.
+	 *
+	 * <p>{@link #displayed}·동기화 대상과 <b>다른 개념</b>이다. 컵과 유럽대항전은 동기화도
+	 * 하고 화면에도 나오지만 선택 기준이 아니다. 챔피언스리그만 뛴 팀을 목록에 올리면
+	 * 그 팀의 순위표도 리그 진단도 없는 채로 화면이 열린다. 반대로 FA컵 예선에서 들어온
+	 * 비리그 클럽 711개는 이 플래그 하나로 <b>자연히</b> 빠진다 — 별도 필터가 필요 없다.
+	 *
+	 * <p>여기 저장하는 것은 "어떤 대회가 선택 기준인가"뿐이고, <b>팀 목록 자체는 저장하지
+	 * 않는다.</b> 선택 가능 팀은 조회 시즌에 이 대회의 경기가 있는 팀에서 매번 파생 계산한다
+	 * — 저장하면 승격·강등이 일어난 순간 과거 시즌 목록이 조용히 틀려진다.
+	 *
+	 * <p>{@code columnDefinition} 에 기본값을 박아 둔 건 이미 행이 있는 DB에 컬럼을 더할 때
+	 * {@code not null} 만으로는 ALTER 가 실패하기 때문이다. 값의 원본은 어디까지나 시드이고,
+	 * 기동할 때마다 {@code applySeed} 가 덮어쓴다.
+	 */
+	@Column(nullable = false, columnDefinition = "boolean not null default false")
+	private boolean selectable;
+
 	@Builder
 	private Competition(Long id, String name, String nameKo, String shortNameKo, String country,
-	                    CompetitionType type, boolean calendarSeason, boolean displayed) {
+	                    CompetitionType type, boolean calendarSeason, boolean displayed,
+	                    boolean selectable) {
 		this.id = id;
 		this.name = name;
 		this.nameKo = nameKo;
@@ -82,6 +102,7 @@ public class Competition {
 		this.type = type;
 		this.calendarSeason = calendarSeason;
 		this.displayed = displayed;
+		this.selectable = selectable;
 	}
 
 	/**
@@ -89,7 +110,8 @@ public class Competition {
 	 * id는 바꾸지 않는다 — 바뀐다면 그건 다른 대회다.
 	 */
 	public void applySeed(String name, String nameKo, String shortNameKo, String country,
-	                      CompetitionType type, boolean calendarSeason, boolean displayed) {
+	                      CompetitionType type, boolean calendarSeason, boolean displayed,
+	                      boolean selectable) {
 		this.name = name;
 		this.nameKo = nameKo;
 		this.shortNameKo = shortNameKo;
@@ -97,6 +119,7 @@ public class Competition {
 		this.type = type;
 		this.calendarSeason = calendarSeason;
 		this.displayed = displayed;
+		this.selectable = selectable;
 	}
 
 	/**
@@ -108,6 +131,9 @@ public class Competition {
 	 */
 	public void hide() {
 		this.displayed = false;
+		// 선택 기준에서도 함께 내린다. 시드에서 뺐는데 팀 선택 기준으로는 계속 남아 있으면,
+		// 목록에는 뜨는데 그 팀의 리그 데이터는 더 이상 들어오지 않는 상태가 된다.
+		this.selectable = false;
 	}
 
 	/**
