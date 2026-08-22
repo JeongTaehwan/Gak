@@ -17,11 +17,16 @@ import java.util.List;
  * @param generatedAt 이 결과를 계산한 시각(서버 시계)
  * @param window      무엇을 보고 무엇을 뺐는가
  * @param matches     날짜순 경기별 부하(간격·밀집 소속·이동거리)
- * @param congestion  일정 밀집도
+ * @param congestion  일정 밀집도(전 대회 기준)
+ * @param leagueCongestion 자국 리그 경기만으로 <b>다시 판정한</b> 밀집도. "리그만 보기"가
+ *                    쓴다 — 전 대회 값을 화면이 걸러서 다시 세면 계산이 두 곳이 된다.
+ *                    같은 스냅샷에서 함께 계산하므로 두 값이 서로 다른 순간을 볼 수 없다
  * @param form        최근 폼
  * @param travel      누적 이동거리
  * @param absences    결장 요약(부상·징계·질병 등)
  * @param omissions   계산하지 못한 지표와 그 이유
+ * @param syncCoverage 조회 시즌에 대한 노출 대회별 동기화 상태. lastSuccessAt이 null인
+ *                    대회는 "수집 전" — 화면이 경기 부재를 대회 단위로만 말할 근거
  */
 public record TeamDiagnostics(
 		long teamId,
@@ -31,10 +36,12 @@ public record TeamDiagnostics(
 		AnalysisWindow window,
 		List<MatchLoad> matches,
 		CongestionReport congestion,
+		CongestionReport leagueCongestion,
 		FormSummary form,
 		OpponentStrength opponentStrength,
 		TravelSummary travel,
 		AbsenceSummary absences,
-		List<Omission> omissions
+		List<Omission> omissions,
+		List<CompetitionSyncStatus> syncCoverage
 ) {
 }

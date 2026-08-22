@@ -81,6 +81,13 @@ export interface MatchLoad {
   gapDays: number | null;
   /** 소속 밀집 구간 id. 밀집이 아니면 null. */
   congestionSpanId: number | null;
+  /**
+   * 직전 **리그** 경기와의 간격(일). 리그 경기가 아니거나 첫 리그 경기면 null.
+   * 리그만 보기가 컵을 뺀 간격을 그릴 근거 — 화면이 날짜를 빼서 다시 만들지 않는다.
+   */
+  leagueGapDays: number | null;
+  /** 리그 경기만으로 다시 판정한 밀집 구간(`leagueCongestion`)에서의 소속 id. */
+  leagueCongestionSpanId: number | null;
   extraMinutes: number;
   /** 홈경기는 0, 좌표를 모르면 null(0과 구분된다). */
   travelKm: number | null;
@@ -90,12 +97,24 @@ export interface MatchLoad {
    */
   absentCount: number | null;
   /**
+   * 이 경기의 확정 결장 명단. `absentCount`와 같은 규칙 — **데이터가 없으면 null**,
+   * 확인했는데 확정 결장이 없으면 빈 배열. 길이는 항상 `absentCount`와 같다.
+   */
+  absentees: MatchAbsentee[] | null;
+  /**
    * 이 경기가 **진단 계산에 들어갔는가.**
    *
    * 아직 치르지 않은 경기는 false다. 목록에는 그대로 실린다 — 타임라인이 다가올 일정을
    * 그리고 예측이 그 경기에 걸리기 때문이다. **자르는 것은 계산뿐이다.**
    */
   inAnalysis: boolean;
+}
+
+/** 한 경기에서 빠진 선수 한 명 — 경기 선택 시 보여줄 명단의 한 줄. 확정 결장만 온다. */
+export interface MatchAbsentee {
+  playerId: number;
+  playerName: string;
+  reason: AbsenceReason;
 }
 
 export interface AbsentPlayer {
@@ -124,6 +143,15 @@ export interface AbsenceSummary {
   maxOutInOneMatch: number;
   byReason: Partial<Record<AbsenceReason, number>>;
   topAbsentees: AbsentPlayer[];
+  /**
+   * 이 팀·시즌의 결장 데이터를 마지막으로 받아 온 시각. **null이면 받은 적이 없다.**
+   *
+   * 화면은 이 값으로 "아직 안 받음"과 "받았지만 이 경기는 없음"을 갈라 말한다.
+   * ⚠️ 이력이 있어도 경기별 결장을 0으로 채우지 않는다 — API는 한 시즌 요청에도 일부
+   * 경기만 준다(맨유 2023 시즌 52경기 중 44경기). 성공 이력이 보장하는 것은
+   * "이 팀·시즌을 받아 왔다"까지다.
+   */
+  lastSyncedAt: string | null;
 }
 
 /**
@@ -223,6 +251,15 @@ export interface AnalysisWindow {
   excludedFixtures: number;
   /** 다른 시즌이라 통째로 뺀 수. 0이 아니면 DB에 여러 시즌이 섞여 있다는 뜻이다. */
   otherSeasonFixtures: number;
+  /**
+   * 그중 **자국 리그** 경기 수(예정·연기 포함) = "리그만 보기"의 분모.
+   *
+   * 화면이 셀 수 없어 서버가 준다 — 연기·취소된 경기는 `matches`에 실리지 않으므로
+   * 응답만 봐서는 리그 시즌 전체가 몇 경기였는지 알 방법이 없다.
+   */
+  leagueSeasonFixtures: number;
+  /** 그중 연기·취소·중단이라 뺀 **리그** 경기 수. 전 대회 값으로 대신 말하지 않는다. */
+  leagueExcludedFixtures: number;
 }
 
 /** 계산하지 **못한** 지표와 그 이유. 모르는 것을 0으로 채우지 않기 위한 장치. */
@@ -268,6 +305,22 @@ export interface StrengthSplit {
   pointsRate: number | null;
 }
 
+/**
+ * 조회 시즌에 대한 한 대회의 동기화 상태.
+ *
+ * 백엔드는 존재하지 않는 경기를 개별적으로 알 수 없다 — 아는 것은 (대회, 시즌)별
+ * 마지막 성공 동기화 시각뿐이다. 그래서 "수집 대기중"은 경기 단위 마커가 아니라
+ * **대회 단위 안내**로만 그린다. 화면은 이력이 보장하는 수준까지만 말한다.
+ */
+export interface CompetitionSyncStatus {
+  competitionId: number;
+  name: string;
+  shortName: string;
+  type: CompetitionType;
+  /** 이 시즌을 마지막으로 성공 동기화한 시각. **null이면 수집 전**이다. */
+  lastSuccessAt: string | null;
+}
+
 export interface TeamDiagnostics {
   teamId: number;
   teamName: string;
@@ -276,11 +329,18 @@ export interface TeamDiagnostics {
   window: AnalysisWindow;
   matches: MatchLoad[];
   congestion: CongestionReport;
+  /**
+   * 자국 리그 경기만으로 **다시 판정한** 밀집도. "리그만 보기"의 수치는 여기서 온다 —
+   * 전 대회 값을 화면이 걸러 다시 세지 않는다(계산은 백엔드에만).
+   */
+  leagueCongestion: CongestionReport;
   form: FormSummary;
   opponentStrength: OpponentStrength;
   travel: TravelSummary;
   absences: AbsenceSummary;
   omissions: Omission[];
+  /** 조회 시즌의 노출 대회별 동기화 상태. 시즌을 못 정했으면 빈 배열. */
+  syncCoverage: CompetitionSyncStatus[];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

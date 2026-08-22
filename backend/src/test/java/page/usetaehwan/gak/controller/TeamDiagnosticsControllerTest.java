@@ -115,6 +115,29 @@ class TeamDiagnosticsControllerTest {
 	}
 
 	@Test
+	@DisplayName("리그만 보기·결장 명단·수집 대기 판정에 필요한 키가 실려 온다")
+	void carriesLeagueViewAndSyncCoverageKeys() throws Exception {
+		mockMvc.perform(get("/api/teams/{teamId}/diagnostics", MAN_UTD))
+				.andExpect(status().isOk())
+				// 리그 전용 재판정 — 전 대회 값을 화면이 걸러 만들지 않도록 별도 리포트로 온다
+				.andExpect(jsonPath("$.leagueCongestion.analyzedMatchCount").value(2))
+				.andExpect(jsonPath("$.leagueCongestion.detectable").value(false))
+				.andExpect(jsonPath("$.leagueCongestion.spans").isEmpty())
+				// 리그 간격은 리그 경기 사이의 값 — 컵(챔스) 경기에는 없다
+				.andExpect(jsonPath("$.matches[1].leagueGapDays").value(8))
+				.andExpect(jsonPath("$.matches[2].leagueGapDays").doesNotExist())
+				// 결장 데이터가 없는 경기는 명단도 null — 빈 목록으로 채우지 않는다
+				.andExpect(jsonPath("$.matches[0].absentees").doesNotExist())
+				// (대회, 시즌) 동기화 커버리지 — 방금 동기화한 EPL은 성공 시각이 있다
+				.andExpect(jsonPath("$.syncCoverage").isArray())
+				.andExpect(jsonPath("$.syncCoverage[?(@.competitionId==39)].lastSuccessAt").exists())
+				// 리그 분모 — 화면이 셀 수 없는 값이라 응답에 실려야 한다(연기·취소 경기는
+				// matches에 없으므로 리그 시즌 전체 수를 화면이 되짚을 방법이 없다)
+				.andExpect(jsonPath("$.window.leagueSeasonFixtures").value(2))
+				.andExpect(jsonPath("$.window.leagueExcludedFixtures").value(0));
+	}
+
+	@Test
 	@DisplayName("없는 팀은 404")
 	void unknownTeamIsNotFound() throws Exception {
 		mockMvc.perform(get("/api/teams/{teamId}/diagnostics", 999999))

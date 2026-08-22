@@ -27,6 +27,19 @@ public interface SyncLogRepository extends JpaRepository<SyncLog, Long> {
 			""")
 	List<LastSyncView> findLastSuccessPerCompetition();
 
+	/**
+	 * 특정 시즌의 대회별 마지막 성공 시각. 타임라인의 "수집 대기중" 판정 근거 —
+	 * (대회, 시즌) 조합이 여기 없으면 그 대회의 그 시즌 일정은 아직 수집 전이다.
+	 */
+	@Query("""
+			select s.competitionId as competitionId, max(s.startedAt) as lastSyncedAt
+			from SyncLog s
+			where s.status = page.usetaehwan.gak.domain.SyncStatus.SUCCESS
+			  and s.season = :season
+			group by s.competitionId
+			""")
+	List<LastSyncView> findLastSuccessPerCompetitionForSeason(@Param("season") Integer season);
+
 	/** 최근 이력(운영 확인용). */
 	List<SyncLog> findTop50ByOrderByStartedAtDesc();
 

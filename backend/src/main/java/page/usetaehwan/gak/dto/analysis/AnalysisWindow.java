@@ -31,6 +31,13 @@ import java.time.Instant;
  * @param upcomingFixtures    아직 치르지 않아 계산에서 뺀 수. <b>화면에는 그대로 보인다</b>
  * @param excludedFixtures    연기·취소·중단이라 뺀 수
  * @param otherSeasonFixtures 다른 시즌이라 통째로 뺀 수. 0이 아니면 DB에 여러 시즌이 섞여 있다
+ * @param leagueSeasonFixtures   그중 <b>자국 리그</b> 경기 수(예정·연기 포함). "리그만 보기"의
+ *                            분모다. 화면이 셀 수 없어 여기서 준다 — 연기·취소된 경기는
+ *                            {@code matches}에 실리지 않으므로 응답만 봐서는 리그 시즌
+ *                            전체가 몇 경기였는지 알 방법이 없다
+ * @param leagueExcludedFixtures 그중 연기·취소·중단이라 뺀 <b>리그</b> 경기 수. 리그만
+ *                            보기에서 "몇 경기가 일정에서 빠졌나"를 전 대회 수치로
+ *                            말하지 않기 위해 따로 센다
  */
 public record AnalysisWindow(
 		Integer season,
@@ -44,7 +51,9 @@ public record AnalysisWindow(
 		int analyzedFixtures,
 		int upcomingFixtures,
 		int excludedFixtures,
-		int otherSeasonFixtures
+		int otherSeasonFixtures,
+		int leagueSeasonFixtures,
+		int leagueExcludedFixtures
 ) {
 
 	/** 시즌이 아직 진행 중인가(치르지 않은 경기가 남아 있는가). */

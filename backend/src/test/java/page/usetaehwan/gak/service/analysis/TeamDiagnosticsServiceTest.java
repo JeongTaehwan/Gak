@@ -16,20 +16,33 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
+import org.assertj.core.api.InstanceOfAssertFactories;
+import page.usetaehwan.gak.domain.Absence;
+import page.usetaehwan.gak.domain.AbsenceSyncLog;
+import page.usetaehwan.gak.domain.AbsenceReason;
+import page.usetaehwan.gak.domain.AbsenceStatus;
 import page.usetaehwan.gak.domain.Competition;
 import page.usetaehwan.gak.domain.CompetitionType;
 import page.usetaehwan.gak.domain.Fixture;
 import page.usetaehwan.gak.domain.FixtureStatus;
 import page.usetaehwan.gak.domain.Pick;
+import page.usetaehwan.gak.domain.Player;
+import page.usetaehwan.gak.domain.SyncLog;
+import page.usetaehwan.gak.domain.SyncSource;
 import page.usetaehwan.gak.domain.Team;
 import page.usetaehwan.gak.domain.Venue;
+import page.usetaehwan.gak.dto.analysis.CompetitionSyncStatus;
 import page.usetaehwan.gak.dto.analysis.CongestionSpanView;
+import page.usetaehwan.gak.dto.analysis.MatchAbsentee;
 import page.usetaehwan.gak.dto.analysis.MatchLoad;
 import page.usetaehwan.gak.dto.analysis.Omission;
 import page.usetaehwan.gak.dto.analysis.SampleConfidence;
 import page.usetaehwan.gak.dto.analysis.TeamDiagnostics;
+import page.usetaehwan.gak.repository.AbsenceRepository;
+import page.usetaehwan.gak.repository.AbsenceSyncLogRepository;
 import page.usetaehwan.gak.repository.CompetitionRepository;
 import page.usetaehwan.gak.repository.FixtureRepository;
+import page.usetaehwan.gak.repository.PlayerRepository;
 import page.usetaehwan.gak.repository.PredictionRepository;
 import page.usetaehwan.gak.repository.SyncLogRepository;
 import page.usetaehwan.gak.repository.TeamRepository;
@@ -72,6 +85,9 @@ class TeamDiagnosticsServiceTest {
 	@Autowired TeamRepository teamRepository;
 	@Autowired VenueRepository venueRepository;
 	@Autowired SyncLogRepository syncLogRepository;
+	@Autowired AbsenceRepository absenceRepository;
+	@Autowired AbsenceSyncLogRepository absenceSyncLogRepository;
+	@Autowired PlayerRepository playerRepository;
 
 	@BeforeEach
 	void reset() {
@@ -517,6 +533,229 @@ class TeamDiagnosticsServiceTest {
 			assertThat(d.travel().totalKm()).isNull();
 			assertThat(d.omissions()).extracting(Omission::metric)
 					.contains("congestion", "pointsRate", "opponentStrength");
+		}
+	}
+
+	// =========================================================================
+	// 리그만 단면 — "리그만 보기"의 재판정 · 결장 명단 · 동기화 커버리지
+	// =========================================================================
+
+	@Nested
+	@DisplayName("리그만 단면과 커버리지")
+	class LeagueSlice {
+
+		static final long TEAM = 900021L;
+		static final long OPPONENT = 900022L;
+		static final Instant BASE = Instant.parse("2025-01-01T15:00:00Z");
+
+		/** 리그 5경기(7일 간격) 사이에 컵 4경기가 끼어 전 대회만 밀집이 되는 일정. */
+		static final int[] LEAGUE_OFFSETS = {0, 7, 14, 21, 28};
+		static final int[] CUP_OFFSETS = {3, 10, 17, 24};
+
+		long leagueFixtureId(int i) {
+			return 940000L + i;
+		}
+
+		long cupFixtureId(int i) {
+			return 941000L + i;
+		}
+
+		@BeforeEach
+		void buildMixedSchedule() {
+			Competition epl = competitionRepository.findById(EPL).orElseThrow();
+			Competition ucl = competitionRepository.findById(UCL).orElseThrow();
+
+			Team team = teamRepository.save(Team.builder()
+					.id(TEAM).name("Mixed FC").nameKo("혼합FC").build());
+			Team opponent = teamRepository.save(Team.builder()
+					.id(OPPONENT).name("Opponent FC").nameKo("상대FC").build());
+
+			for (int i = 0; i < LEAGUE_OFFSETS.length; i++) {
+				save(leagueFixtureId(i), epl, team, opponent, LEAGUE_OFFSETS[i]);
+			}
+			for (int i = 0; i < CUP_OFFSETS.length; i++) {
+				save(cupFixtureId(i), ucl, team, opponent, CUP_OFFSETS[i]);
+			}
+		}
+
+		private void save(long id, Competition competition, Team team, Team opponent, int offsetDays) {
+			fixtureRepository.save(Fixture.builder()
+					.id(id).competition(competition).season(2024).round("R")
+					.homeTeam(team).awayTeam(opponent)
+					.kickoff(BASE.plus(Duration.ofDays(offsetDays)))
+					.status(FixtureStatus.FT).goalsHome(1).goalsAway(0).build());
+		}
+
+		@Test
+		@DisplayName("리그 밀집은 리그 경기만으로 다시 판정한다 — 전 대회 값을 거른 것이 아니다")
+		void leagueCongestionIsRecomputedFromLeagueMatchesOnly() {
+			TeamDiagnostics d = diagnosticsService.diagnose(TEAM);
+
+			// 전 대회: 9경기가 3·4일 간격으로 이어져 하나의 밀집 구간
+			assertThat(d.congestion().analyzedMatchCount()).isEqualTo(9);
+			assertThat(d.congestion().spans()).hasSize(1);
+			assertThat(d.congestion().medianGapDays()).isEqualTo(3.5);
+
+			// 리그만: 5경기가 전부 7일 간격 — 밀집 0개. 표본은 충분하므로 판정 불가가 아니다
+			assertThat(d.leagueCongestion().analyzedMatchCount()).isEqualTo(5);
+			assertThat(d.leagueCongestion().detectable()).isTrue();
+			assertThat(d.leagueCongestion().spans()).isEmpty();
+			assertThat(d.leagueCongestion().medianGapDays()).isEqualTo(7.0);
+			assertThat(d.leagueCongestion().shortestGapDays()).isEqualTo(7);
+		}
+
+		@Test
+		@DisplayName("리그 간격은 리그 경기 사이로 다시 센다 — 컵 경기는 간격을 만들지도 받지도 않는다")
+		void leagueGapsAreCountedBetweenLeagueMatches() {
+			TeamDiagnostics d = diagnosticsService.diagnose(TEAM);
+
+			// 킥오프순: L0 C3 L7 C10 L14 C17 L21 C24 L28
+			assertThat(d.matches()).extracting(MatchLoad::leagueGapDays)
+					.containsExactly(null, null, 7, null, 7, null, 7, null, 7);
+			// 전 대회 밀집 구간에는 아홉 경기 전부 속하지만, 리그 기준으로는 아무도 밀집이 아니다
+			assertThat(d.matches()).extracting(MatchLoad::congestionSpanId)
+					.containsOnly(0);
+			assertThat(d.matches()).extracting(MatchLoad::leagueCongestionSpanId)
+					.containsOnly((Integer) null);
+		}
+
+		@Test
+		@DisplayName("리그 기준 밀집이 잡히면 구간 경계도 리그 경기 id다")
+		void leagueSpanBoundariesAreLeagueFixtureIds() {
+			// 창을 28일로 넓히면 리그 5경기도 한 구간이 된다
+			TeamDiagnostics d = diagnosticsService.diagnose(TEAM,
+					new DiagnosticsOptions(28, 5, null, null));
+
+			assertThat(d.leagueCongestion().spans()).hasSize(1);
+			CongestionSpanView span = d.leagueCongestion().spans().get(0);
+			assertThat(span.matchCount()).isEqualTo(5);
+			assertThat(span.spanDays()).isEqualTo(28);
+			assertThat(span.startFixtureId()).isEqualTo(leagueFixtureId(0));
+			assertThat(span.endFixtureId()).isEqualTo(leagueFixtureId(4));
+			// 리그 구간 소속도 리그 경기에만 붙는다
+			assertThat(d.matches()).extracting(MatchLoad::leagueCongestionSpanId)
+					.containsExactly(0, null, 0, null, 0, null, 0, null, 0);
+		}
+
+		@Test
+		@DisplayName("결장 명단은 확정 결장만, 인원수와 같은 규칙으로 실린다")
+		void absenteesTravelWithTheCount() {
+			Player out = playerRepository.save(Player.builder().id(960001L).name("Out Player").build());
+			Player doubtful = playerRepository.save(Player.builder().id(960002L).name("Doubtful Player").build());
+			Team team = teamRepository.findById(TEAM).orElseThrow();
+			Fixture fixture = fixtureRepository.findById(leagueFixtureId(1)).orElseThrow();
+
+			absenceRepository.save(Absence.builder()
+					.fixture(fixture).player(out).team(team)
+					.status(AbsenceStatus.OUT).reason(AbsenceReason.INJURY)
+					.reasonRaw("Knee Injury").build());
+			absenceRepository.save(Absence.builder()
+					.fixture(fixture).player(doubtful).team(team)
+					.status(AbsenceStatus.DOUBTFUL).reason(AbsenceReason.OTHER)
+					.reasonRaw("Questionable").build());
+
+			TeamDiagnostics d = diagnosticsService.diagnose(TEAM);
+			MatchLoad covered = d.matches().stream()
+					.filter(m -> m.fixtureId() == leagueFixtureId(1)).findFirst().orElseThrow();
+			MatchLoad unknown = d.matches().stream()
+					.filter(m -> m.fixtureId() == leagueFixtureId(0)).findFirst().orElseThrow();
+
+			// 확인한 경기: 불투명은 명단에도 인원수에도 넣지 않는다 — 길이가 항상 일치
+			assertThat(covered.absentCount()).isEqualTo(1);
+			assertThat(covered.absentees()).hasSize(1);
+			assertThat(covered.absentees().get(0).playerName()).isEqualTo("Out Player");
+			assertThat(covered.absentees().get(0).reason()).isEqualTo(AbsenceReason.INJURY);
+
+			// 데이터가 없는 경기: 빈 목록이 아니라 null — "모름"과 "0명"의 구분
+			assertThat(unknown.absentCount()).isNull();
+			assertThat(unknown.absentees()).isNull();
+		}
+
+		@Test
+		@DisplayName("리그 분모를 따로 준다 — 화면은 연기·취소된 리그 경기를 셀 수 없다")
+		void leagueDenominatorIsCountedOnTheServer() {
+			// 리그 경기 하나를 연기시킨다 — 일정(matches)에서는 빠지지만 시즌 경기이긴 하다
+			Competition epl = competitionRepository.findById(EPL).orElseThrow();
+			Team team = teamRepository.findById(TEAM).orElseThrow();
+			Team opponent = teamRepository.findById(OPPONENT).orElseThrow();
+			fixtureRepository.save(Fixture.builder()
+					.id(942000L).competition(epl).season(2024).round("R")
+					.homeTeam(team).awayTeam(opponent)
+					.kickoff(BASE.plus(Duration.ofDays(35)))
+					.status(FixtureStatus.PST).build());
+
+			TeamDiagnostics d = diagnosticsService.diagnose(TEAM);
+
+			// 전 대회: 리그 6(연기 1 포함) + 컵 4 = 10경기가 시즌에 있고 9경기가 일정에 남는다
+			assertThat(d.window().seasonFixtures()).isEqualTo(10);
+			assertThat(d.window().excludedFixtures()).isEqualTo(1);
+			// 리그만: 6경기 중 1경기가 연기 — 이 둘을 전 대회 값(10/1)으로 말하면 안 된다
+			assertThat(d.window().leagueSeasonFixtures()).isEqualTo(6);
+			assertThat(d.window().leagueExcludedFixtures()).isEqualTo(1);
+			// 연기된 경기는 일정에도 밀집 판정에도 들어가지 않는다
+			assertThat(d.matches()).extracting(MatchLoad::fixtureId).doesNotContain(942000L);
+			assertThat(d.leagueCongestion().analyzedMatchCount()).isEqualTo(5);
+		}
+
+		@Test
+		@DisplayName("결장 미수집과 '받았지만 이 경기는 없음'을 수집 이력으로 가른다")
+		void absenceNotCollectedIsToldApartFromQuietBySyncHistory() {
+			// 이력이 없을 때: 행이 없는 것과 "아무도 안 빠졌다"를 구분할 수 없다
+			TeamDiagnostics before = diagnosticsService.diagnose(TEAM);
+			assertThat(before.absences().lastSyncedAt()).isNull();
+			assertThat(before.absences().covered()).isFalse();
+			assertThat(before.omissions())
+					.filteredOn(o -> o.metric().equals("absences"))
+					.first().extracting(Omission::reason, InstanceOfAssertFactories.STRING)
+					.contains("아직 동기화하지 않았습니다");
+
+			// (팀, 시즌) 결장 동기화가 성공했다는 이력만 남긴다 — 결장 행은 0건
+			Instant syncedAt = Instant.parse("2025-02-01T03:00:00Z");
+			absenceSyncLogRepository.save(AbsenceSyncLog.success(
+					TEAM, 2024, syncedAt, syncedAt, SyncSource.REPLAY, 1, 0));
+
+			TeamDiagnostics after = diagnosticsService.diagnose(TEAM);
+
+			// 같은 0건인데 화면이 할 말이 달라진다 — 받은 적 없음 vs 받아 왔음
+			assertThat(after.absences().lastSyncedAt()).isEqualTo(syncedAt);
+			assertThat(after.omissions())
+					.filteredOn(o -> o.metric().equals("absences"))
+					.first().extracting(Omission::reason, InstanceOfAssertFactories.STRING)
+					.contains("받아 왔지만");
+
+			// ⚠️ 이력이 있어도 경기별 결장을 0으로 채우지 않는다 — API 커버리지가 부분적이라
+			// "행이 없다"가 "아무도 안 빠졌다"를 뜻하지 않는다(domain.md).
+			assertThat(after.matches()).extracting(MatchLoad::absentCount)
+					.containsOnly((Integer) null);
+			assertThat(after.matches()).extracting(MatchLoad::absentees)
+					.containsOnly((List<MatchAbsentee>) null);
+		}
+
+		@Test
+		@DisplayName("동기화 커버리지는 (대회, 시즌) 단위다 — 다른 시즌의 성공은 세지 않는다")
+		void syncCoverageIsPerCompetitionAndSeason() {
+			Instant syncedAt = Instant.parse("2025-01-10T04:00:00Z");
+			// 조회 시즌(2024)의 EPL 성공 + 다른 시즌(2023)의 UCL 성공
+			syncLogRepository.save(SyncLog.success(
+					EPL, 2024, syncedAt, syncedAt, SyncSource.REPLAY, 0, 5, 0, 0));
+			syncLogRepository.save(SyncLog.success(
+					UCL, 2023, syncedAt, syncedAt, SyncSource.REPLAY, 0, 4, 0, 0));
+
+			TeamDiagnostics d = diagnosticsService.diagnose(TEAM);
+
+			CompetitionSyncStatus epl = coverageOf(d, EPL);
+			CompetitionSyncStatus ucl = coverageOf(d, UCL);
+			assertThat(epl.lastSuccessAt()).isEqualTo(syncedAt);
+			// 2023 시즌의 성공은 2024 시즌 커버리지가 아니다 — 수집 전(null)
+			assertThat(ucl.lastSuccessAt()).isNull();
+			assertThat(ucl.type()).isEqualTo(CompetitionType.HYBRID);
+			assertThat(epl.name()).isNotBlank();
+		}
+
+		private CompetitionSyncStatus coverageOf(TeamDiagnostics d, long competitionId) {
+			return d.syncCoverage().stream()
+					.filter(c -> c.competitionId() == competitionId)
+					.findFirst().orElseThrow();
 		}
 	}
 

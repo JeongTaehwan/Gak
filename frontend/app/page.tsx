@@ -21,7 +21,8 @@ import type { TeamSelection } from "@/lib/api/types";
  *
  *   getTeamSelection() 이 **시즌과 선택 가능 팀을 먼저 확정**하고,
  *   그 teamId + season 으로 나머지 네 응답을 받아 온다.
- *   buildTimeline() 이 진단 응답을 화면용 뷰모델로 옮긴다.
+ *   buildTimeline() 이 진단 응답을 화면용 뷰모델로 옮긴다 — 보기 모드(전 대회/리그만)는
+ *   URL 이 쥐므로 여기서 넘긴다. 리그 범위의 수치도 응답에 이미 들어 있다(백엔드 재판정).
  *   클라이언트(MainScreen)는 뷰모델만 받으므로 백엔드 응답 모양을 알지 못한다.
  *
  * 밀집도·폼 같은 판정은 여기서도, 뷰모델에서도 하지 않는다 — 전부 백엔드가 끝냈다.
@@ -98,15 +99,23 @@ export default async function Home({
         getTeamNews(state.teamId),
       ]);
 
+    // 전 대회 뷰모델이 기준이다 — 헤더·대화·진단·예측은 보기와 무관하게 이 값을 쓴다.
+    // 보기(view)가 바꾸는 것은 타임라인이 그리는 경기와 그 수치뿐이다.
+    const timeline = buildTimeline(diagnostics, "all");
+    const scoped =
+      state.view === "league" ? buildTimeline(diagnostics, "league") : timeline;
+
     return (
       <MainScreen
         selection={selection}
-        timeline={buildTimeline(diagnostics)}
+        timeline={timeline}
+        scopedTimeline={scoped}
         accuracy={accuracy}
         standings={standings}
         news={news}
         source={source}
         tab={state.tab}
+        view={state.view}
       />
     );
   } catch (e) {

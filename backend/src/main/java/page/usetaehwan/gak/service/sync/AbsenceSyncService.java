@@ -1,8 +1,12 @@
 package page.usetaehwan.gak.service.sync;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.util.NoSuchElementException;
 import org.springframework.stereotype.Service;
+import page.usetaehwan.gak.domain.AbsenceSyncLog;
 import page.usetaehwan.gak.external.apifootball.ApiFootballClient;
+import page.usetaehwan.gak.repository.AbsenceSyncLogRepository;
 import page.usetaehwan.gak.repository.TeamRepository;
 
 /**
@@ -25,13 +29,19 @@ public class AbsenceSyncService {
 	private final ApiFootballClient client;
 	private final AbsenceUpsertService upsertService;
 	private final TeamRepository teamRepository;
+	private final AbsenceSyncLogRepository syncLogRepository;
+	private final Clock clock;
 
 	public AbsenceSyncService(ApiFootballClient client,
 	                          AbsenceUpsertService upsertService,
-	                          TeamRepository teamRepository) {
+	                          TeamRepository teamRepository,
+	                          AbsenceSyncLogRepository syncLogRepository,
+	                          Clock clock) {
 		this.client = client;
 		this.upsertService = upsertService;
 		this.teamRepository = teamRepository;
+		this.syncLogRepository = syncLogRepository;
+		this.clock = clock;
 	}
 
 	/**
@@ -48,13 +58,30 @@ public class AbsenceSyncService {
 	/**
 	 * 한 팀의 한 시즌 결장 기록을 동기화한다.
 	 *
+	 * <p><b>결과를 반드시 이력으로 남긴다.</b> 0건을 받아 온 성공도 기록해야 한다 —
+	 * 그래야 화면이 "확정 결장 0명"과 "아직 받지 않았음"을 가를 수 있다. 실패도 남긴다.
+	 * 실패한 시도를 안 남기면 그 뒤의 빈 화면이 "받아 봤는데 없더라"로 읽힌다.
+	 *
 	 * @throws NoSuchElementException 팀이 없을 때
 	 */
 	public AbsenceSyncResult sync(Long teamId, int season) {
 		if (!teamRepository.existsById(teamId)) {
 			throw new NoSuchElementException("팀을 찾을 수 없습니다. teamId=" + teamId);
 		}
-		ApiFootballClient.InjuriesFetch fetch = client.fetchInjuries(teamId, season);
-		return upsertService.apply(teamId, season, fetch.items(), fetch.requestCount());
+		Instant startedAt = Instant.now(clock);
+		ApiFootballClient.InjuriesFetch fetch;
+		try {
+			fetch = client.fetchInjuries(teamId, season);
+		} catch (RuntimeException e) {
+			syncLogRepository.save(AbsenceSyncLog.failed(teamId, season, startedAt,
+					Instant.now(clock), client.source(), 0, e.getMessage()));
+			throw e;
+		}
+
+		AbsenceSyncResult result =
+				upsertService.apply(teamId, season, fetch.items(), fetch.requestCount());
+		syncLogRepository.save(AbsenceSyncLog.success(teamId, season, startedAt,
+				Instant.now(clock), client.source(), result.requestCount(), result.applied()));
+		return result;
 	}
 }
