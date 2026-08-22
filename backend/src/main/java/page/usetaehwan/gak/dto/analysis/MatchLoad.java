@@ -1,6 +1,7 @@
 package page.usetaehwan.gak.dto.analysis;
 
 import java.time.Instant;
+import java.util.List;
 import page.usetaehwan.gak.domain.CompetitionType;
 import page.usetaehwan.gak.domain.FixtureStatus;
 import page.usetaehwan.gak.domain.Pick;
@@ -49,10 +50,19 @@ import page.usetaehwan.gak.domain.Pick;
  * @param shootoutAgainst      승부차기 상대 득점. 승부차기가 없었으면 null
  * @param gapDays              직전 경기와의 간격(일). 목록의 첫 경기는 null
  * @param congestionSpanId     소속된 밀집 구간 id. 밀집이 아니면 null
+ * @param leagueGapDays        직전 <b>리그</b> 경기와의 간격(일). 리그 경기가 아니거나
+ *                             첫 리그 경기면 null — 리그만 보기가 컵을 뺀 간격을 그릴 근거.
+ *                             화면이 날짜를 빼서 다시 만들면 계산이 두 곳이 된다
+ * @param leagueCongestionSpanId 리그 경기만으로 다시 판정한 밀집 구간에서의 소속 id.
+ *                             {@link TeamDiagnostics#leagueCongestion()}의 구간을 가리킨다.
+ *                             리그 경기가 아니거나 리그 기준 밀집이 아니면 null
  * @param extraMinutes         정규시간 초과 소화 시간(분). 연장 없으면 0
  * @param travelKm             이 경기를 위한 이동거리(km). 홈경기는 0, 좌표를 모르면 <b>null</b>
  * @param absentCount          이 경기에 빠진 확정 결장 인원. <b>결장 데이터가 없는 경기는 null</b>
  *                             — 0(아무도 안 빠짐)과 "모름"은 다르다
+ * @param absentees            이 경기의 확정 결장 명단(사유 갈래 포함). {@code absentCount}와
+ *                             같은 규칙 — <b>데이터가 없는 경기는 null</b>, 확인했는데 확정
+ *                             결장이 없으면 빈 목록. 길이는 항상 {@code absentCount}와 같다
  * @param inAnalysis           이 경기가 진단 계산에 들어갔는가. 아직 치르지 않은 경기는 false다
  *                             — 목록에는 실리지만(타임라인·예측이 쓴다) 폼·밀집도·이동거리
  *                             어디에도 들어가지 않는다. 화면이 "여기까지 치렀다"를 그릴 근거
@@ -77,9 +87,12 @@ public record MatchLoad(
 		Integer shootoutAgainst,
 		Integer gapDays,
 		Integer congestionSpanId,
+		Integer leagueGapDays,
+		Integer leagueCongestionSpanId,
 		int extraMinutes,
 		Double travelKm,
 		Integer absentCount,
+		List<MatchAbsentee> absentees,
 		boolean inAnalysis
 ) {
 }

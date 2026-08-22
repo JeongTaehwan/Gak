@@ -17,11 +17,19 @@ import type { Mode } from "@/components/layout/TeamHeader";
  * 보여 준다.** 그래서 자동 판정이 끝나는 즉시 그 값을 URL에 고정한다 — 회고 링크를
  * 공유했는데 몇 달 뒤 다른 시즌이 열리는 일이 없어야 한다.
  */
+/** 타임라인 보기 모드 — requirements.md TL 4절. 기본은 전 대회 보기다. */
+export type TimelineView = "all" | "league";
+
 export interface ScreenState {
   teamId: number;
   /** null이면 아직 자동 판정 전(첫 진입). 판정된 뒤에는 항상 적힌다. */
   season: number | null;
   tab: Mode;
+  /**
+   * 타임라인 보기 모드. URL에 기록해 공유·새로고침 시 복원한다 — "밀집 구간 3개를
+   * 보라"고 공유한 링크가 받는 사람에게 리그만 보기(0개)로 열리면 안 된다.
+   */
+  view: TimelineView;
 }
 
 const TABS: Mode[] = ["timeline", "diagnosis", "prediction", "standings"];
@@ -35,6 +43,7 @@ export function readScreenState(
     teamId: readInt(params.teamId) ?? defaultTeamId,
     season: readInt(params.season),
     tab: readTab(params.tab),
+    view: readView(params.view),
   };
 }
 
@@ -44,6 +53,8 @@ export function toHref(state: ScreenState): string {
   params.set("teamId", String(state.teamId));
   if (state.season != null) params.set("season", String(state.season));
   params.set("tab", state.tab);
+  // 기본값(전 대회)은 적지 않는다 — 토글이 생기기 전의 링크와 같은 주소를 유지한다.
+  if (state.view !== "all") params.set("view", state.view);
   return `/?${params.toString()}`;
 }
 
@@ -62,4 +73,10 @@ function readInt(value: string | string[] | undefined): number | null {
 function readTab(value: string | string[] | undefined): Mode {
   const raw = Array.isArray(value) ? value[0] : value;
   return TABS.find((t) => t === raw) ?? "timeline";
+}
+
+/** 모르는 보기 이름은 기본(전 대회)으로 접는다 — 탭과 같은 이유로 여기서만 조용히 대체한다. */
+function readView(value: string | string[] | undefined): TimelineView {
+  const raw = Array.isArray(value) ? value[0] : value;
+  return raw === "league" ? "league" : "all";
 }

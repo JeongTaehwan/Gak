@@ -12,9 +12,18 @@ import type {
   AbsenceReason,
   AbsentPlayer,
   FixtureStatus,
+  MatchAbsentee,
   Omission,
   SampleConfidence,
 } from "@/lib/api/types";
+
+/**
+ * 타임라인이 그리는 범위 — 전 대회 통합("all") 또는 자국 리그만("league").
+ *
+ * 리그 범위의 수치(간격·밀집)는 백엔드가 리그 경기만으로 **다시 판정한** 값이다.
+ * 전 대회 값을 프론트가 걸러 다시 세지 않는다(requirements.md TL 4절).
+ */
+export type TimelineScope = "all" | "league";
 
 export type CompetitionKey = "league" | "cup" | "europe";
 
@@ -102,6 +111,11 @@ export interface TimelineRow {
   congestion: RowCongestion | null;
   /** 이 경기 확정 결장 인원. 결장 데이터가 없는 경기는 null(0과 다르다). */
   absentCount: number | null;
+  /**
+   * 이 경기의 확정 결장 명단(경기 선택 시 표시). `absentCount`와 같은 규칙 —
+   * **데이터가 없으면 null**, 확인했는데 확정 결장이 없으면 빈 배열.
+   */
+  absentees: MatchAbsentee[] | null;
   /** 강조 매칭 태그. */
   tags: HighlightTag[];
 }
@@ -182,6 +196,11 @@ export interface Absences {
   topAbsentees: AbsentPlayer[];
   /** "44/52경기 · 확정 결장 290명 · 경기당 6.6명" */
   summary: string;
+  /**
+   * 결장 데이터를 받아 온 적이 있는가(수집 이력 기준). false면 "결장 0명"은 사실이
+   * 아니라 미수집이다. true여도 경기별 0을 주장하지 않는다 — API 커버리지가 부분적이다.
+   */
+  synced: boolean;
 }
 
 /** 화면 상단이 쓰는 팀 요약. */
@@ -286,8 +305,10 @@ export interface Period {
   seasonLabel: string | null;
   /** "2023-24 시즌 52경기 기준 · 예정 3경기는 제외" — 카드 머리말. */
   label: string;
-  /** 계산에 들어간 경기 수. */
+  /** 계산에 들어간 경기 수(현재 범위 기준 — 리그만 보기에서는 리그 경기 수). */
   analyzedMatches: number;
+  /** **전 대회** 시즌 전체 경기 수(예정·연기 포함). 헤더 분모의 "전체 N경기"가 이 값이다. */
+  seasonMatches: number;
   /** 아직 치르지 않아 계산에서 빠진 경기 수(목록에는 보인다). */
   upcomingMatches: number;
   /** 시즌이 아직 진행 중인가. */
@@ -298,6 +319,8 @@ export interface Period {
 
 export interface Timeline {
   team: TeamSummary;
+  /** 이 뷰모델이 그리는 범위. 수치(간격·밀집·분모)는 전부 이 범위 기준이다. */
+  scope: TimelineScope;
   /** 이번 진단이 보고 있는 기간. */
   period: Period;
   rows: TimelineRow[];
@@ -316,6 +339,19 @@ export interface Timeline {
   upcomingCount: number;
   /** 연기·취소로 계산에서 빠진 경기 수. */
   excludedCount: number;
+  /**
+   * 조회 시즌 동기화 이력이 없는(수집 전) 대회의 표기명. 대회 단위 안내의 근거 —
+   * 백엔드는 존재하지 않는 경기를 개별적으로 알 수 없으므로 경기 위치에 마커를 찍지 않는다.
+   * 리그만 보기에서는 리그(LEAGUE) 대회만 담긴다.
+   */
+  pendingCompetitions: string[];
 }
 
-export type { AbsenceReason, AbsentPlayer, FixtureStatus, Omission, SampleConfidence };
+export type {
+  AbsenceReason,
+  AbsentPlayer,
+  FixtureStatus,
+  MatchAbsentee,
+  Omission,
+  SampleConfidence,
+};

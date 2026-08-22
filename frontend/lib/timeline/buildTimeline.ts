@@ -15,7 +15,11 @@
  * "몇 번째"가 어긋난다. id는 그런 전제 없이 늘 같은 경기를 가리키므로, 서버는 id로
  * 주고 화면이 자기 목록에서 위치를 다시 찾는다 — 그 매핑이 아래 `positionOfSpan`이다.
  */
-import type { CongestionSpanView, TeamDiagnostics } from "@/lib/api/types";
+import type {
+  CongestionReport,
+  CongestionSpanView,
+  TeamDiagnostics,
+} from "@/lib/api/types";
 import { buildDiagnosis } from "@/lib/diagnosis/summarize";
 import {
   CONFIDENCE_LABEL,
@@ -45,15 +49,29 @@ import type {
   SplitLine,
   Timeline,
   TimelineRow,
+  TimelineScope,
   Travel,
 } from "@/lib/timeline/types";
 
-export function buildTimeline(d: TeamDiagnostics): Timeline {
-  const spanViews = d.congestion.spans;
+/**
+ * scope가 "league"면 자국 리그 경기만의 타임라인을 만든다 — 경기 목록은 여기서 거르지만,
+ * 수치(간격·밀집·분모)는 백엔드가 리그 경기만으로 **다시 판정해 내려준 값**
+ * (`leagueCongestion`, `leagueGapDays`)을 그대로 옮긴다. 거른 목록으로 다시 세지 않는다.
+ */
+export function buildTimeline(
+  d: TeamDiagnostics,
+  scope: TimelineScope = "all",
+): Timeline {
+  const league = scope === "league";
+  const matches = league
+    ? d.matches.filter((m) => m.competitionType === "LEAGUE")
+    : d.matches;
+  const report: CongestionReport = league ? d.leagueCongestion : d.congestion;
+  const spanViews = report.spans;
 
   // ③ 구간 경계(경기 id) → 이 목록에서의 줄 번호. 못 찾으면 그 구간은 그리지 않는다.
   const bounds = spanViews
-    .map((s) => positionOfSpan(s, d.matches))
+    .map((s) => positionOfSpan(s, matches))
     .filter((b): b is SpanBounds => b !== null);
 
   const spanByRowIndex = new Map<number, RowCongestion>();
@@ -82,9 +100,9 @@ export function buildTimeline(d: TeamDiagnostics): Timeline {
     }));
 
   // 폼 강조 대상 = 진단 기간 안의 **확정된** 경기. 예정 경기는 폼이 아니다.
-  const formFixtureIds = formFixtureIdsOf(d.matches);
+  const formFixtureIds = formFixtureIdsOf(matches);
 
-  const rows: TimelineRow[] = d.matches.map((m, i) => {
+  const rows: TimelineRow[] = matches.map((m, i) => {
     const competition = toCompetition(m);
     const rowCongestion = spanByRowIndex.get(i) ?? null;
 
@@ -115,17 +133,12 @@ export function buildTimeline(d: TeamDiagnostics): Timeline {
       inAnalysis: m.inAnalysis,
       statusNote: toStatusNote(m.status),
       shootoutNote: toShootoutNote(m),
-      gap:
-        m.gapDays == null
-          ? null
-          : {
-              days: m.gapDays,
-              px: gapToPx(m.gapDays),
-              shortRest: m.gapDays > 0 && m.gapDays <= 4,
-              label: gapLabel(m.gapDays),
-            },
+      // 간격의 출처는 범위를 따른다 — 리그만 보기의 간격은 리그 경기 사이의 값이다.
+      // 날짜를 빼서 다시 만들지 않는다(계산은 백엔드에만).
+      gap: toGap(league ? m.leagueGapDays : m.gapDays),
       congestion: rowCongestion,
       absentCount: m.absentCount,
+      absentees: m.absentees,
       tags,
     };
   });
@@ -147,11 +160,12 @@ export function buildTimeline(d: TeamDiagnostics): Timeline {
       code: toTeamCode(d.teamName, d.teamCode),
       subtitle: teamSubtitle(d),
     },
-    period: toPeriod(d),
+    scope,
+    period: toPeriod(d, scope, report, matches),
     rows,
     spans,
     competitionsPresent,
-    congestion: congestionStatus(d),
+    congestion: congestionStatus(report),
     travel: travelSummary(d),
     absences: absenceSummary(d),
     opponents: toOpponents(d.opponentStrength),
@@ -173,11 +187,34 @@ export function buildTimeline(d: TeamDiagnostics): Timeline {
     omissions: d.omissions,
     // "예정"의 기준은 상태 코드가 아니라 **아직 치르지 않았다**는 사실이다. 상태로 세면
     // 동기화가 늦어 아직 NS로 남아 있는 지난 경기가 "예정"에 끼어든다.
-    upcomingCount: d.matches.filter((m) => !m.inAnalysis).length,
-    excludedCount: d.window.excludedFixtures,
+    upcomingCount: matches.filter((m) => !m.inAnalysis).length,
+    // 연기·취소 수도 범위를 따른다 — 컵의 연기를 리그의 것처럼 적지 않는다.
+    excludedCount: league
+      ? d.window.leagueExcludedFixtures
+      : d.window.excludedFixtures,
+    pendingCompetitions: d.syncCoverage
+      .filter((c) => c.lastSuccessAt == null)
+      .filter((c) => !league || c.type === "LEAGUE")
+      .map((c) => c.name),
   };
 
-  return { ...timeline, diagnosis: buildDiagnosis(timeline) };
+  // 진단 문장은 전 대회 기준으로만 정의된 기능이다 — 리그 범위 뷰모델에서는 만들지
+  // 않는다(만들면 리그 수치로 진단하는 셈이고, 그 재계산은 제공하지 않기로 확정됐다).
+  return {
+    ...timeline,
+    diagnosis: league ? EMPTY_DIAGNOSIS : buildDiagnosis(timeline),
+  };
+}
+
+/** 간격 값 → 여백 표기. null(첫 경기·범위 밖)은 그대로 null. */
+function toGap(days: number | null): TimelineRow["gap"] {
+  if (days == null) return null;
+  return {
+    days,
+    px: gapToPx(days),
+    shortRest: days > 0 && days <= 4,
+    label: gapLabel(days),
+  };
 }
 
 /** `buildDiagnosis`가 완성된 뷰모델을 입력으로 받으므로 자리만 먼저 채운다. */
@@ -238,8 +275,7 @@ function formFixtureIdsOf(
  * 구간이 0개일 때 그냥 아무것도 안 그리면 "일정이 여유로웠다"와 "판정할 만큼 경기가
  * 없었다"가 화면에서 똑같아 보인다. 둘은 완전히 다른 말이라 갈라서 적는다.
  */
-function congestionStatus(d: TeamDiagnostics): CongestionStatus {
-  const c = d.congestion;
+function congestionStatus(c: CongestionReport): CongestionStatus {
   const note = !c.detectable
     ? `경기 ${c.analyzedMatchCount}건 — ${c.minMatches}경기는 있어야 ${c.windowDays}일 밀집을 판정할 수 있습니다`
     : c.spans.length === 0
@@ -302,7 +338,9 @@ function absenceSummary(d: TeamDiagnostics): Absences {
     a.covered && a.coveredMatches > 0 ? a.totalOut / a.coveredMatches : null;
 
   const summary = !a.covered
-    ? "결장 데이터 없음"
+    ? a.lastSyncedAt == null
+      ? "결장 데이터 미수집"
+      : "받아 왔지만 이 기간 결장 기록 없음"
     : [
         `${a.coveredMatches}/${a.analyzedMatches}경기 확인`,
         `확정 결장 ${a.totalOut}명`,
@@ -322,6 +360,7 @@ function absenceSummary(d: TeamDiagnostics): Absences {
     byReason: a.byReason,
     topAbsentees: a.topAbsentees,
     summary,
+    synced: a.lastSyncedAt != null,
   };
 }
 
@@ -332,14 +371,44 @@ function absenceSummary(d: TeamDiagnostics): Absences {
  * 여러 시즌이 섞여 있으면 "최신"이 어느 쪽인지는 데이터가 정하는데, 그게 틀렸을 때
  * 화면은 아무 이상 없이 엉뚱한 시즌을 보여 준다. 시즌을 적어 두면 눈치챌 수 있다.
  */
-function toPeriod(d: TeamDiagnostics): Period {
+function toPeriod(
+  d: TeamDiagnostics,
+  scope: TimelineScope,
+  report: CongestionReport,
+  matches: TeamDiagnostics["matches"],
+): Period {
   const w = d.window;
+  if (scope === "all") {
+    return {
+      season: w.season,
+      seasonLabel: toSeasonLabel(w),
+      label: toPeriodLabel(w),
+      analyzedMatches: w.analyzedFixtures,
+      seasonMatches: w.seasonFixtures,
+      upcomingMatches: w.upcomingFixtures,
+      inProgress: w.upcomingFixtures > 0,
+      otherSeasonMatches: w.otherSeasonFixtures,
+    };
+  }
+
+  // 리그 범위 — 분모가 리그 경기 수로 바뀐다. 계산에 들어간 수는 백엔드의 리그
+  // 리포트가 말하고, 예정 수는 거른 목록에서 센다(치렀는가는 서버가 정한 inAnalysis).
+  const upcoming = matches.filter((m) => !m.inAnalysis).length;
   return {
     season: w.season,
     seasonLabel: toSeasonLabel(w),
-    label: toPeriodLabel(w),
-    analyzedMatches: w.analyzedFixtures,
-    upcomingMatches: w.upcomingFixtures,
+    label: [
+      toSeasonLabel(w),
+      `리그 ${report.analyzedMatchCount}경기 기준`,
+      upcoming > 0 ? `예정 ${upcoming}경기는 제외` : null,
+    ]
+      .filter(Boolean)
+      .join(" · "),
+    analyzedMatches: report.analyzedMatchCount,
+    // 분모도 리그 기준으로 전환한다 — 전 대회 수(52)를 두면 화면이
+    // "시즌 전체 52경기 중 38경기 표시"라고 말해 컵 경기를 누락처럼 읽게 한다.
+    seasonMatches: w.leagueSeasonFixtures,
+    upcomingMatches: upcoming,
     inProgress: w.upcomingFixtures > 0,
     otherSeasonMatches: w.otherSeasonFixtures,
   };

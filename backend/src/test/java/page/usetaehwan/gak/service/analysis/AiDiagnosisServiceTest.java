@@ -89,9 +89,10 @@ class AiDiagnosisServiceTest {
 						Instant.parse("2024-05-20T00:00:00Z"),
 						Instant.parse("2023-08-11T19:00:00Z"),
 						Instant.parse("2024-05-19T15:00:00Z"),
-						42, 40, 0, 2, 0),
+						42, 40, 0, 2, 0, 38, 0),
 				List.of(),
 				new CongestionReport(14, 5, detectable, 40, 4, 3, 3.0, List.of()),
+				new CongestionReport(14, 5, detectable, 30, 3, 4, 5.0, List.of()),
 				new FormSummary(formSample, recentPicks(formSample), 3, 1, 2, 10,
 						formSample * 3, pointsRate, null, confidence),
 				OpponentStrength.unmeasured(formSample),
@@ -99,7 +100,8 @@ class AiDiagnosisServiceTest {
 						Instant.parse("2023-08-11T19:00:00Z"),
 						Instant.parse("2024-05-19T15:00:00Z"),
 						20, 18, 2, 12000.0, 666.0, 1400.0),
-				AbsenceSummary.notCovered(40),
+				AbsenceSummary.notCovered(40, null),
+				List.of(),
 				List.of());
 	}
 
