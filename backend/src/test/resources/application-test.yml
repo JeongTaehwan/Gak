@@ -18,6 +18,10 @@ spring:
         format_sql: false
 
 gak:
+  ai-limit:
+    # 컨텍스트가 테스트 클래스 간에 공유돼 카운터가 누적된다 — 한도 동작 자체는
+    # AiRateLimiterTest 와 각 소모 지점 테스트가 전용 인스턴스로 검증한다.
+    enabled: false
   api-football:
     mode: replay
     key: ""

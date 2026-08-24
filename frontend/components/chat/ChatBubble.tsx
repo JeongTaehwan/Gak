@@ -1,10 +1,23 @@
 import type { Evidence, ChatHighlight } from "@/lib/chat/script";
 import type { AnswerStatus } from "@/lib/api/types";
 import type { HighlightTag } from "@/lib/timeline/types";
+import { AuthorBadge } from "@/components/diagnosis/DiagnosisPanel";
 
 export interface ChatMessage {
   role: "user" | "ai";
   text: string;
+  /**
+   * 이 답을 **누가 썼는가** — 답 말풍선의 배지가 이 값으로 갈린다
+   * (requirements.md DG 5절, DG-OQ-07: 답 영역에도 진단 블록과 같은 배지).
+   *
+   * 구분 규칙:
+   * - 가이드 질문의 답(`lib/chat/script.ts`, 로컬 계산) → `'rule'`
+   * - 서버 답은 `status === 'ANSWERED'` 일 때만 `'ai'` — 그 외 상태의 문구는
+   *   서버가 만든 결정론적 문장이지 모델이 쓴 것이 아니므로 `'rule'`
+   *
+   * 답이 아닌 말풍선(인사말)은 값을 두지 않고, 그때는 배지를 그리지 않는다.
+   */
+  authored?: "rule" | "ai";
   evidence?: Evidence[];
   /**
    * 분모 한 줄 — "23/24 시즌 · 전체 52경기 중 44경기 기준".
@@ -53,6 +66,13 @@ export function ChatBubble({
           : "flex max-w-[92%] flex-col gap-2.5 self-start rounded-[10px_10px_10px_2px] border border-line-strong bg-card px-4 py-3.5"
       }
     >
+      {/* 답을 누가 썼는지 — 진단 블록과 같은 배지(AuthorBadge)를 그대로 쓴다 */}
+      {message.authored && (
+        <div className="flex">
+          <AuthorBadge authored={message.authored} />
+        </div>
+      )}
+
       <div
         className={
           unanswered

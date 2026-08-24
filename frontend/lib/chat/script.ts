@@ -9,9 +9,30 @@
  * 그래서 문장 틀만 남기고 값은 전부 진단 결과에서 읽어 온다. 나중에 AI가 들어와도
  * 읽는 값은 똑같다 — 사람이 쓴 문장이 AI 답변으로 바뀔 뿐이다.
  */
-import type { HighlightTag, Timeline } from "@/lib/timeline/types";
+import type { Form, HighlightTag, Timeline } from "@/lib/timeline/types";
 
 export type ChatHighlight = HighlightTag | null;
+
+/**
+ * 표본 부족이면 질문 입력 자체를 막는다 (requirements.md DG 5절, DG-OQ-13).
+ *
+ * 기준은 **전 대회 기준** 폼의 `confidence`다 — 백엔드가
+ * `SampleConfidence.allowsRates`(MIN_SAMPLE_FOR_RATE = 5)로 판정해 내려준 값을
+ * 그대로 읽는다. 여기서 5를 다시 세면 두 곳에 기준이 생기고, 백엔드가 임계값을
+ * 바꾸는 날 화면만 옛 기준으로 막는다.
+ *
+ * ⚠️ 문구는 잠정이다(IN-OQ-06 미정) — 백엔드 `AiDiagnosisService.insufficientSample`
+ * 의 톤("확정된 경기가 %d건뿐이라 결론을 내지 않습니다")과 맞춰 두었다. 문장 속
+ * "5건"은 백엔드 `SampleConfidence.MIN_SAMPLE_FOR_RATE` 와 같은 값 — 갈라지면 안 됨.
+ *
+ * @return 막아야 하면 사용자에게 보여줄 사유, 물을 수 있으면 null
+ */
+export function questionBlockReason(form: Form): string | null {
+  if (form.confidence === "MODERATE" || form.confidence === "SUFFICIENT") {
+    return null;
+  }
+  return `확정된 경기가 ${form.sampleSize}건뿐이라 질문을 받을 수 없습니다 (5건 이상 필요)`;
+}
 
 export interface Evidence {
   text: string;

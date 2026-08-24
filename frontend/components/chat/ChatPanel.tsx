@@ -31,6 +31,7 @@ export function ChatPanel({
   questions,
   messages,
   asking,
+  blockReason,
   onAsk,
   onSubmit,
   onHighlight,
@@ -42,6 +43,12 @@ export function ChatPanel({
   messages: ChatMessage[];
   /** 질문 처리 중인가. ⚠️ 이 상태의 최종 화면 표현은 `[미정]`(IN-OQ-07)이다. */
   asking: boolean;
+  /**
+   * 표본 부족으로 질문을 막아야 할 때의 사유 (requirements.md DG 5절, DG-OQ-13).
+   * null 이 아니면 자유 입력·전송·가이드 질문을 전부 비활성화하고 이 한 줄을 보여 준다.
+   * 판정은 `questionBlockReason`(전 대회 기준 폼) 한 곳에서만 한다.
+   */
+  blockReason: string | null;
   onAsk: (key: string) => void;
   onSubmit: (question: string) => void;
   onHighlight: (tag: HighlightTag) => void;
@@ -57,8 +64,9 @@ export function ChatPanel({
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages, asking]);
 
+  const blocked = blockReason != null;
   const trimmed = draft.trim();
-  const canSubmit = trimmed.length > 0 && !asking;
+  const canSubmit = trimmed.length > 0 && !asking && !blocked;
 
   function submit() {
     if (!canSubmit) return;
@@ -99,13 +107,20 @@ export function ChatPanel({
         <div className="text-[11px] font-extrabold tracking-wider text-text-low">
           무슨 각인지 물어보기
         </div>
+        {/* 표본 부족이면 왜 못 묻는지를 버튼·입력 대신 여기서 먼저 말한다 (DG-OQ-13) */}
+        {blocked && (
+          <div className="text-[12px] font-bold leading-normal text-text-low">
+            {blockReason}
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-2">
           {questions.map((q) => (
             <button
               key={q.key}
               type="button"
+              disabled={blocked}
               onClick={() => onAsk(q.key)}
-              className="rounded-card border border-line-strong bg-card px-3.5 py-3 text-left text-sm font-bold text-text-hi transition-colors hover:border-volt hover:text-volt"
+              className="rounded-card border border-line-strong bg-card px-3.5 py-3 text-left text-sm font-bold text-text-hi transition-colors hover:border-volt hover:text-volt disabled:cursor-default disabled:text-text-low disabled:hover:border-line-strong disabled:hover:text-text-low"
             >
               {q.question}
             </button>
@@ -124,7 +139,7 @@ export function ChatPanel({
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             maxLength={MAX_QUESTION_LENGTH}
-            disabled={asking}
+            disabled={asking || blocked}
             placeholder="직접 물어보기 — 예: 왜 부진한가요?"
             aria-label="자유 질문"
             className="min-w-0 flex-1 bg-transparent text-sm text-text-hi placeholder:text-text-low focus:outline-none disabled:cursor-default"

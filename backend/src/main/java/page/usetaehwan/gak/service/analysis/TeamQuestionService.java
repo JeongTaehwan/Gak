@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import page.usetaehwan.gak.config.AiRateLimiter;
 import page.usetaehwan.gak.dto.analysis.AnalysisWindow;
 import page.usetaehwan.gak.dto.analysis.TeamAnswer;
 import page.usetaehwan.gak.dto.analysis.TeamDiagnostics;
@@ -55,15 +56,18 @@ public class TeamQuestionService {
 	private final TeamSelectionService selectionService;
 	private final AnthropicClient client;
 	private final ObjectMapper objectMapper;
+	private final AiRateLimiter limiter;
 
 	public TeamQuestionService(TeamDiagnosticsService diagnosticsService,
 	                           TeamSelectionService selectionService,
 	                           AnthropicClient client,
-	                           ObjectMapper objectMapper) {
+	                           ObjectMapper objectMapper,
+	                           AiRateLimiter limiter) {
 		this.diagnosticsService = diagnosticsService;
 		this.selectionService = selectionService;
 		this.client = client;
 		this.objectMapper = objectMapper;
+		this.limiter = limiter;
 	}
 
 	/**
@@ -76,7 +80,7 @@ public class TeamQuestionService {
 	 * @param question 사용자가 입력한 질문 전문
 	 */
 	@Transactional(readOnly = true)
-	public TeamAnswer answer(Long teamId, Integer season, String question) {
+	public TeamAnswer answer(Long teamId, Integer season, String question, String clientIp) {
 		TeamDiagnostics diagnostics = diagnosticsService.diagnose(teamId,
 				DiagnosticsOptions.DEFAULTS.withSeason(season));
 
@@ -90,6 +94,15 @@ public class TeamQuestionService {
 		if (!client.available()) {
 			return TeamAnswer.unanswered(
 					TeamAnswer.Status.ANALYSIS_FAILED, AnswerMessages.NOT_CONFIGURED, basis);
+		}
+
+		// 한도 소모는 실제 유료 호출 직전 — 게이트·키 부재로 끝난 요청은 세지 않는다.
+		// 상태 어휘 5종은 승인된 계약이라 새 상태를 만들지 않는다. 한도 초과는
+		// ANALYSIS_FAILED 에 사유 문구로만 가른다 (잠정 — DG-OQ-21 미정).
+		AiRateLimiter.Decision decision = limiter.tryConsume(clientIp);
+		if (!decision.allowed()) {
+			return TeamAnswer.unanswered(
+					TeamAnswer.Status.ANALYSIS_FAILED, decision.message(), basis);
 		}
 
 		AnthropicResult result = client.complete(
@@ -107,10 +120,12 @@ public class TeamQuestionService {
 	/**
 	 * 부르기 전에 잡는 것 — <b>그 시즌에 잴 것이 있는가.</b>
 	 *
-	 * <p>여기서 표본 5건 미만을 막지 <b>않는</b> 이유: 질문마다 필요한 표본이 다르다.
-	 * "다음 경기 언제야"는 한 경기만 있어도 답이 되고 "승점률 얼마야"는 5경기가 필요하다.
-	 * 비율을 못 낸다는 사실은 지표 안에 이미 실려 있고(승점률이 null 로 온다), 프롬프트가
-	 * 그때 비율로 말하지 말라고 못박는다.
+	 * <p>표본 5건 미만도 여기서 막는다 — 진단 블록의 AI 게이트와 같은 기준
+	 * ({@code SampleConfidence.allowsRates}, 단일 출처)이다. 원래는 "질문마다 필요한
+	 * 표본이 다르다"는 이유로 막지 않았지만, 프론트 차단만으로는 API 직접 호출이
+	 * 얇은 표본으로 모델 답변을 만들 수 있어 [9] 리뷰 판단으로 서버에서도 막기로 했다.
+	 * "다음 경기 언제야"처럼 소표본으로도 답되는 질문까지 함께 막힌다는 트레이드오프를
+	 * 오너가 수용했다.
 	 *
 	 * @return 막아야 하면 사용자에게 보여줄 사유, 통과면 null
 	 */
@@ -125,6 +140,11 @@ public class TeamQuestionService {
 		}
 		if (w.analyzedFixtures() == 0) {
 			return AnswerMessages.NOTHING_PLAYED;
+		}
+		if (!d.form().confidence().allowsRates()) {
+			return AnswerMessages.INSUFFICIENT_SAMPLE.formatted(
+					d.form().sampleSize(),
+					page.usetaehwan.gak.dto.analysis.SampleConfidence.MIN_SAMPLE_FOR_RATE);
 		}
 		return null;
 	}

@@ -49,10 +49,25 @@ export async function GET(request: Request): Promise<NextResponse<AiDiagnosis>> 
   const qs = params.toString();
   const url = `${base}/api/teams/${teamId}/diagnosis${qs ? `?${qs}` : ""}`;
 
+  // 백엔드 IP 단위 한도(DG 8절)가 클라이언트 IP 를 보려면 프록시가 전달해야 한다.
+  // 그런데 이 핸들러는 소켓 IP 를 볼 수 없어 **스스로 보증할 수 있는 IP 가 없다** —
+  // 들어온 x-forwarded-for 는 클라이언트가 마음대로 쓸 수 있는 평문 헤더다.
+  // 그래서 앞단 프록시가 XFF 를 덮어써 준다고 배포가 보장할 때만(환경변수) 전달하고,
+  // 기본은 전달하지 않는다. 전달이 없으면 백엔드는 식별 불가로 보고 전역 상한만
+  // 적용한다 — 위조 값으로 IP 버킷을 만들어 주는 것보다 정직하다.
+  const forwardedFor = process.env.GAK_FRONT_PROXY_TRUSTED === "true"
+    ? request.headers.get("x-forwarded-for")
+    : null;
+
   try {
-    // 같은 지표에 대한 답은 잘 안 변한다. 진단 탭을 껐다 켤 때마다 모델을 부르면
-    // 느리고, 비싸고, 문장이 미묘하게 바뀌어 사용자에게는 앱이 불안정해 보인다.
-    const res = await fetch(url, { next: { revalidate: 300 } });
+    // 캐시하지 않는다 — 결과 재사용은 이제 백엔드 저장(DG 7절)이 담당한다. 프록시가
+    // 5분을 더 캐시하면 백엔드가 새로 계산해 교체한 결과가 최장 5분 낡은 창에 가려진다.
+    // 한도 초과(DG 8절)도 백엔드가 200 + available:false(사유)로 내리므로 여기서
+    // 따로 구분할 것이 없다 — 그대로 통과시키면 화면이 사유를 배지 옆에 보인다.
+    const res = await fetch(url, {
+      cache: "no-store",
+      headers: forwardedFor ? { "X-Forwarded-For": forwardedFor } : undefined,
+    });
     if (!res.ok) {
       return NextResponse.json(unavailable("AI 진단을 불러오지 못했습니다"));
     }

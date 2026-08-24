@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { HighlightTag, Timeline as TimelineVM } from "@/lib/timeline/types";
-import { buildChatScript } from "@/lib/chat/script";
+import { buildChatScript, questionBlockReason } from "@/lib/chat/script";
 import { ChatPanel } from "@/components/chat/ChatPanel";
 import { type ChatMessage } from "@/components/chat/ChatBubble";
 import { TeamHeader, type Mode } from "@/components/layout/TeamHeader";
@@ -23,7 +23,12 @@ import type {
 import { attachNews, filterByCategory } from "@/lib/news/attach";
 import { NewsFilterBar } from "@/components/news/NewsFilterBar";
 import { NewsLayerNote } from "@/components/news/NewsLayerNote";
-import { basisNote, toChatEvidence, unansweredText } from "@/lib/chat/answer";
+import {
+  basisNote,
+  toChatEvidence,
+  unansweredText,
+  verifyAnswer,
+} from "@/lib/chat/answer";
 import { toHref, type TimelineView } from "@/lib/url/screenState";
 import { cn } from "@usetaehwan/ui";
 
@@ -118,6 +123,13 @@ export function MainScreen({
   // 리그 기준 진단은 제공하지 않기로 확정된 것이라 그 답 자체가 있어서는 안 된다.
   const script = useMemo(() => buildChatScript(timeline), [timeline]);
 
+  // 표본 부족이면 질문 입력 자체를 막는다 (DG-OQ-13). 판정 근거는 대화 대본과 같은
+  // **전 대회 기준** 뷰모델의 폼이다 — 리그 기준 표본으로 막거나 열면 진단과 기준이 갈린다.
+  const questionBlock = useMemo(
+    () => questionBlockReason(timeline.form),
+    [timeline.form],
+  );
+
   const [messages, setMessages] = useState<ChatMessage[]>([
     { role: "ai", text: script.intro },
   ]);
@@ -181,7 +193,8 @@ export function MainScreen({
       setMessages((prev) => [
         ...prev,
         { role: "user", text: qa.question },
-        { role: "ai", text: qa.answer, evidence: qa.evidence },
+        // 가이드 질문의 답은 로컬 계산(lib/chat/script.ts)이다 — 항상 규칙 기반.
+        { role: "ai", authored: "rule", text: qa.answer, evidence: qa.evidence },
       ]);
       setHighlight(qa.highlight);
       // 근거가 경기를 가리키면 타임라인을 보여 준다 — 강조만 걸고 다른 화면에
@@ -202,6 +215,9 @@ export function MainScreen({
   const onSubmit = useCallback(
     async (question: string) => {
       if (season == null) return;
+      // 표본 부족이면 여기서도 막는다 (DG-OQ-13) — 입력 UI 는 이미 비활성화돼 있지만,
+      // 콘솔 등으로 우회해 유료 API 경로를 태우는 것까지 같은 가드가 막아야 한다.
+      if (questionBlock != null) return;
       setMessages((prev) => [...prev, { role: "user", text: question }]);
       setAsking(true);
       try {
@@ -210,13 +226,17 @@ export function MainScreen({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ teamId, season, question }),
         });
-        const answer = (await res.json()) as TeamAnswer;
+        // ANSWERED 인데 검증을 통과한 근거가 0건이면 ANALYSIS_FAILED 로 강등된다 —
+        // 백엔드 parse 의 "남는 근거가 없으면 결론째 버린다" 계약의 화면측 거울.
+        const answer = verifyAnswer((await res.json()) as TeamAnswer);
         const note = basisNote(answer.basis);
         setMessages((prev) => [
           ...prev,
           answer.status === "ANSWERED" && answer.answer
             ? {
                 role: "ai",
+                // 모델이 쓴 문장은 status === 'ANSWERED' 로만 온다 — 그때만 'ai'.
+                authored: "ai",
                 text: answer.answer,
                 evidence: toChatEvidence(answer),
                 unknowns: answer.unknowns,
@@ -224,6 +244,8 @@ export function MainScreen({
               }
             : {
                 role: "ai",
+                // 상태 문구는 서버가 만든 결정론적 문장이다 — 모델의 서술이 아니다.
+                authored: "rule",
                 text: unansweredText(answer),
                 status: answer.status,
                 note,
@@ -235,6 +257,7 @@ export function MainScreen({
           ...prev,
           {
             role: "ai",
+            authored: "rule",
             text: "분석 처리에 실패했습니다.",
             status: "ANALYSIS_FAILED",
           },
@@ -243,7 +266,7 @@ export function MainScreen({
         setAsking(false);
       }
     },
-    [teamId, season],
+    [teamId, season, questionBlock],
   );
 
   const onHighlight = useCallback(
@@ -262,6 +285,7 @@ export function MainScreen({
         questions={script.questions}
         messages={messages}
         asking={asking}
+        blockReason={questionBlock}
         onAsk={onAsk}
         onSubmit={onSubmit}
         onHighlight={onHighlight}

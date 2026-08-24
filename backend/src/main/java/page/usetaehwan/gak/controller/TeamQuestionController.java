@@ -1,12 +1,14 @@
 // requirements.md 1·5장 — 모든 자유 질문은 진단 경로로 간다
 package page.usetaehwan.gak.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import page.usetaehwan.gak.config.ClientIpResolver;
 import page.usetaehwan.gak.dto.analysis.QuestionRequest;
 import page.usetaehwan.gak.dto.analysis.TeamAnswer;
 import page.usetaehwan.gak.service.analysis.TeamQuestionService;
@@ -35,14 +37,20 @@ import page.usetaehwan.gak.service.analysis.TeamQuestionService;
 public class TeamQuestionController {
 
 	private final TeamQuestionService questionService;
+	private final ClientIpResolver clientIpResolver;
 
-	public TeamQuestionController(TeamQuestionService questionService) {
+	public TeamQuestionController(TeamQuestionService questionService,
+	                              ClientIpResolver clientIpResolver) {
 		this.questionService = questionService;
+		this.clientIpResolver = clientIpResolver;
 	}
 
 	@PostMapping("/{teamId}/questions")
 	public TeamAnswer ask(@PathVariable Long teamId,
-	                      @Valid @RequestBody QuestionRequest request) {
-		return questionService.answer(teamId, request.season(), request.question());
+	                      @Valid @RequestBody QuestionRequest request,
+	                      HttpServletRequest http) {
+		// IP 는 유료 호출 한도의 식별자 — HTTP 관심사라 여기서 뽑아 넘긴다 (DG 8절).
+		return questionService.answer(
+				teamId, request.season(), request.question(), clientIpResolver.resolve(http));
 	}
 }
