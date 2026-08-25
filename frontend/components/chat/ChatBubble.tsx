@@ -73,18 +73,9 @@ export function ChatBubble({
         </div>
       )}
 
-      <div
-        className={
-          unanswered
-            ? "text-[14px] font-bold leading-snug text-text-mid"
-            : "text-[15px] font-extrabold leading-snug text-text-hi"
-        }
-      >
-        {message.text}
-      </div>
-
+      {/* 근거가 결론(답 본문)보다 먼저다 (DG 4·5절, DG-OQ-22 확정) */}
       {evidence.length > 0 && (
-        <div className="flex flex-col gap-1.5 border-t border-line pt-2.5">
+        <div className="flex flex-col gap-1.5 border-b border-line pb-2.5">
           {evidence.map((ev, i) => (
             <div key={i} className="flex items-baseline gap-2">
               <span className="shrink-0 text-[11px] text-volt">▸</span>
@@ -106,6 +97,16 @@ export function ChatBubble({
           ))}
         </div>
       )}
+
+      <div
+        className={
+          unanswered
+            ? "text-[14px] font-bold leading-snug text-text-mid"
+            : "text-[15px] font-extrabold leading-snug text-text-hi"
+        }
+      >
+        {message.text}
+      </div>
 
       {/* 모르는 것을 스스로 밝히는 자리. 예외 처리가 아니라 본문이다. */}
       {unknowns.length > 0 && (

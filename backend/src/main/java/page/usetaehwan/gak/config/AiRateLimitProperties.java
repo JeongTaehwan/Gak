@@ -8,7 +8,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * <b>전역 상한 + IP 단위 상한의 조합</b>으로 센다 — 앱 전체 상한이 지출을 막고,
  * IP당 상한이 개인 남용을 막는다. 로그인은 도입하지 않는다 (DG-OQ-20).
  *
- * <p>한도값은 DG-OQ-21 미정 — 아래 기본값은 잠정값이고, 확정되면 설정만 바꾼다.
+ * <p>한도값은 확정(DG-OQ-21, 2026-08-25 오너 위임): 전역 200/일 · IP당 20/일.
+ * 운영하며 조정할 일이 생기면 설정만 바꾼다.
  *
  * @param enabled        한도 적용 on/off. 끄면 완전 통과(테스트·로컬 편의). 기본 true
  * @param globalDaily    하루 전역 상한(모든 IP 합산). 잠정 200

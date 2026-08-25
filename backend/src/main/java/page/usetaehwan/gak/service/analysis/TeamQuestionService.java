@@ -93,7 +93,7 @@ public class TeamQuestionService {
 		}
 		if (!client.available()) {
 			return TeamAnswer.unanswered(
-					TeamAnswer.Status.ANALYSIS_FAILED, AnswerMessages.NOT_CONFIGURED, basis);
+					TeamAnswer.Status.ANALYSIS_FAILED, AnswerMessages.ANALYSIS_UNAVAILABLE, basis);
 		}
 
 		// 한도 소모는 실제 유료 호출 직전 — 게이트·키 부재로 끝난 요청은 세지 않는다.
@@ -149,15 +149,13 @@ public class TeamQuestionService {
 		return null;
 	}
 
-	/** 실패 사유를 화면에 올릴 한국어로. 기술 용어를 사용자에게 보이지 않는다. */
+	/**
+	 * 내부 실패는 사용자에게 한 문구로 접는다 (DG-OQ-16). 원인 세부는 사용자가 할 수
+	 * 있는 일을 바꾸지 않으므로 로그에만 남긴다.
+	 */
 	private String reasonFor(AnthropicResult.Failure failure) {
-		return switch (failure) {
-			case DISABLED -> AnswerMessages.NOT_CONFIGURED;
-			case TIMEOUT -> AnswerMessages.TIMEOUT;
-			case TRANSPORT -> AnswerMessages.TRANSPORT;
-			case REFUSED -> AnswerMessages.REFUSED;
-			case MALFORMED -> AnswerMessages.MALFORMED;
-		};
+		log.warn("질문 분석 실패 — 사용자에게는 한 문구로 접는다: {}", failure);
+		return AnswerMessages.ANALYSIS_UNAVAILABLE;
 	}
 
 	/**
@@ -174,14 +172,14 @@ public class TeamQuestionService {
 		} catch (Exception e) {
 			log.warn("질문 응답 파싱 실패: {}", e.toString());
 			return TeamAnswer.unanswered(
-					TeamAnswer.Status.ANALYSIS_FAILED, AnswerMessages.MALFORMED, basis);
+					TeamAnswer.Status.ANALYSIS_FAILED, AnswerMessages.ANALYSIS_UNAVAILABLE, basis);
 		}
 
 		TeamAnswer.Status status = statusOf(root.path("status").asText(""));
 		if (status == null) {
 			log.warn("질문 응답의 status 를 알 수 없어 폐기: {}", quote(root.path("status").asText("")));
 			return TeamAnswer.unanswered(
-					TeamAnswer.Status.ANALYSIS_FAILED, AnswerMessages.MALFORMED, basis);
+					TeamAnswer.Status.ANALYSIS_FAILED, AnswerMessages.ANALYSIS_UNAVAILABLE, basis);
 		}
 		if (status != TeamAnswer.Status.ANSWERED) {
 			return TeamAnswer.unanswered(status, AnswerMessages.of(status), basis);

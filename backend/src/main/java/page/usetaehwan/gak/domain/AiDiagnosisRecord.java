@@ -26,10 +26,12 @@ import lombok.NoArgsConstructor;
  * 회고 시즌에서는 이 저장분이 계속 재사용된다 (DG-OQ-11).
  *
  * <h2>무엇이 이 기록을 낡게 만드나</h2>
- * <p>진단 대상 데이터가 변하면 이 기록은 버려지고 새 호출로 교체된다. "변했다"의 판정은
- * {@link #analyzedFixtures} — 생성 시점에 계산에 들어간 경기 수(분모)다. 저장할 때의
- * 분모와 지금의 분모가 다르면 이 문장은 다른 기간을 말하고 있는 것이다.
- * 판정 기준의 확정은 미정(DG-OQ-19)이라 지금은 분모 변화만 본다 — 비교하는 곳은
+ * <p>"데이터가 변했다"의 판정은 {@link #promptFingerprint} — 이 서술을 만들 때 모델에게
+ * 준 프롬프트의 SHA-256 지문이다 (DG-OQ-19 확정, 2026-08-25 오너 위임). 프롬프트는
+ * 계산된 지표에서만 만들어지므로, 지문이 같으면 모델이 볼 재료가 그대로라는 뜻이고
+ * 다르면(새 경기·결장 사후 수집·연기 반영 등 무엇이든) 이 문장은 낡았다.
+ * 분모 변화만 보던 초기 기준은 "분모는 같은데 내용이 변한" 경우를 놓쳤다.
+ * {@link #analyzedFixtures}는 판정이 아니라 기록·디버깅용으로 남긴다. 비교하는 곳은
  * {@code AiDiagnosisService}.
  *
  * <h2>키는 (팀, 시즌, 밀집 기준) 조합이다</h2>
@@ -118,6 +120,14 @@ public class AiDiagnosisRecord {
 	private Instant generatedAt;
 
 	/**
+	 * 이 서술을 만들 때 모델에게 준 프롬프트의 SHA-256 지문 — "데이터가 변했다" 판정 키.
+	 * nullable 인 이유: 지문 도입 전 로컬 행이 있을 수 있고, null 은 "낡음"으로 판정돼
+	 * 다음 조회에서 자연히 재생성·백필된다.
+	 */
+	@Column(name = "prompt_fingerprint", length = 64)
+	private String promptFingerprint;
+
+	/**
 	 * 주장 하나와 그 근거 수치. {@code AiDiagnosis.Evidence}의 저장 형태다.
 	 *
 	 * <p>세 칸이 모두 차야 근거다 — 응답 검증과 같은 계약을 저장 계층이 다시 지킨다.
@@ -159,7 +169,7 @@ public class AiDiagnosisRecord {
 	private AiDiagnosisRecord(long teamId, int season, int windowDays, int minMatches,
 	                          int analyzedFixtures, String headline, String sub,
 	                          List<Evidence> evidence, List<String> unknowns,
-	                          Instant generatedAt) {
+	                          Instant generatedAt, String promptFingerprint) {
 		this.teamId = teamId;
 		this.season = season;
 		this.windowDays = windowDays;
@@ -170,6 +180,7 @@ public class AiDiagnosisRecord {
 		this.evidence = new ArrayList<>(evidence);
 		this.unknowns = new ArrayList<>(unknowns);
 		this.generatedAt = generatedAt;
+		this.promptFingerprint = promptFingerprint;
 	}
 
 	/**
@@ -184,22 +195,29 @@ public class AiDiagnosisRecord {
 	public static AiDiagnosisRecord create(long teamId, int season, int windowDays, int minMatches,
 	                                       int analyzedFixtures, String headline, String sub,
 	                                       List<Evidence> evidence, List<String> unknowns,
-	                                       Instant generatedAt) {
+	                                       Instant generatedAt, String promptFingerprint) {
 		if (teamId <= 0) {
 			throw new IllegalArgumentException("teamId 는 양수여야 합니다. teamId=" + teamId);
 		}
+		if (isBlank(promptFingerprint)) {
+			throw new IllegalArgumentException("프롬프트 지문 없이는 낡음을 판정할 수 없습니다.");
+		}
 		validateContent(analyzedFixtures, headline, sub, evidence, unknowns, generatedAt);
 		return new AiDiagnosisRecord(teamId, season, windowDays, minMatches,
-				analyzedFixtures, headline, sub, evidence, unknowns, generatedAt);
+				analyzedFixtures, headline, sub, evidence, unknowns, generatedAt, promptFingerprint);
 	}
 
 	/**
-	 * 분모가 달라져 새로 받은 서술로 이 행을 교체한다. 키(팀·시즌·기준)는 그대로 두고
-	 * 내용만 갈아 끼운다 — 행을 지웠다 다시 넣으면 유니크 제약과 경합하는 창이 생긴다.
+	 * 데이터가 변해(지문 불일치) 새로 받은 서술로 이 행을 교체한다. 키(팀·시즌·기준)는
+	 * 그대로 두고 내용만 갈아 끼운다 — 행을 지웠다 다시 넣으면 유니크 제약과 경합하는
+	 * 창이 생긴다.
 	 */
 	public void replaceWith(int analyzedFixtures, String headline, String sub,
 	                        List<Evidence> evidence, List<String> unknowns,
-	                        Instant generatedAt) {
+	                        Instant generatedAt, String promptFingerprint) {
+		if (isBlank(promptFingerprint)) {
+			throw new IllegalArgumentException("프롬프트 지문 없이는 낡음을 판정할 수 없습니다.");
+		}
 		validateContent(analyzedFixtures, headline, sub, evidence, unknowns, generatedAt);
 		this.analyzedFixtures = analyzedFixtures;
 		this.headline = headline;
@@ -210,6 +228,7 @@ public class AiDiagnosisRecord {
 		this.unknowns.clear();
 		this.unknowns.addAll(unknowns);
 		this.generatedAt = generatedAt;
+		this.promptFingerprint = promptFingerprint;
 	}
 
 	private static void validateContent(int analyzedFixtures, String headline, String sub,

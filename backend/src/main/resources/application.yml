@@ -195,7 +195,7 @@ gak:
 
   # AI 경로(AI 진단·자유 질문) 호출 한도 — 유료 API 경로라 전역 상한이 지출을 막고,
   # IP당 상한이 개인 남용을 막는다. 로그인은 도입하지 않는다 (DG 8절).
-  # 값은 DG-OQ-21 미정 — 잠정값. 확정되면 여기(환경변수)만 바꾼다.
+  # 값은 확정(DG-OQ-21, 2026-08-25 오너 위임): 전역 200/일 · IP당 20/일. 조정은 여기(환경변수)만.
   ai-limit:
     enabled: ${AI_LIMIT_ENABLED:true}
     global-daily: ${AI_LIMIT_GLOBAL_DAILY:200}

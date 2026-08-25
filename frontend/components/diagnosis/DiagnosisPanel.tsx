@@ -55,7 +55,23 @@ export function DiagnosisPanel({
 
   return (
     <div className="flex flex-col gap-5">
-      {/* ① 결론 */}
+      {/* ① 근거 — 결론보다 먼저 놓는다 (DG 4절 "근거가 결론보다 먼저다"의 표시 순서
+          해석, DG-OQ-22 확정 · 2026-08-25 오너 위임). 타임라인(사실)→진단(해석)과 같은
+          방향 — 수치를 먼저 보이고 그 아래에서 해석한다. 규칙 기반 상태에서만 —
+          AI 전환 시 한 덩어리로 함께 내려가고 근거는 결론 카드 안의 AI 근거가 맡는다 */}
+      {!aiReady && d.cards.length > 0 && (
+        <section className="flex flex-col gap-2.5">
+          <h2 className="text-xs font-extrabold tracking-[1.5px] text-text-low">
+            근거 — {timeline.period.label} · 카드를 누르면 타임라인에서 해당 경기를
+            강조
+          </h2>
+          {d.cards.map((c) => (
+            <EvidenceCard key={c.key} card={c} onInspect={onInspect} />
+          ))}
+        </section>
+      )}
+
+      {/* ② 결론 */}
       <div className="rounded-panel border border-line-strong bg-card p-6">
         <div className="mb-2.5 flex flex-wrap items-center gap-2">
           <span className="text-[11px] font-black tracking-[2px] text-volt">
@@ -81,28 +97,16 @@ export function DiagnosisPanel({
               </span>
             )}
         </div>
-        <div className="font-display text-[30px] font-black leading-[1.25] tracking-tight text-text-hi">
-          {headline}
-        </div>
-        <p className="mt-2.5 text-sm leading-relaxed text-text-mid">{sub}</p>
-
+        {/* AI 근거도 결론보다 먼저 (DG-OQ-22) */}
         {aiReady && ai.diagnosis!.evidence.length > 0 && (
           <AiEvidenceList evidence={ai.diagnosis!.evidence} />
         )}
-      </div>
 
-      {/* ② 근거 — 규칙 기반 상태에서만. AI 전환 시 한 덩어리로 함께 내려간다 */}
-      {!aiReady && d.cards.length > 0 && (
-        <section className="flex flex-col gap-2.5">
-          <h2 className="text-xs font-extrabold tracking-[1.5px] text-text-low">
-            근거 — {timeline.period.label} · 카드를 누르면 타임라인에서 해당 경기를
-            강조
-          </h2>
-          {d.cards.map((c) => (
-            <EvidenceCard key={c.key} card={c} onInspect={onInspect} />
-          ))}
-        </section>
-      )}
+        <div className="font-display mt-2.5 text-[30px] font-black leading-[1.25] tracking-tight text-text-hi">
+          {headline}
+        </div>
+        <p className="mt-2.5 text-sm leading-relaxed text-text-mid">{sub}</p>
+      </div>
 
       {/* ③ 모르는 것 — 세 갈래를 한 블록으로 모으고 기본은 접어 둔다 */}
       <UnknownsBlock

@@ -102,17 +102,23 @@ public class AiDiagnosisService {
 		int minMatches = diagnostics.congestion().minMatches();
 		int analyzedFixtures = diagnostics.window().analyzedFixtures();
 
+		// "데이터가 변했다" 판정은 프롬프트 지문이다 (DG-OQ-19 확정) — 프롬프트는 계산된
+		// 지표에서만 만들어지므로, 지문이 같으면 모델이 볼 재료가 그대로라는 뜻이다.
+		// 분모만 보면 "연기 1 + 신규 확정 1"로 분모가 우연히 같거나, 결장이 사후 수집돼
+		// 내용만 변한 경우를 놓친다.
+		String prompt = DiagnosisPromptFactory.userPrompt(diagnostics);
+		String fingerprint = sha256(prompt);
+
 		// 저장 조회가 available() 검사보다 먼저다 — 저장분은 검증을 통과한 실제 응답이라
 		// 클라이언트 없이도 세울 수 있다. 키가 빠진 환경에서 회고 시즌 저장분까지
 		// 사라지면 "재사용" 요구(DG 7절)가 설정 상태에 볼모로 잡힌다.
 		Optional<AiDiagnosisRecord> stored = archive.find(teamId, season, windowDays, minMatches);
-		// DG-OQ-19 잠정: 분모 변화만 판정. 결장 등 부속 데이터의 사후 수집은 잡지 못한다
-		if (stored.isPresent() && stored.get().getAnalyzedFixtures() == analyzedFixtures) {
+		if (stored.isPresent() && fingerprint.equals(stored.get().getPromptFingerprint())) {
 			return toDiagnosis(stored.get());
 		}
 
 		if (!client.available()) {
-			return AiDiagnosis.unavailable("AI 진단이 설정되지 않았습니다");
+			return AiDiagnosis.unavailable(INTERNAL_UNAVAILABLE);
 		}
 
 		// 한도 소모는 여기 — 실제 유료 호출 직전이다. 저장 히트·게이트·키 부재로 끝난
@@ -123,12 +129,10 @@ public class AiDiagnosisService {
 		}
 
 		AnthropicResult result = client.complete(
-				DiagnosisPromptFactory.SYSTEM,
-				DiagnosisPromptFactory.userPrompt(diagnostics),
-				RESPONSE_SCHEMA);
+				DiagnosisPromptFactory.SYSTEM, prompt, RESPONSE_SCHEMA);
 
 		if (!result.succeeded()) {
-			// 분모가 달라진 저장분이 있어도 여기서 꺼내지 않는다 (메서드 주석 참고).
+			// 낡은 저장분이 있어도 여기서 꺼내지 않는다 (메서드 주석 참고).
 			return AiDiagnosis.unavailable(reasonFor(result.failure()));
 		}
 		AiDiagnosis parsed = parse(result.json());
@@ -136,7 +140,7 @@ public class AiDiagnosisService {
 			// 검증을 통과한 서술만 기록이 된다. parse 가 버린 응답을 저장하면
 			// 재방문 화면이 검증 없이 그 껍데기를 싣게 된다.
 			store(stored.isPresent(), teamId, season, windowDays, minMatches,
-					analyzedFixtures, parsed);
+					analyzedFixtures, parsed, fingerprint);
 		}
 		return parsed;
 	}
@@ -157,7 +161,7 @@ public class AiDiagnosisService {
 	 * 아니다 — 방금 받은 진단은 그대로 내보내고, 실패는 로그로만 남긴다.
 	 */
 	private void store(boolean exists, long teamId, int season, int windowDays, int minMatches,
-	                   int analyzedFixtures, AiDiagnosis parsed) {
+	                   int analyzedFixtures, AiDiagnosis parsed, String fingerprint) {
 		try {
 			AiDiagnosisRecord fresh = AiDiagnosisRecord.create(
 					teamId, season, windowDays, minMatches, analyzedFixtures,
@@ -165,7 +169,7 @@ public class AiDiagnosisService {
 					parsed.evidence().stream()
 							.map(e -> AiDiagnosisRecord.Evidence.of(e.metric(), e.value(), e.claim()))
 							.toList(),
-					parsed.unknowns(), clock.instant());
+					parsed.unknowns(), clock.instant(), fingerprint);
 			if (exists) {
 				archive.replace(fresh);
 			} else {
@@ -202,15 +206,34 @@ public class AiDiagnosisService {
 		return null;
 	}
 
-	/** 실패 사유를 사용자에게 보여줄 한국어로. 기술 용어를 화면에 올리지 않는다. */
+	/** 프롬프트의 SHA-256 지문 — "데이터가 변했다" 판정 키 (DG-OQ-19). */
+	static String sha256(String text) {
+		try {
+			byte[] digest = java.security.MessageDigest.getInstance("SHA-256")
+					.digest(text.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+			StringBuilder hex = new StringBuilder(digest.length * 2);
+			for (byte b : digest) {
+				hex.append(Character.forDigit((b >> 4) & 0xF, 16))
+						.append(Character.forDigit(b & 0xF, 16));
+			}
+			return hex.toString();
+		} catch (java.security.NoSuchAlgorithmException e) {
+			// SHA-256 은 모든 JVM 필수 알고리즘이다 — 여기 오면 환경이 깨진 것.
+			throw new IllegalStateException("SHA-256 을 사용할 수 없습니다", e);
+		}
+	}
+
+	/**
+	 * 내부 사유(설정·타임아웃·전송·거부·형식)는 전부 이 한 문구다 (DG-OQ-16 확정,
+	 * 2026-08-25 오너 위임). 원인 구분은 사용자가 할 수 있는 일을 바꾸지 않는다 —
+	 * 어느 쪽이든 재시도는 없다. 표본 부족 같은 데이터 사유는 구체적으로 남긴다
+	 * ({@link #insufficientSample}). 내부 세부 원인은 로그에만.
+	 */
+	static final String INTERNAL_UNAVAILABLE = "AI 분석을 사용할 수 없어 규칙 기반 결론을 유지합니다";
+
 	private String reasonFor(AnthropicResult.Failure failure) {
-		return switch (failure) {
-			case DISABLED -> "AI 진단이 설정되지 않았습니다";
-			case TIMEOUT -> "AI 응답이 늦어 규칙 기반 결론을 유지합니다";
-			case TRANSPORT -> "AI 진단을 불러오지 못했습니다";
-			case REFUSED -> "AI가 이 요청에 답하지 않았습니다";
-			case MALFORMED -> "AI 응답을 읽지 못했습니다";
-		};
+		log.warn("AI 진단 실패 — 사용자에게는 한 문구로 접는다: {}", failure);
+		return INTERNAL_UNAVAILABLE;
 	}
 
 	/**

@@ -185,7 +185,7 @@ class AiDiagnosisStorageTest {
 		repository.save(AiDiagnosisRecord.create(MAN_UTD, SEASON, WINDOW_DAYS, MIN_MATCHES, 40,
 				"저장돼 있던 결론", "저장돼 있던 부연 문장.",
 				List.of(AiDiagnosisRecord.Evidence.of("지표", "값", "주장")),
-				List.of(), Instant.parse("2024-05-01T00:00:00Z")));
+				List.of(), Instant.parse("2024-05-01T00:00:00Z"), "fp-any"));
 
 		AiDiagnosis result = service.narrate(
 				diagnostics(40, 3, SampleConfidence.LOW), "ip-1");
@@ -240,6 +240,22 @@ class AiDiagnosisStorageTest {
 
 		// 분모가 달라 새 호출이 필요해지면 그때는 설정 없음으로 떨어진다.
 		assertThat(keyless.narrate(diagnostics(41), "ip-1").available()).isFalse();
+	}
+
+	@Test
+	@DisplayName("분모가 같아도 내용이 변하면 교체된다 — 판정 키는 분모가 아니라 프롬프트 지문이다")
+	void contentChangesInvalidateEvenWhenTheDenominatorMatches() {
+		client.reply(RESPONSE_A);
+		service.narrate(diagnostics(40), "ip-1");
+		assertThat(client.calls).isEqualTo(1);
+
+		// 분모(40)는 그대로인데 폼 표본이 변했다 — 결장 사후 수집·연기+신규 확정으로
+		// 분모가 우연히 같은 경우의 재현이다 (DG-OQ-19).
+		client.reply(RESPONSE_A);
+		service.narrate(diagnostics(40, 7, SampleConfidence.MODERATE), "ip-1");
+
+		assertThat(client.calls).isEqualTo(2);
+		assertThat(repository.count()).isEqualTo(1);
 	}
 
 	// --- 한도와 저장의 상호작용 (DG 7·8절) --------------------------------------
@@ -297,7 +313,13 @@ class AiDiagnosisStorageTest {
 		return AiDiagnosisRecord.create(MAN_UTD, SEASON, WINDOW_DAYS, MIN_MATCHES, 40,
 				headline, "부연 문장.",
 				List.of(AiDiagnosisRecord.Evidence.of("밀집 구간 수", "4개", "밀집이 반복됐다")),
-				List.of("선수 개개인의 기여도"), Instant.parse("2024-05-20T00:00:00Z"));
+				List.of("선수 개개인의 기여도"), Instant.parse("2024-05-20T00:00:00Z"),
+				fingerprintOf(diagnostics(40)));
+	}
+
+	/** 서비스와 같은 방법으로 계산한 기대 지문 — 저장분 재사용 테스트의 키 맞추기용. */
+	private static String fingerprintOf(TeamDiagnostics d) {
+		return AiDiagnosisService.sha256(DiagnosisPromptFactory.userPrompt(d));
 	}
 
 	/** "AI를 불러도 되는" 진단 — 분모만 바꿔 가며 쓴다. */

@@ -26,7 +26,9 @@ public class AiRateLimiter {
 
 	/**
 	 * 판정 결과. 초과 사유(전역/IP)가 문구를 가른다 — 다른 실패로 뭉개지 않는다.
-	 * 문구는 잠정이다(초과 시 화면 표시는 DG-OQ-21 미정).
+	 * 표시 방식은 확정(DG-OQ-21): 새 상태를 만들지 않고 기존 상태(unavailable /
+	 * ANALYSIS_FAILED)에 이 사유 문구를 얹는다. 문구 자체의 최종 표현만 IN-OQ-06
+	 * (상태별 문구 전반)과 함께 다듬는다.
 	 */
 	public enum Decision {
 		ALLOWED(null),

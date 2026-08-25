@@ -81,7 +81,7 @@ public class AiDiagnosisArchive {
 						row -> row.replaceWith(fresh.getAnalyzedFixtures(),
 								fresh.getHeadline(), fresh.getSub(),
 								fresh.getEvidence(), fresh.getUnknowns(),
-								fresh.getGeneratedAt()),
+								fresh.getGeneratedAt(), fresh.getPromptFingerprint()),
 						// 그 사이 행이 사라졌으면(지우는 경로는 없지만) 신규로 넣으면 된다.
 						() -> repository.save(fresh));
 	}
