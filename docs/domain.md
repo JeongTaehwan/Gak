@@ -237,14 +237,20 @@ controller → service → repository → domain(entity)
 `season`을 빠뜨리면 **회고 화면에서 현재 시즌 데이터가 섞인다.** 이 문서가 경고하는
 "화면은 멀쩡한데 숫자가 틀린" 상태 그대로다.
 
-**⚠️ 아직 시즌을 받지 않는 곳 — 팀 선택을 붙일 때 함께 고친다.**
+**~~⚠️ 아직 시즌을 받지 않는 곳~~ — 둘 다 해소됐다 (2026-08-28 확인).**
 
-| 화면 | 지금 상태 |
-| --- | --- |
-| 예측/적중 기록 | 팀의 **모든 시즌** 예측을 한꺼번에 집계한다(`PredictionAccuracyService`) |
-| 순위표 | 조회 시즌이 아니라 **그 팀의 가장 최근 리그 경기**로 시즌을 정한다(`StandingsQueryService`) |
+한때 두 화면이 조회 시즌을 무시했다. 회고에서 어긋나는 문제였다 — 2023-24 타임라인 옆에
+2025-26 순위표가 뜰 수 있었다. 팀 선택을 붙이면서 함께 고쳤고, 지금은 둘 다 승인된
+계약(입력 화면 3·4절)을 지킨다.
 
-둘 다 회고에서 어긋난다 — 2023-24 타임라인 옆에 2025-26 순위표가 뜰 수 있다.
+| 화면 | 예전 상태 | 지금 |
+| --- | --- | --- |
+| 예측/적중 기록 | 팀의 모든 시즌 예측을 한꺼번에 집계했다 | `PredictionAccuracyService.of(teamId, season, ...)` — season을 **필수**로 받고, `findTeamPredictionsInSeason`이 `p.fixture.season = :season`으로 거른다. 시즌은 예측이 아니라 **경기**가 들고 있다 |
+| 순위표 | 조회 시즌이 아니라 그 팀의 가장 최근 리그 경기로 시즌을 정했다 | `StandingsQueryService.forTeam(teamId, season)` — season을 **필수**로 받고, 그 시즌 리그 경기가 없으면 `unavailable`을 낸다. **다른 시즌 표로 대체하는 경로가 없다** |
+
+컨트롤러(`TeamDiagnosticsController`)의 `/standings`·`/predictions` 둘 다 `season`이
+`@RequestParam` 필수라 생략하면 400이고, 프론트(`lib/api/client.ts`)도 두 요청에 URL의
+시즌을 붙여 보낸다. season 없이 부르는 우회 경로는 없다.
 
 ---
 
