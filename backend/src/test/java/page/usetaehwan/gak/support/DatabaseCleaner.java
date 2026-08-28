@@ -4,6 +4,7 @@ import org.springframework.boot.test.context.TestComponent;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import page.usetaehwan.gak.repository.AbsenceRepository;
+import page.usetaehwan.gak.repository.AiDiagnosisRecordRepository;
 import page.usetaehwan.gak.repository.CompetitionRepository;
 import page.usetaehwan.gak.repository.FixtureRepository;
 import page.usetaehwan.gak.repository.NewsItemRepository;
@@ -47,6 +48,7 @@ public class DatabaseCleaner {
 	private final VenueRepository venueRepository;
 	private final CompetitionRepository competitionRepository;
 	private final NewsItemRepository newsItemRepository;
+	private final AiDiagnosisRecordRepository aiDiagnosisRecordRepository;
 
 	public DatabaseCleaner(AbsenceRepository absenceRepository,
 	                       StandingRepository standingRepository,
@@ -57,7 +59,8 @@ public class DatabaseCleaner {
 	                       TeamRepository teamRepository,
 	                       VenueRepository venueRepository,
 	                       CompetitionRepository competitionRepository,
-	                       NewsItemRepository newsItemRepository) {
+	                       NewsItemRepository newsItemRepository,
+	                       AiDiagnosisRecordRepository aiDiagnosisRecordRepository) {
 		this.absenceRepository = absenceRepository;
 		this.standingRepository = standingRepository;
 		this.predictionRepository = predictionRepository;
@@ -68,6 +71,7 @@ public class DatabaseCleaner {
 		this.venueRepository = venueRepository;
 		this.competitionRepository = competitionRepository;
 		this.newsItemRepository = newsItemRepository;
+		this.aiDiagnosisRecordRepository = aiDiagnosisRecordRepository;
 	}
 
 	/** 대회는 남긴다 — 시더가 매 테스트마다 다시 심으므로 지우면 그 일을 두 번 한다. */
@@ -84,6 +88,9 @@ public class DatabaseCleaner {
 		// 뉴스는 다른 층이라 FK 가 없다 — 순서 어디에 놓아도 되지만,
 		// 여기 한 줄이 없으면 테스트끼리 소식이 새어 나간다.
 		newsItemRepository.deleteAllInBatch();
+		// AI 진단 저장분도 FK 없는 별도 층이다. 배치 삭제가 아닌 이유: 근거·unknowns 가
+		// @ElementCollection 이라 부모만 배치로 지우면 자식 표의 FK 가 막는다.
+		aiDiagnosisRecordRepository.deleteAll();
 	}
 
 	/** 대회까지 전부. */

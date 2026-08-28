@@ -33,6 +33,13 @@ final class AnswerMessages {
 			"이 시즌에 아직 치른 경기가 없어 판정할 수 없습니다.";
 
 	/**
+	 * 확정 경기가 표본 기준(5건) 미만 — 진단 블록의 AI 게이트와 같은 기준으로 막는다.
+	 * {@code %d} 두 자리: 현재 확정 경기 수, 필요 건수.
+	 */
+	static final String INSUFFICIENT_SAMPLE =
+			"결과가 확정된 경기가 %d건뿐이라 답하지 않습니다 (%d건 이상 필요).";
+
+	/**
 	 * 컵 경기만 있는 시즌 — 선택 기준 리그 기록이 없다.
 	 *
 	 * <p>2부라거나 동기화가 빠졌다고 <b>단정하지 않는다</b>. 우리가 아는 건 "우리 DB의
@@ -54,20 +61,15 @@ final class AnswerMessages {
 
 	// ── 분석 자체가 실패했을 때 ────────────────────────────────────────────────
 
-	static final String NOT_CONFIGURED =
-			"질문 분석이 설정되지 않았습니다.";
-
-	static final String TIMEOUT =
-			"분석 응답이 늦어 답을 만들지 못했습니다.";
-
-	static final String TRANSPORT =
-			"분석 처리에 실패했습니다.";
-
-	static final String REFUSED =
-			"이 질문에는 답하지 않았습니다.";
-
-	static final String MALFORMED =
-			"분석 응답을 읽지 못했습니다.";
+	/**
+	 * 내부 사유(설정 없음·타임아웃·전송·거부·형식 오류)는 전부 이 한 문구다
+	 * (DG-OQ-16 확정, 2026-08-25 오너 위임). 원인 구분은 사용자가 할 수 있는 일을
+	 * 바꾸지 않는다 — 어느 쪽이든 재시도 버튼은 없고 기다리면 되는 것도 아니다.
+	 * 반면 데이터 사유(표본 부족 등)는 "왜"가 사용자에게 의미가 있어 구체적으로 남긴다.
+	 * 내부 세부 원인은 서비스가 로그로 남긴다.
+	 */
+	static final String ANALYSIS_UNAVAILABLE =
+			"질문 분석에 실패했습니다. 답을 지어내는 대신 실패로 남깁니다.";
 
 	/** 형식은 맞는데 내용이 빈 응답. 성공한 척하는 쪽이 실패보다 나쁘다. */
 	static final String EMPTY_ANSWER =
@@ -78,7 +80,7 @@ final class AnswerMessages {
 			case INSUFFICIENT_DATA -> INSUFFICIENT_DATA;
 			case OUT_OF_SCOPE -> OUT_OF_SCOPE;
 			case UNINTELLIGIBLE -> UNINTELLIGIBLE;
-			case ANALYSIS_FAILED -> TRANSPORT;
+			case ANALYSIS_FAILED -> ANALYSIS_UNAVAILABLE;
 			case ANSWERED -> null;
 		};
 	}

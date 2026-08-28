@@ -1,10 +1,12 @@
 package page.usetaehwan.gak.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import page.usetaehwan.gak.config.ClientIpResolver;
 import page.usetaehwan.gak.dto.analysis.AiDiagnosis;
 import page.usetaehwan.gak.dto.analysis.StandingsTable;
 import page.usetaehwan.gak.dto.analysis.TeamDiagnostics;
@@ -47,15 +49,18 @@ public class TeamDiagnosticsController {
 	private final PredictionAccuracyService accuracyService;
 	private final AiDiagnosisService aiDiagnosisService;
 	private final StandingsQueryService standingsQueryService;
+	private final ClientIpResolver clientIpResolver;
 
 	public TeamDiagnosticsController(TeamDiagnosticsService diagnosticsService,
 	                                 PredictionAccuracyService accuracyService,
 	                                 AiDiagnosisService aiDiagnosisService,
-	                                 StandingsQueryService standingsQueryService) {
+	                                 StandingsQueryService standingsQueryService,
+	                                 ClientIpResolver clientIpResolver) {
 		this.diagnosticsService = diagnosticsService;
 		this.accuracyService = accuracyService;
 		this.aiDiagnosisService = aiDiagnosisService;
 		this.standingsQueryService = standingsQueryService;
+		this.clientIpResolver = clientIpResolver;
 	}
 
 	/**
@@ -96,10 +101,12 @@ public class TeamDiagnosticsController {
 			@PathVariable Long teamId,
 			@RequestParam(defaultValue = "14") int windowDays,
 			@RequestParam(defaultValue = "5") int minMatches,
-			@RequestParam(required = false) Integer season) {
+			@RequestParam(required = false) Integer season,
+			HttpServletRequest request) {
 		TeamDiagnostics diagnostics = diagnosticsService.diagnose(teamId,
 				new DiagnosticsOptions(windowDays, minMatches, season, null));
-		return aiDiagnosisService.narrate(diagnostics);
+		// IP 는 유료 호출 한도의 식별자 — HTTP 관심사라 여기서 뽑아 넘긴다 (DG 8절).
+		return aiDiagnosisService.narrate(diagnostics, clientIpResolver.resolve(request));
 	}
 
 	/**

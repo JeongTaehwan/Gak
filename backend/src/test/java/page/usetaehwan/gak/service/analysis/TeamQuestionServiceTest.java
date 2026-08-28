@@ -11,6 +11,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
+import java.time.Clock;
+import java.time.ZoneOffset;
+import java.util.Map;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import page.usetaehwan.gak.config.AiRateLimitProperties;
+import page.usetaehwan.gak.config.AiRateLimiter;
+import page.usetaehwan.gak.external.anthropic.AnthropicClient;
+import page.usetaehwan.gak.external.anthropic.AnthropicResult;
 import page.usetaehwan.gak.domain.Competition;
 import page.usetaehwan.gak.domain.CompetitionType;
 import page.usetaehwan.gak.domain.Fixture;
@@ -40,6 +48,9 @@ class TeamQuestionServiceTest {
 
 	@Autowired DatabaseCleaner databaseCleaner;
 	@Autowired TeamQuestionService questionService;
+	@Autowired TeamDiagnosticsService diagnosticsService;
+	@Autowired TeamSelectionService selectionService;
+	@Autowired ObjectMapper objectMapper;
 	@Autowired CompetitionRepository competitionRepository;
 	@Autowired TeamRepository teamRepository;
 	@Autowired FixtureRepository fixtureRepository;
@@ -71,7 +82,7 @@ class TeamQuestionServiceTest {
 	@Test
 	@DisplayName("그 시즌 경기가 없으면 부르지 않고 '근거 데이터 부족'이라고 말한다")
 	void noDataForThatSeasonIsInsufficientData() {
-		TeamAnswer answer = questionService.answer(MAN_UTD, 2019, "왜 부진한가요?");
+		TeamAnswer answer = questionService.answer(MAN_UTD, 2019, "왜 부진한가요?", "ip-1");
 
 		assertThat(answer.status()).isEqualTo(TeamAnswer.Status.INSUFFICIENT_DATA);
 		assertThat(answer.answer()).isNull();
@@ -84,7 +95,7 @@ class TeamQuestionServiceTest {
 	void cupOnlySeasonIsNotDiagnosable() {
 		fixture(faCup, 1L, 2023, Instant.parse("2024-01-08T19:00:00Z"), FixtureStatus.FT);
 
-		TeamAnswer answer = questionService.answer(MAN_UTD, 2023, "왜 부진한가요?");
+		TeamAnswer answer = questionService.answer(MAN_UTD, 2023, "왜 부진한가요?", "ip-1");
 
 		assertThat(answer.status()).isEqualTo(TeamAnswer.Status.INSUFFICIENT_DATA);
 		assertThat(answer.statusMessage()).contains("1부 리그");
@@ -96,7 +107,7 @@ class TeamQuestionServiceTest {
 	void scheduleWithoutPlayedMatchesIsNotBadForm() {
 		fixture(epl, 2L, 2023, Instant.now().plus(30, ChronoUnit.DAYS), FixtureStatus.NS);
 
-		TeamAnswer answer = questionService.answer(MAN_UTD, 2023, "왜 부진한가요?");
+		TeamAnswer answer = questionService.answer(MAN_UTD, 2023, "왜 부진한가요?", "ip-1");
 
 		assertThat(answer.status()).isEqualTo(TeamAnswer.Status.INSUFFICIENT_DATA);
 		assertThat(answer.basis().analyzedFixtures()).isZero();
@@ -107,9 +118,10 @@ class TeamQuestionServiceTest {
 	@Test
 	@DisplayName("분석을 못 불렀으면 실패라고 말한다 — 답을 지어내지 않는다")
 	void missingAnalyzerIsReportedAsFailureNotAnAnswer() {
-		fixture(epl, 3L, 2023, Instant.parse("2023-08-14T19:00:00Z"), FixtureStatus.FT);
+		// 표본 게이트(5건)를 지나야 available() 검사까지 간다.
+		playedLeagueMatches(2023, 5, 300L);
 
-		TeamAnswer answer = questionService.answer(MAN_UTD, 2023, "왜 부진한가요?");
+		TeamAnswer answer = questionService.answer(MAN_UTD, 2023, "왜 부진한가요?", "ip-1");
 
 		// 키가 없는 테스트 환경이다. 근거 데이터 부족(기다리면 되는 것)과 구분돼야 한다.
 		assertThat(answer.status()).isEqualTo(TeamAnswer.Status.ANALYSIS_FAILED);
@@ -122,7 +134,7 @@ class TeamQuestionServiceTest {
 		fixture(epl, 4L, 2023, Instant.parse("2023-08-14T19:00:00Z"), FixtureStatus.FT);
 		fixture(epl, 5L, 2023, Instant.now().plus(30, ChronoUnit.DAYS), FixtureStatus.NS);
 
-		TeamAnswer answer = questionService.answer(MAN_UTD, 2023, "왜 부진한가요?");
+		TeamAnswer answer = questionService.answer(MAN_UTD, 2023, "왜 부진한가요?", "ip-1");
 
 		assertThat(answer.basis().season()).isEqualTo(2023);
 		assertThat(answer.basis().seasonFixtures()).isEqualTo(2);
@@ -138,10 +150,19 @@ class TeamQuestionServiceTest {
 		fixture(epl, 7L, 2023, Instant.parse("2023-08-14T19:00:00Z"), FixtureStatus.FT);
 		fixture(epl, 8L, 2023, Instant.parse("2023-08-21T19:00:00Z"), FixtureStatus.FT);
 
-		assertThat(questionService.answer(MAN_UTD, 2022, "왜 부진한가요?").basis().seasonFixtures())
+		assertThat(questionService.answer(MAN_UTD, 2022, "왜 부진한가요?", "ip-1").basis().seasonFixtures())
 				.isEqualTo(1);
-		assertThat(questionService.answer(MAN_UTD, 2023, "왜 부진한가요?").basis().seasonFixtures())
+		assertThat(questionService.answer(MAN_UTD, 2023, "왜 부진한가요?", "ip-1").basis().seasonFixtures())
 				.isEqualTo(2);
+	}
+
+	/** 표본 게이트(5건)를 지나는 데 쓰는 치른 리그 경기 n개. 킥오프는 1주 간격. */
+	private void playedLeagueMatches(int season, int count, long firstId) {
+		for (int i = 0; i < count; i++) {
+			fixture(epl, firstId + i, season,
+					Instant.parse("2023-08-14T19:00:00Z").plus(7L * i, ChronoUnit.DAYS),
+					FixtureStatus.FT);
+		}
 	}
 
 	private void fixture(Competition competition, long id, int season,
@@ -152,5 +173,66 @@ class TeamQuestionServiceTest {
 				.goalsHome(status == FixtureStatus.FT ? 1 : null)
 				.goalsAway(status == FixtureStatus.FT ? 0 : null)
 				.build());
+	}
+
+	@Test
+	@DisplayName("확정 경기 5건 미만이면 서버가 막는다 — 프론트 차단은 우회 가능하다")
+	void thinSamplesAreRejectedServerSide() {
+		playedLeagueMatches(2023, 3, 400L);
+
+		TeamAnswer answer = questionService.answer(MAN_UTD, 2023, "왜 부진한가요?", "ip-1");
+
+		// 진단 블록의 AI 게이트와 같은 기준(5건) — 두 AI 경로의 기준이 갈리면
+		// "질문에는 답하면서 진단은 안 하는" 상태가 생긴다.
+		assertThat(answer.status()).isEqualTo(TeamAnswer.Status.INSUFFICIENT_DATA);
+		assertThat(answer.statusMessage()).contains("3건").contains("5건");
+		assertThat(answer.basis().analyzedFixtures()).isEqualTo(3);
+	}
+
+	// --- 호출 한도 (DG 8절) -----------------------------------------------------
+
+	/** 항상 응답하는 척하는 클라이언트 — 이 테스트의 관심사는 한도가 호출 전에 서는가다. */
+	private static final class CountingClient implements AnthropicClient {
+		int calls;
+
+		@Override
+		public boolean available() {
+			return true;
+		}
+
+		@Override
+		public AnthropicResult complete(String system, String user, Map<String, Object> schema) {
+			calls++;
+			return AnthropicResult.failed(AnthropicResult.Failure.TRANSPORT);
+		}
+	}
+
+	@Test
+	@DisplayName("한도 초과면 모델을 부르지 않고 ANALYSIS_FAILED + 한도 사유로 답한다")
+	void rateLimitBlocksQuestionsBeforeTheModel() {
+		// 표본 게이트(5건)를 지나야 한도 판정까지 간다.
+		playedLeagueMatches(2023, 5, 900L);
+
+		CountingClient counting = new CountingClient();
+		// IP당 1건 — 첫 질문이 소진한다.
+		AiRateLimiter tight = new AiRateLimiter(
+				new AiRateLimitProperties(true, 10, 1, null),
+				Clock.fixed(Instant.parse("2024-05-20T12:00:00Z"), ZoneOffset.UTC));
+		TeamQuestionService limited = new TeamQuestionService(
+				diagnosticsService, selectionService, counting, objectMapper, tight);
+
+		limited.answer(MAN_UTD, 2023, "왜 부진한가요?", "ip-1");
+		assertThat(counting.calls).isEqualTo(1);
+
+		TeamAnswer blocked = limited.answer(MAN_UTD, 2023, "왜 부진한가요?", "ip-1");
+		assertThat(blocked.status()).isEqualTo(TeamAnswer.Status.ANALYSIS_FAILED);
+		assertThat(blocked.statusMessage())
+				.isEqualTo(AiRateLimiter.Decision.IP_EXCEEDED.message());
+		// 거부는 호출 전이다 — 모델까지 가지 않는다.
+		assertThat(counting.calls).isEqualTo(1);
+
+		// 다른 IP 는 막히지 않는다 — IP 단위 상한이 개인 남용만 자른다.
+		limited.answer(MAN_UTD, 2023, "왜 부진한가요?", "ip-2");
+		assertThat(counting.calls).isEqualTo(2);
 	}
 }

@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import page.usetaehwan.gak.domain.Absence;
 import page.usetaehwan.gak.domain.AbsenceReason;
 import page.usetaehwan.gak.domain.Competition;
+import page.usetaehwan.gak.domain.CompetitionType;
 import page.usetaehwan.gak.domain.Fixture;
 import page.usetaehwan.gak.domain.Pick;
 import page.usetaehwan.gak.domain.Score;
@@ -25,9 +26,11 @@ import page.usetaehwan.gak.domain.Team;
 import page.usetaehwan.gak.domain.Venue;
 import page.usetaehwan.gak.dto.analysis.AbsenceSummary;
 import page.usetaehwan.gak.dto.analysis.AnalysisWindow;
+import page.usetaehwan.gak.dto.analysis.CompetitionSyncStatus;
 import page.usetaehwan.gak.dto.analysis.CongestionReport;
 import page.usetaehwan.gak.dto.analysis.CongestionSpanView;
 import page.usetaehwan.gak.dto.analysis.FormSummary;
+import page.usetaehwan.gak.dto.analysis.MatchAbsentee;
 import page.usetaehwan.gak.dto.analysis.MatchLoad;
 import page.usetaehwan.gak.dto.analysis.Omission;
 import page.usetaehwan.gak.dto.analysis.OpponentStrength;
@@ -35,7 +38,10 @@ import page.usetaehwan.gak.dto.analysis.SampleConfidence;
 import page.usetaehwan.gak.dto.analysis.TeamDiagnostics;
 import page.usetaehwan.gak.dto.analysis.TravelSummary;
 import page.usetaehwan.gak.repository.AbsenceRepository;
+import page.usetaehwan.gak.repository.AbsenceSyncLogRepository;
+import page.usetaehwan.gak.repository.CompetitionRepository;
 import page.usetaehwan.gak.repository.FixtureRepository;
+import page.usetaehwan.gak.repository.SyncLogRepository;
 import page.usetaehwan.gak.repository.TeamRepository;
 import page.usetaehwan.gak.service.analysis.AnalysisPeriodResolver.Period;
 import page.usetaehwan.gak.service.analysis.CongestionDetector.IndexSpan;
@@ -91,6 +97,9 @@ public class TeamDiagnosticsService {
 	private final FixtureRepository fixtureRepository;
 	private final TeamRepository teamRepository;
 	private final AbsenceRepository absenceRepository;
+	private final AbsenceSyncLogRepository absenceSyncLogRepository;
+	private final CompetitionRepository competitionRepository;
+	private final SyncLogRepository syncLogRepository;
 	private final OpponentStrengthService opponentStrengthService;
 	private final Clock clock;
 
@@ -98,10 +107,16 @@ public class TeamDiagnosticsService {
 	                              OpponentStrengthService opponentStrengthService,
 	                              TeamRepository teamRepository,
 	                              AbsenceRepository absenceRepository,
+	                              AbsenceSyncLogRepository absenceSyncLogRepository,
+	                              CompetitionRepository competitionRepository,
+	                              SyncLogRepository syncLogRepository,
 	                              Clock clock) {
 		this.fixtureRepository = fixtureRepository;
 		this.teamRepository = teamRepository;
 		this.absenceRepository = absenceRepository;
+		this.absenceSyncLogRepository = absenceSyncLogRepository;
+		this.competitionRepository = competitionRepository;
+		this.syncLogRepository = syncLogRepository;
 		this.opponentStrengthService = opponentStrengthService;
 		this.clock = clock;
 	}
@@ -125,16 +140,31 @@ public class TeamDiagnosticsService {
 		List<Omission> omissions = new ArrayList<>();
 		notePeriodLimits(period, schedule, omissions);
 
-		// 경기별 확정 결장 인원. 결장 데이터가 없는 경기는 이 맵에 아예 없다 —
+		// 경기별 확정 결장 인원·명단. 결장 데이터가 없는 경기는 이 맵들에 아예 없다 —
 		// "0명"과 "모름"을 가르는 유일한 장치라 getOrDefault(…, 0) 로 접으면 안 된다.
 		List<Absence> absences = absenceRepository.findTeamAbsencesWithPlayer(teamId);
 		Map<Long, Integer> outByFixture = outCountByFixture(absences);
+		Map<Long, List<MatchAbsentee>> absenteesByFixture = absenteesByFixture(absences);
 
 		// 밀집 판정은 **치른 경기**만 본다. 다가올 일정을 함께 세면 "3주 뒤에 잡힌 7경기"가
 		// 지금 부진의 원인처럼 진단문에 끼어든다 — 아직 일어나지 않은 일이다.
-		List<IndexSpan> spans = schedule.played() >= options.minMatches()
-				? CongestionDetector.detect(schedule.playedEpochDays(), options.windowDays(), options.minMatches())
-				: List.of();
+		// 전 대회와 리그만, 두 단면을 같은 스냅샷에서 각각 판정한다 — "리그만 보기"의
+		// 수치는 전 대회 값을 걸러 만든 것이 아니라 리그 경기만으로 다시 잰 값이다.
+		Seq allSeq = schedule.asSeq();
+		Seq league = schedule.leagueSeq();
+		List<IndexSpan> spans = detectSpans(allSeq, options);
+		List<IndexSpan> leagueSpans = detectSpans(league, options);
+
+		CongestionReport congestion = toCongestionReport(allSeq, spans, options);
+		if (!congestion.detectable()) {
+			omissions.add(Omission.of("congestion", String.format(
+					"밀집 판정에는 최소 %d경기가 필요한데 이 기간에 치른 경기가 %d건뿐입니다.",
+					options.minMatches(), schedule.played())));
+		}
+		// 리그 단면의 표본 부족은 omission으로 따로 남기지 않는다 — 화면은
+		// leagueCongestion.detectable 로 "판정 불가"를 말한다. 전 대회가 판정 가능한데
+		// 리그만 불가한 상태를 전 대회 기준 진단의 생략처럼 적으면 두 층이 섞인다.
+		CongestionReport leagueCongestion = toCongestionReport(league, leagueSpans, options);
 
 		FormResult form = toFormSummary(teamId, schedule, omissions);
 		// 경기별 상대 순위 — 타임라인이 "vs 아스날 (2위)"를 그릴 수 있게. 예정 경기에도
@@ -150,13 +180,16 @@ public class TeamDiagnosticsService {
 				team.getCode(),
 				Instant.now(clock),
 				schedule.window(period),
-				toMatchLoads(teamId, schedule, spans, outByFixture, rankByFixture),
-				toCongestionReport(schedule, spans, options, omissions),
+				toMatchLoads(teamId, schedule, spans, outByFixture, rankByFixture,
+						gapByFixtureId(league), spanIdByFixtureId(league, leagueSpans), absenteesByFixture),
+				congestion,
+				leagueCongestion,
 				form.summary(),
 				opponents,
 				toTravelSummary(schedule, omissions),
-				toAbsenceSummary(schedule, absences, omissions),
-				List.copyOf(omissions));
+				toAbsenceSummary(teamId, period.season(), schedule, absences, omissions),
+				List.copyOf(omissions),
+				toSyncCoverage(period.season()));
 	}
 
 	// --- 한 번의 계산이 들고 다니는 상태 --------------------------------------
@@ -242,18 +275,57 @@ public class TeamDiagnosticsService {
 			return i < played;
 		}
 
-		/** 치른 경기만의 에포크 일수 — 밀집·간격 계산의 입력. */
-		long[] playedEpochDays() {
-			return Arrays.copyOf(epochDays, played);
-		}
-
 		/** 치른 경기 목록(폼·상대 강도가 본다). */
 		List<Fixture> playedFixtures() {
 			return fixtures.subList(0, played);
 		}
 
+		/** 전 대회 단면 — 배열들을 그대로 공유한다. */
+		Seq asSeq() {
+			return new Seq(fixtures, played, epochDays, gapDays, home, travelKm);
+		}
+
+		/**
+		 * 자국 리그(LEAGUE) 경기만의 단면. 컵·유럽대항전(HYBRID)은 빠진다.
+		 *
+		 * <p>간격은 <b>리그 경기 사이로 다시 센다</b> — 전 대회 간격에서 컵 경기를 지우면
+		 * 그 자리의 간격 두 개가 사라질 뿐, 합쳐지지 않기 때문이다. "리그만 보면 7일 간격"은
+		 * 리그 경기끼리의 날짜 차이다.
+		 */
+		Seq leagueSeq() {
+			List<Integer> indices = new ArrayList<>();
+			for (int i = 0; i < fixtures.size(); i++) {
+				if (fixtures.get(i).getCompetition().getType() == CompetitionType.LEAGUE) {
+					indices.add(i);
+				}
+			}
+			int n = indices.size();
+			List<Fixture> subFixtures = new ArrayList<>(n);
+			long[] subEpoch = new long[n];
+			int[] subGap = new int[n];
+			boolean[] subHome = new boolean[n];
+			Double[] subTravel = new Double[n];
+			int subPlayed = 0;
+			for (int k = 0; k < n; k++) {
+				int i = indices.get(k);
+				subFixtures.add(fixtures.get(i));
+				subEpoch[k] = epochDays[i];
+				subGap[k] = (k == 0) ? NO_GAP : (int) (subEpoch[k] - subEpoch[k - 1]);
+				subHome[k] = home[i];
+				subTravel[k] = travelKm[i];
+				if (i < played) {
+					subPlayed++;
+				}
+			}
+			return new Seq(List.copyOf(subFixtures), subPlayed, subEpoch, subGap, subHome, subTravel);
+		}
+
 		AnalysisWindow window(Period period) {
 			List<Fixture> season = period.seasonFixtures();
+			// 리그 분모는 여기서만 셀 수 있다 — 연기·취소 경기는 fixtures에 남지 않으므로
+			// 응답을 받은 화면은 "리그 시즌 전체가 몇 경기였나"를 되짚을 방법이 없다.
+			int leagueSeason = countLeague(season);
+			int leagueScheduled = countLeague(fixtures);
 			return new AnalysisWindow(
 					period.season(),
 					period.calendarSeason(),
@@ -266,8 +338,70 @@ public class TeamDiagnosticsService {
 					played,
 					size() - played,
 					season.size() - size(),
-					period.otherSeasons());
+					period.otherSeasons(),
+					leagueSeason,
+					leagueSeason - leagueScheduled);
 		}
+
+		private static int countLeague(List<Fixture> fixtures) {
+			return (int) fixtures.stream()
+					.filter(f -> f.getCompetition().getType() == CompetitionType.LEAGUE)
+					.count();
+		}
+	}
+
+	/**
+	 * 밀집·간격 계산이 보는 경기 단면 — 전 대회 전체({@link Schedule#asSeq()}) 또는
+	 * 리그만({@link Schedule#leagueSeq()}). 배열 규칙은 {@link Schedule}과 같다:
+	 * 모두 {@link #fixtures}와 같은 순서·길이, 앞쪽 {@link #played}개가 치른 경기.
+	 */
+	private record Seq(
+			List<Fixture> fixtures,
+			int played,
+			long[] epochDays,
+			int[] gapDays,
+			boolean[] home,
+			Double[] travelKm
+	) {
+
+		Fixture at(int i) {
+			return fixtures.get(i);
+		}
+
+		/** 치른 경기만의 에포크 일수 — 밀집·간격 계산의 입력. */
+		long[] playedEpochDays() {
+			return Arrays.copyOf(epochDays, played);
+		}
+	}
+
+	/** 밀집 판정 — 치른 경기가 기준에 못 미치면 빈 목록(판정 불가는 detectable이 말한다). */
+	private static List<IndexSpan> detectSpans(Seq seq, DiagnosticsOptions options) {
+		return seq.played() >= options.minMatches()
+				? CongestionDetector.detect(seq.playedEpochDays(), options.windowDays(), options.minMatches())
+				: List.of();
+	}
+
+	/** 단면 안에서 경기 id → 직전 경기와의 간격(일). 첫 경기는 키가 없다. */
+	private static Map<Long, Integer> gapByFixtureId(Seq seq) {
+		Map<Long, Integer> byFixture = new HashMap<>();
+		for (int k = 0; k < seq.fixtures().size(); k++) {
+			if (seq.gapDays()[k] != NO_GAP) {
+				byFixture.put(seq.at(k).getId(), seq.gapDays()[k]);
+			}
+		}
+		return byFixture;
+	}
+
+	/** 단면 안에서 경기 id → 소속 밀집 구간 id. 구간 밖 경기는 키가 없다. */
+	private static Map<Long, Integer> spanIdByFixtureId(Seq seq, List<IndexSpan> spans) {
+		Map<Long, Integer> byFixture = new HashMap<>();
+		for (int spanId = 0; spanId < spans.size(); spanId++) {
+			IndexSpan span = spans.get(spanId);
+			for (int k = span.startIdx(); k <= span.endIdx(); k++) {
+				byFixture.put(seq.at(k).getId(), spanId);
+			}
+		}
+		return byFixture;
 	}
 
 	// --- 기간이 말하지 못하는 것 ----------------------------------------------
@@ -303,7 +437,10 @@ public class TeamDiagnosticsService {
 
 	private List<MatchLoad> toMatchLoads(Long teamId, Schedule schedule, List<IndexSpan> spans,
 	                                     Map<Long, Integer> outByFixture,
-	                                     Map<Long, Integer> rankByFixture) {
+	                                     Map<Long, Integer> rankByFixture,
+	                                     Map<Long, Integer> leagueGapByFixture,
+	                                     Map<Long, Integer> leagueSpanByFixture,
+	                                     Map<Long, List<MatchAbsentee>> absenteesByFixture) {
 		Map<Integer, Integer> spanIdByIndex = indexToSpanId(spans);
 		List<MatchLoad> loads = new ArrayList<>(schedule.size());
 
@@ -342,9 +479,12 @@ public class TeamDiagnosticsService {
 					hasShootout ? ourSide(shootout.getAway(), shootout.getHome(), home) : null,
 					schedule.gapDays()[i] == NO_GAP ? null : schedule.gapDays()[i],
 					spanIdByIndex.get(i),
+					leagueGapByFixture.get(fixture.getId()),
+					leagueSpanByFixture.get(fixture.getId()),
 					SchedulePolicy.extraMinutes(fixture),
 					schedule.travelKm()[i],
 					outByFixture.get(fixture.getId()),
+					absenteesByFixture.get(fixture.getId()),
 					schedule.analyzed(i)));
 		}
 		return List.copyOf(loads);
@@ -365,17 +505,48 @@ public class TeamDiagnosticsService {
 	}
 
 	/**
+	 * 경기 → 확정 결장 명단. 키 규칙은 {@link #outCountByFixture}와 같다 — 데이터가 있는
+	 * 경기만 키가 되고, 불투명(DOUBTFUL)만 있으면 빈 목록이다. 그래서 명단 길이는 언제나
+	 * {@code absentCount}와 일치한다.
+	 */
+	private Map<Long, List<MatchAbsentee>> absenteesByFixture(List<Absence> absences) {
+		Map<Long, List<MatchAbsentee>> byFixture = new HashMap<>();
+		for (Absence absence : absences) {
+			List<MatchAbsentee> list = byFixture
+					.computeIfAbsent(absence.getFixture().getId(), id -> new ArrayList<>());
+			if (absence.countsAsOut()) {
+				list.add(new MatchAbsentee(
+						absence.getPlayer().getId(),
+						absence.getPlayer().getName(),
+						absence.getReason()));
+			}
+		}
+		// 이름순 정렬 — 같은 데이터면 같은 응답(결정론). DB가 주는 순서에 기대지 않는다.
+		for (List<MatchAbsentee> list : byFixture.values()) {
+			list.sort(Comparator.comparing(MatchAbsentee::playerName));
+		}
+		return byFixture;
+	}
+
+	/**
 	 * 결장 요약. 분모를 조심해야 한다 — API가 우리 경기 전부의 결장을 주지 않는다
 	 * (맨유 2023 시즌은 52경기 중 44경기만 있었다). 그래서 "데이터가 있는 경기 수"를
 	 * 함께 실어 보내고, 데이터가 아예 없으면 0으로 채우는 대신 covered=false 로 말한다.
 	 */
-	private AbsenceSummary toAbsenceSummary(Schedule schedule, List<Absence> absences,
-	                                        List<Omission> omissions) {
+	private AbsenceSummary toAbsenceSummary(Long teamId, Integer season, Schedule schedule,
+	                                        List<Absence> absences, List<Omission> omissions) {
+		// 수집 이력이 진실 공급원이다. 행이 없다는 사실만으로는 "아무도 안 빠졌다"와
+		// "아직 안 받았다"를 가를 수 없다 — 둘 다 행이 없다.
+		Instant lastSyncedAt = season == null
+				? null
+				: absenceSyncLogRepository.findLastSuccessAt(teamId, season).orElse(null);
+
 		if (absences.isEmpty()) {
-			omissions.add(Omission.of("absences",
-					"결장(부상·징계) 데이터를 아직 동기화하지 않았습니다. "
-							+ "POST /api/admin/sync/injuries/{teamId}?season= 으로 받을 수 있습니다."));
-			return AbsenceSummary.notCovered(schedule.played());
+			omissions.add(Omission.of("absences", lastSyncedAt == null
+					? "결장(부상·징계) 데이터를 아직 동기화하지 않았습니다. "
+							+ "POST /api/admin/sync/injuries/{teamId}?season= 으로 받을 수 있습니다."
+					: "결장 데이터를 받아 왔지만 이 시즌 이 팀의 결장 기록이 한 건도 없습니다."));
+			return AbsenceSummary.notCovered(schedule.played(), lastSyncedAt);
 		}
 
 		// 진단이 보는 경기(다른 시즌·예정·연기 제외) 안의 결장만 센다 — 화면의 진단 대상에
@@ -411,7 +582,7 @@ public class TeamDiagnosticsService {
 		if (coveredFixtures.isEmpty()) {
 			omissions.add(Omission.of("absences",
 					"받아 둔 결장 데이터가 이 진단 기간의 경기를 하나도 갖고 있지 않습니다(시즌 불일치)."));
-			return AbsenceSummary.notCovered(schedule.played());
+			return AbsenceSummary.notCovered(schedule.played(), lastSyncedAt);
 		}
 		if (coveredFixtures.size() < schedule.played()) {
 			omissions.add(Omission.of("absences", String.format(
@@ -429,7 +600,7 @@ public class TeamDiagnosticsService {
 				.toList();
 
 		return new AbsenceSummary(true, coveredFixtures.size(), schedule.played(),
-				totalOut, tallyByPlayer.size(), maxOut, Map.copyOf(byReason), top);
+				totalOut, tallyByPlayer.size(), maxOut, Map.copyOf(byReason), top, lastSyncedAt);
 	}
 
 	/** 선수별 결장 집계 — 가장 잦았던 사유까지 함께 센다. */
@@ -485,35 +656,31 @@ public class TeamDiagnosticsService {
 		return byIndex;
 	}
 
-	private CongestionReport toCongestionReport(Schedule schedule, List<IndexSpan> spans,
-	                                            DiagnosticsOptions options, List<Omission> omissions) {
-		boolean detectable = schedule.played() >= options.minMatches();
-		if (!detectable) {
-			omissions.add(Omission.of("congestion", String.format(
-					"밀집 판정에는 최소 %d경기가 필요한데 이 기간에 치른 경기가 %d건뿐입니다.",
-					options.minMatches(), schedule.played())));
-		}
+	/** 밀집 리포트 — 단면(전 대회/리그만)이 무엇이든 같은 규칙으로 만든다. */
+	private CongestionReport toCongestionReport(Seq seq, List<IndexSpan> spans,
+	                                            DiagnosticsOptions options) {
+		boolean detectable = seq.played() >= options.minMatches();
 
 		List<CongestionSpanView> views = new ArrayList<>(spans.size());
 		for (int spanId = 0; spanId < spans.size(); spanId++) {
-			views.add(toSpanView(spanId, spans.get(spanId), schedule));
+			views.add(toSpanView(spanId, spans.get(spanId), seq));
 		}
 
-		int[] playedGaps = Arrays.copyOf(schedule.gapDays(), schedule.played());
+		int[] playedGaps = Arrays.copyOf(seq.gapDays(), seq.played());
 		return CongestionReport.of(
 				options.windowDays(),
 				options.minMatches(),
 				detectable,
-				schedule.played(),
-				schedule.played() == 0
+				seq.played(),
+				seq.played() == 0
 						? 0
-						: CongestionDetector.busiestWindowMatchCount(schedule.playedEpochDays(), options.windowDays()),
+						: CongestionDetector.busiestWindowMatchCount(seq.playedEpochDays(), options.windowDays()),
 				shortestGap(playedGaps),
 				medianGap(playedGaps),
 				views);
 	}
 
-	private CongestionSpanView toSpanView(int spanId, IndexSpan span, Schedule schedule) {
+	private CongestionSpanView toSpanView(int spanId, IndexSpan span, Seq schedule) {
 		int away = 0;
 		int extraTimeMatches = 0;
 		int extraMinutes = 0;
@@ -714,6 +881,36 @@ public class TeamDiagnosticsService {
 		}
 		return new TravelSummary(from, to, awayMatches, measured, unknown,
 				round1(total), round1(total / measured), round1(longest));
+	}
+
+	// --- 동기화 커버리지 ------------------------------------------------------
+
+	/**
+	 * 조회 시즌에 대한 노출 대회별 동기화 상태. 대상은 {@code displayed} 대회 —
+	 * 스케줄러의 동기화 대상 선정({@code SyncPlanner})과 같은 집합이라, "수집 전"이
+	 * "언젠가 수집될 대상인데 아직"이라는 뜻이 된다.
+	 *
+	 * <p>시즌을 정하지 못했으면(경기가 하나도 없는 팀) 빈 목록 — 어느 시즌의 이력을
+	 * 물어야 할지 자체가 없다.
+	 */
+	private List<CompetitionSyncStatus> toSyncCoverage(Integer season) {
+		if (season == null) {
+			return List.of();
+		}
+		Map<Long, Instant> lastByCompetition = new HashMap<>();
+		for (SyncLogRepository.LastSyncView view
+				: syncLogRepository.findLastSuccessPerCompetitionForSeason(season)) {
+			lastByCompetition.put(view.getCompetitionId(), view.getLastSyncedAt());
+		}
+		return competitionRepository.findByDisplayedTrue().stream()
+				.sorted(Comparator.comparing(Competition::getId))
+				.map(competition -> new CompetitionSyncStatus(
+						competition.getId(),
+						competition.displayName(),
+						competition.displayShortName(),
+						competition.getType(),
+						lastByCompetition.get(competition.getId())))
+				.toList();
 	}
 
 	// --- 반올림 --------------------------------------------------------------

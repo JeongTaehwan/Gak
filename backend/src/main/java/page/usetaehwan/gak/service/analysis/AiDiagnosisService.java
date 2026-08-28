@@ -2,14 +2,18 @@ package page.usetaehwan.gak.service.analysis;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import page.usetaehwan.gak.config.AiRateLimiter;
+import page.usetaehwan.gak.domain.AiDiagnosisRecord;
 import page.usetaehwan.gak.dto.analysis.AiDiagnosis;
 import page.usetaehwan.gak.dto.analysis.TeamDiagnostics;
 import page.usetaehwan.gak.external.anthropic.AnthropicClient;
@@ -54,10 +58,17 @@ public class AiDiagnosisService {
 
 	private final AnthropicClient client;
 	private final ObjectMapper objectMapper;
+	private final AiDiagnosisArchive archive;
+	private final Clock clock;
+	private final AiRateLimiter limiter;
 
-	public AiDiagnosisService(AnthropicClient client, ObjectMapper objectMapper) {
+	public AiDiagnosisService(AnthropicClient client, ObjectMapper objectMapper,
+	                          AiDiagnosisArchive archive, Clock clock, AiRateLimiter limiter) {
 		this.client = client;
 		this.objectMapper = objectMapper;
+		this.archive = archive;
+		this.clock = clock;
+		this.limiter = limiter;
 	}
 
 	/**
@@ -65,28 +76,109 @@ public class AiDiagnosisService {
 	 *
 	 * <p><b>예외를 던지지 않는다.</b> 어떤 실패든 {@link AiDiagnosis#unavailable(String)}로
 	 * 돌아오고, 화면은 규칙 기반 문장을 그대로 유지한다.
+	 *
+	 * <h2>저장분 재사용 (DG 7절)</h2>
+	 * <p>검증을 통과한 서술은 저장해 두고, 분모(계산에 들어간 경기 수)가 그대로면 모델을
+	 * 다시 부르지 않는다 — 재방문이 수 초의 대기 없이 끝나고, 데이터가 변하지 않는 회고
+	 * 시즌에서는 계속 재사용된다. 분모가 변했으면 새로 불러 교체한다.
+	 *
+	 * <p><b>낡은 저장분은 어떤 실패의 폴백도 아니다.</b> 분모가 달라졌는데 새 호출이
+	 * 실패하면 그냥 사용 불가로 답한다 — 화면의 최신 지표 옆에 옛 분모로 쓴 문장을
+	 * 세우는 것보다, 규칙 기반으로 돌아가는 쪽(기존 계약)이 낫다.
 	 */
-	public AiDiagnosis narrate(TeamDiagnostics diagnostics) {
-		if (!client.available()) {
-			return AiDiagnosis.unavailable("AI 진단이 설정되지 않았습니다");
-		}
-
+	public AiDiagnosis narrate(TeamDiagnostics diagnostics, String clientIp) {
 		String gate = insufficientSample(diagnostics);
 		if (gate != null) {
 			// 호출 자체를 안 한다. 표본이 부족할 때 모델이 결론을 내지 않게 하는 가장
-			// 확실한 방법은 물어보지 않는 것이다.
+			// 확실한 방법은 물어보지 않는 것이다. 게이트가 저장 조회보다 먼저다 —
+			// 표본이 부족한 지금 기준에서는 저장분이 있어도 세울 수 없다.
 			return AiDiagnosis.unavailable(gate);
 		}
 
+		long teamId = diagnostics.teamId();
+		// 게이트를 지났으면 확정 경기가 있으므로 window.season 은 null 이 아니다.
+		int season = diagnostics.window().season();
+		int windowDays = diagnostics.congestion().windowDays();
+		int minMatches = diagnostics.congestion().minMatches();
+		int analyzedFixtures = diagnostics.window().analyzedFixtures();
+
+		// "데이터가 변했다" 판정은 프롬프트 지문이다 (DG-OQ-19 확정) — 프롬프트는 계산된
+		// 지표에서만 만들어지므로, 지문이 같으면 모델이 볼 재료가 그대로라는 뜻이다.
+		// 분모만 보면 "연기 1 + 신규 확정 1"로 분모가 우연히 같거나, 결장이 사후 수집돼
+		// 내용만 변한 경우를 놓친다.
+		String prompt = DiagnosisPromptFactory.userPrompt(diagnostics);
+		String fingerprint = sha256(prompt);
+
+		// 저장 조회가 available() 검사보다 먼저다 — 저장분은 검증을 통과한 실제 응답이라
+		// 클라이언트 없이도 세울 수 있다. 키가 빠진 환경에서 회고 시즌 저장분까지
+		// 사라지면 "재사용" 요구(DG 7절)가 설정 상태에 볼모로 잡힌다.
+		Optional<AiDiagnosisRecord> stored = archive.find(teamId, season, windowDays, minMatches);
+		if (stored.isPresent() && fingerprint.equals(stored.get().getPromptFingerprint())) {
+			return toDiagnosis(stored.get());
+		}
+
+		if (!client.available()) {
+			return AiDiagnosis.unavailable(INTERNAL_UNAVAILABLE);
+		}
+
+		// 한도 소모는 여기 — 실제 유료 호출 직전이다. 저장 히트·게이트·키 부재로 끝난
+		// 요청은 위에서 이미 반환됐으므로 세지 않는다 (requirements.md DG 8절).
+		AiRateLimiter.Decision decision = limiter.tryConsume(clientIp);
+		if (!decision.allowed()) {
+			return AiDiagnosis.unavailable(decision.message());
+		}
+
 		AnthropicResult result = client.complete(
-				DiagnosisPromptFactory.SYSTEM,
-				DiagnosisPromptFactory.userPrompt(diagnostics),
-				RESPONSE_SCHEMA);
+				DiagnosisPromptFactory.SYSTEM, prompt, RESPONSE_SCHEMA);
 
 		if (!result.succeeded()) {
+			// 낡은 저장분이 있어도 여기서 꺼내지 않는다 (메서드 주석 참고).
 			return AiDiagnosis.unavailable(reasonFor(result.failure()));
 		}
-		return parse(result.json());
+		AiDiagnosis parsed = parse(result.json());
+		if (parsed.available()) {
+			// 검증을 통과한 서술만 기록이 된다. parse 가 버린 응답을 저장하면
+			// 재방문 화면이 검증 없이 그 껍데기를 싣게 된다.
+			store(stored.isPresent(), teamId, season, windowDays, minMatches,
+					analyzedFixtures, parsed, fingerprint);
+		}
+		return parsed;
+	}
+
+	/** 저장분을 응답 DTO로. 저장할 때 검증을 통과한 내용이므로 다시 거르지 않는다. */
+	private static AiDiagnosis toDiagnosis(AiDiagnosisRecord stored) {
+		List<AiDiagnosis.Evidence> evidence = stored.getEvidence().stream()
+				.map(e -> new AiDiagnosis.Evidence(e.getClaim(), e.getMetric(), e.getValue()))
+				.toList();
+		return AiDiagnosis.of(stored.getHeadline(), stored.getSub(),
+				evidence, List.copyOf(stored.getUnknowns()));
+	}
+
+	/**
+	 * 검증을 통과한 서술을 저장한다 — 이미 행이 있으면(분모가 달라진 경우) 교체, 없으면 신규.
+	 *
+	 * <p>저장 실패는 응답을 막지 않는다. 저장은 재방문을 빠르게 하는 최적화지 답 자체가
+	 * 아니다 — 방금 받은 진단은 그대로 내보내고, 실패는 로그로만 남긴다.
+	 */
+	private void store(boolean exists, long teamId, int season, int windowDays, int minMatches,
+	                   int analyzedFixtures, AiDiagnosis parsed, String fingerprint) {
+		try {
+			AiDiagnosisRecord fresh = AiDiagnosisRecord.create(
+					teamId, season, windowDays, minMatches, analyzedFixtures,
+					parsed.headline(), parsed.sub(),
+					parsed.evidence().stream()
+							.map(e -> AiDiagnosisRecord.Evidence.of(e.metric(), e.value(), e.claim()))
+							.toList(),
+					parsed.unknowns(), clock.instant(), fingerprint);
+			if (exists) {
+				archive.replace(fresh);
+			} else {
+				archive.save(fresh);
+			}
+		} catch (RuntimeException e) {
+			log.warn("AI 진단 저장 실패 — 이번 응답은 그대로 내보낸다 (teamId={}, season={}): {}",
+					teamId, season, e.toString());
+		}
 	}
 
 	/**
@@ -114,15 +206,34 @@ public class AiDiagnosisService {
 		return null;
 	}
 
-	/** 실패 사유를 사용자에게 보여줄 한국어로. 기술 용어를 화면에 올리지 않는다. */
+	/** 프롬프트의 SHA-256 지문 — "데이터가 변했다" 판정 키 (DG-OQ-19). */
+	static String sha256(String text) {
+		try {
+			byte[] digest = java.security.MessageDigest.getInstance("SHA-256")
+					.digest(text.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+			StringBuilder hex = new StringBuilder(digest.length * 2);
+			for (byte b : digest) {
+				hex.append(Character.forDigit((b >> 4) & 0xF, 16))
+						.append(Character.forDigit(b & 0xF, 16));
+			}
+			return hex.toString();
+		} catch (java.security.NoSuchAlgorithmException e) {
+			// SHA-256 은 모든 JVM 필수 알고리즘이다 — 여기 오면 환경이 깨진 것.
+			throw new IllegalStateException("SHA-256 을 사용할 수 없습니다", e);
+		}
+	}
+
+	/**
+	 * 내부 사유(설정·타임아웃·전송·거부·형식)는 전부 이 한 문구다 (DG-OQ-16 확정,
+	 * 2026-08-25 오너 위임). 원인 구분은 사용자가 할 수 있는 일을 바꾸지 않는다 —
+	 * 어느 쪽이든 재시도는 없다. 표본 부족 같은 데이터 사유는 구체적으로 남긴다
+	 * ({@link #insufficientSample}). 내부 세부 원인은 로그에만.
+	 */
+	static final String INTERNAL_UNAVAILABLE = "AI 분석을 사용할 수 없어 규칙 기반 결론을 유지합니다";
+
 	private String reasonFor(AnthropicResult.Failure failure) {
-		return switch (failure) {
-			case DISABLED -> "AI 진단이 설정되지 않았습니다";
-			case TIMEOUT -> "AI 응답이 늦어 규칙 기반 결론을 유지합니다";
-			case TRANSPORT -> "AI 진단을 불러오지 못했습니다";
-			case REFUSED -> "AI가 이 요청에 답하지 않았습니다";
-			case MALFORMED -> "AI 응답을 읽지 못했습니다";
-		};
+		log.warn("AI 진단 실패 — 사용자에게는 한 문구로 접는다: {}", failure);
+		return INTERNAL_UNAVAILABLE;
 	}
 
 	/**

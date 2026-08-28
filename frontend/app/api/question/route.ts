@@ -37,14 +37,29 @@ export async function POST(request: Request): Promise<NextResponse<TeamAnswer>> 
 
   const base = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
 
+  // 백엔드 IP 단위 한도(DG 8절)가 클라이언트 IP 를 보려면 프록시가 전달해야 한다.
+  // 그런데 이 핸들러는 소켓 IP 를 볼 수 없어 **스스로 보증할 수 있는 IP 가 없다** —
+  // 들어온 x-forwarded-for 는 클라이언트가 마음대로 쓸 수 있는 평문 헤더다.
+  // 그래서 앞단 프록시가 XFF 를 덮어써 준다고 배포가 보장할 때만(환경변수) 전달하고,
+  // 기본은 전달하지 않는다. 전달이 없으면 백엔드는 식별 불가로 보고 전역 상한만
+  // 적용한다 — 위조 값으로 IP 버킷을 만들어 주는 것보다 정직하다.
+  const forwardedFor = process.env.GAK_FRONT_PROXY_TRUSTED === "true"
+    ? request.headers.get("x-forwarded-for")
+    : null;
+
   try {
     const res = await fetch(`${base}/api/teams/${teamId}/questions`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(forwardedFor ? { "X-Forwarded-For": forwardedFor } : {}),
+      },
       body: JSON.stringify({ season, question }),
       // 질문마다 답이 다르다 — 캐시할 것이 없다.
       cache: "no-store",
     });
+    // 한도 초과(DG 8절)는 백엔드가 200 + ANALYSIS_FAILED(사유 문구)로 내린다 —
+    // 여기서 따로 구분할 것이 없고, statusMessage 가 그대로 화면까지 간다.
     if (!res.ok) {
       return NextResponse.json(failed("분석 처리에 실패했습니다."));
     }

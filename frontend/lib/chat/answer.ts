@@ -1,6 +1,7 @@
 // requirements.md 1·5장 — 자유 질문의 답과 답변 불가 상태
 import type {
   AnswerBasis,
+  AnswerEvidence,
   AnswerStatus,
   TeamAnswer,
 } from "@/lib/api/types";
@@ -41,13 +42,63 @@ export function basisNote(basis: AnswerBasis): string {
 }
 
 /**
+ * 근거 한 칸이 실제로 차 있는가 — 세 칸(`metric`·`value`·`claim`)이 전부 차야 근거다.
+ *
+ * 스키마의 required 는 "키가 있어야 한다"까지만 보장하고 `""` 도 통과시킨다
+ * (domain.md AI 진단 절). 백엔드 `parse` 가 같은 검사를 이미 하지만, 화면은 백엔드
+ * 배포 시점과 어긋날 수 있으므로 경계에서 한 번 더 거른다.
+ */
+function isCompleteEvidence(e: AnswerEvidence): boolean {
+  return (
+    typeof e.metric === "string" &&
+    e.metric.trim() !== "" &&
+    typeof e.value === "string" &&
+    e.value.trim() !== "" &&
+    typeof e.claim === "string" &&
+    e.claim.trim() !== ""
+  );
+}
+
+/**
+ * ANSWERED 인데 검증을 통과한 근거가 하나도 없으면 **결론째 버린다** — 백엔드
+ * `AiDiagnosisService.parse` 의 "남는 근거가 없으면 결론째 버린다" 계약(domain.md
+ * AI 진단 절)의 화면측 거울이다 (requirements.md DG 4절: 근거 없는 서술은 표시하지
+ * 않는다, DG-OQ-07).
+ *
+ * 본문만 남기고 근거를 지우는 부분 표시는 없다 — 검산할 수 없는 문장을 성공한
+ * 답처럼 띄우는 쪽이, 실패했다고 말하는 쪽보다 나쁘다.
+ */
+export function verifyAnswer(answer: TeamAnswer): TeamAnswer {
+  if (answer.status !== "ANSWERED") return answer;
+  const evidence = answer.evidence.filter(isCompleteEvidence);
+  if (answer.answer != null && answer.answer.trim() !== "" && evidence.length > 0) {
+    return { ...answer, evidence };
+  }
+  // ANALYSIS_FAILED 폴백 경로로 강등. statusMessage 를 비워 두면 아래 FALLBACK 의
+  // 실패 문구가 쓰인다 — 여기서 새 문구를 지어내지 않는다.
+  return {
+    ...answer,
+    status: "ANALYSIS_FAILED",
+    statusMessage: null,
+    answer: null,
+    evidence: [],
+    // 버린 결론에 딸려 온 한계 서술도 함께 버린다 — 결론이 없는데 "이 답이 못 본 것"만
+    // 남으면 답이 있었던 것처럼 읽힌다.
+    unknowns: [],
+  };
+}
+
+/**
  * 근거 세 칸(`metric`·`value`·`claim`)을 말풍선이 그리는 한 줄로.
  *
  * 지표 이름과 값을 **문장 뒤에 그대로 붙인다.** 주장만 남기면 검산할 수 없고, 이 앱에서
  * 검산할 수 없는 문장은 소문과 구분되지 않는다.
+ *
+ * 세 칸이 모두 찬 항목만 남긴다 — 빈 칸을 그대로 그리면 "( )" 같은 껍데기가
+ * 근거 행세를 한다 (requirements.md DG 4절).
  */
 export function toChatEvidence(answer: TeamAnswer): Evidence[] {
-  return answer.evidence.map((e) => ({
+  return answer.evidence.filter(isCompleteEvidence).map((e) => ({
     text: `${e.claim} (${e.metric} ${e.value})`,
   }));
 }

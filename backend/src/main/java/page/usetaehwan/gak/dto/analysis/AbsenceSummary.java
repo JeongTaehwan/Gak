@@ -1,5 +1,6 @@
 package page.usetaehwan.gak.dto.analysis;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import page.usetaehwan.gak.domain.AbsenceReason;
@@ -25,6 +26,13 @@ import page.usetaehwan.gak.domain.AbsenceReason;
  * @param maxOutInOneMatch 한 경기 최대 결장 인원
  * @param byReason        사유 갈래별 확정 결장 연인원
  * @param topAbsentees    가장 많이 빠진 선수 상위 몇 명
+ * @param lastSyncedAt    이 팀·시즌의 결장 데이터를 마지막으로 받아 온 시각.
+ *                        <b>null이면 받은 적이 없다</b> — 그때의 "결장 0명"은 사실이
+ *                        아니라 미수집이다. 화면은 이 값으로 <b>아직 안 받음</b>과
+ *                        <b>받았지만 이 경기는 없음</b>을 갈라 말한다.
+ *                        <p>⚠️ 이력이 있어도 경기별 결장을 0으로 채우지 않는다. API는 한
+ *                        시즌 요청에도 일부 경기만 주기 때문이다(맨유 2023 시즌 52경기 중
+ *                        44경기). 성공 이력은 "이 팀·시즌을 받아 왔다"까지만 보장한다
  */
 public record AbsenceSummary(
 		boolean covered,
@@ -34,7 +42,8 @@ public record AbsenceSummary(
 		int distinctPlayers,
 		int maxOutInOneMatch,
 		Map<AbsenceReason, Integer> byReason,
-		List<AbsentPlayer> topAbsentees
+		List<AbsentPlayer> topAbsentees,
+		Instant lastSyncedAt
 ) {
 
 	/**
@@ -47,8 +56,14 @@ public record AbsenceSummary(
 	                           AbsenceReason mainReason) {
 	}
 
-	/** 결장 데이터가 아예 없을 때. "결장 0명"과 구분된다. */
-	public static AbsenceSummary notCovered(int analyzedMatches) {
-		return new AbsenceSummary(false, 0, analyzedMatches, 0, 0, 0, Map.of(), List.of());
+	/**
+	 * 결장 데이터가 아예 없을 때. "결장 0명"과 구분된다.
+	 *
+	 * @param lastSyncedAt 받아 온 이력이 있으면 그 시각. 받은 적이 없으면 null —
+	 *                     "받아 봤는데 없더라"와 "아직 안 받았다"는 다른 말이다
+	 */
+	public static AbsenceSummary notCovered(int analyzedMatches, Instant lastSyncedAt) {
+		return new AbsenceSummary(false, 0, analyzedMatches, 0, 0, 0, Map.of(), List.of(),
+				lastSyncedAt);
 	}
 }

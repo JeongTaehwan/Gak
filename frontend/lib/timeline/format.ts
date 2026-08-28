@@ -64,23 +64,35 @@ export function seasonLabel(
 }
 
 /**
- * "2023-24 시즌 52경기 기준" — 모든 진단 카드가 머리에 다는 한 줄.
+ * "23/24 시즌 · 전체 52경기 중 44경기 기준" — 모든 진단 카드가 머리에 다는 한 줄.
  *
  * 지표마다 기간이 다르면 한 화면에서 무엇을 진단한 것인지 흐려진다. 그래서 기간을
- * **하나로 고정하고, 그 기간을 카드마다 적는다.** 시즌이 진행 중이면 아직 치르지 않은
- * 경기가 계산에 없다는 사실까지 함께 적는다 — 화면에는 그 경기들이 보이기 때문이다.
+ * **하나로 고정하고, 그 기간을 카드마다 적는다.** 분모는 둘 다 밝힌다 — 실제 계산에
+ * 들어간 경기 수와 시즌 전체 경기 수를 구분하지 않으면 부분합이 전체처럼 읽힌다
+ * (requirements.md DG 2절). 시즌이 진행 중이면 아직 치르지 않은 경기가 계산에 없다는
+ * 사실까지 함께 적는다 — 화면에는 그 경기들이 보이기 때문이다.
+ *
+ * 문구 틀은 대화 답변의 분모 줄(`lib/chat/answer.ts` `basisNote`)과 같아야 한다.
+ * 두 자리가 같은 분모를 다른 말로 적으면 진단 블록과 답 영역이 서로 다른 기간을
+ * 본 것처럼 읽힌다.
  */
 export function toPeriodLabel(w: AnalysisWindow): string {
   if (w.analyzedFixtures === 0) {
     const season = toSeasonLabel(w);
     return season ? `${season} — 아직 치른 경기가 없습니다` : "경기 없음";
   }
-  const head = [toSeasonLabel(w), `${w.analyzedFixtures}경기 기준`]
+  return [
+    toSeasonLabel(w),
+    // 시즌 전체 수를 모르는 응답(있어서는 안 되지만)에서는 옛 표기로 물러난다 —
+    // "전체 0경기 중"은 거짓이 되기 때문이다.
+    w.seasonFixtures > 0
+      ? `전체 ${w.seasonFixtures}경기 중 ${w.analyzedFixtures}경기 기준`
+      : `${w.analyzedFixtures}경기 기준`,
+    w.upcomingFixtures > 0 ? `예정 ${w.upcomingFixtures}경기 제외` : null,
+    w.excludedFixtures > 0 ? `연기·취소 ${w.excludedFixtures}경기 제외` : null,
+  ]
     .filter(Boolean)
-    .join(" ");
-  return w.upcomingFixtures > 0
-    ? `${head} · 예정 ${w.upcomingFixtures}경기는 제외`
-    : head;
+    .join(" · ");
 }
 
 /**

@@ -3,11 +3,17 @@ package page.usetaehwan.gak.service.analysis;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import page.usetaehwan.gak.config.AiRateLimitProperties;
+import page.usetaehwan.gak.config.AiRateLimiter;
+import page.usetaehwan.gak.domain.AiDiagnosisRecord;
 import page.usetaehwan.gak.dto.analysis.AbsenceSummary;
 import page.usetaehwan.gak.dto.analysis.AiDiagnosis;
 import page.usetaehwan.gak.domain.Pick;
@@ -58,8 +64,41 @@ class AiDiagnosisServiceTest {
 		}
 	}
 
+	/**
+	 * 항상 비어 있고 아무것도 남기지 않는 보관소 — 이 파일의 테스트는 저장과 무관한
+	 * 안전장치(게이트·검증·실패 처리)를 본다. 저장 동작 자체는
+	 * {@link AiDiagnosisStorageTest}가 실제 DB로 검증한다.
+	 */
+	private static final class EmptyArchive extends AiDiagnosisArchive {
+		EmptyArchive() {
+			super(null);
+		}
+
+		@Override
+		public Optional<AiDiagnosisRecord> find(long teamId, int season, int windowDays, int minMatches) {
+			return Optional.empty();
+		}
+
+		@Override
+		public AiDiagnosisRecord save(AiDiagnosisRecord fresh) {
+			return fresh;
+		}
+
+		@Override
+		public void replace(AiDiagnosisRecord fresh) {
+		}
+	}
+
+	private static final Clock FIXED_CLOCK =
+			Clock.fixed(Instant.parse("2024-05-20T12:00:00Z"), ZoneOffset.UTC);
+
+	/** 한도를 끈 리미터 — 이 파일의 관심사는 게이트·검증·실패 처리다. */
+	private static AiRateLimiter unlimited() {
+		return new AiRateLimiter(new AiRateLimitProperties(false, null, null, null), FIXED_CLOCK);
+	}
+
 	private AiDiagnosisService serviceWith(AnthropicClient client) {
-		return new AiDiagnosisService(client, objectMapper);
+		return new AiDiagnosisService(client, objectMapper, new EmptyArchive(), FIXED_CLOCK, unlimited());
 	}
 
 	private static FakeClient replying(String json) {
@@ -89,9 +128,10 @@ class AiDiagnosisServiceTest {
 						Instant.parse("2024-05-20T00:00:00Z"),
 						Instant.parse("2023-08-11T19:00:00Z"),
 						Instant.parse("2024-05-19T15:00:00Z"),
-						42, 40, 0, 2, 0),
+						42, 40, 0, 2, 0, 38, 0),
 				List.of(),
 				new CongestionReport(14, 5, detectable, 40, 4, 3, 3.0, List.of()),
+				new CongestionReport(14, 5, detectable, 30, 3, 4, 5.0, List.of()),
 				new FormSummary(formSample, recentPicks(formSample), 3, 1, 2, 10,
 						formSample * 3, pointsRate, null, confidence),
 				OpponentStrength.unmeasured(formSample),
@@ -99,7 +139,8 @@ class AiDiagnosisServiceTest {
 						Instant.parse("2023-08-11T19:00:00Z"),
 						Instant.parse("2024-05-19T15:00:00Z"),
 						20, 18, 2, 12000.0, 666.0, 1400.0),
-				AbsenceSummary.notCovered(40),
+				AbsenceSummary.notCovered(40, null),
+				List.of(),
 				List.of());
 	}
 
@@ -119,7 +160,7 @@ class AiDiagnosisServiceTest {
 		FakeClient client = replying("{}");
 
 		AiDiagnosis result = serviceWith(client)
-				.narrate(diagnostics(3, SampleConfidence.LOW, true));
+				.narrate(diagnostics(3, SampleConfidence.LOW, true), "ip-1");
 
 		// "표본이 적으면 결론 내지 마"라고 부탁하는 대신 결론 낼 기회를 주지 않는다
 		assertThat(client.calls).isZero();
@@ -133,7 +174,7 @@ class AiDiagnosisServiceTest {
 		FakeClient client = replying("{}");
 
 		AiDiagnosis result = serviceWith(client)
-				.narrate(diagnostics(0, SampleConfidence.NONE, true));
+				.narrate(diagnostics(0, SampleConfidence.NONE, true), "ip-1");
 
 		assertThat(client.calls).isZero();
 		assertThat(result.available()).isFalse();
@@ -144,12 +185,12 @@ class AiDiagnosisServiceTest {
 	void usesTheSameThresholdAsTheRuleBasedPath() {
 		// 4건: 비율을 감추는 경계 바로 아래 → AI도 결론 없음
 		assertThat(serviceWith(replying("{}"))
-				.narrate(diagnostics(4, SampleConfidence.LOW, true)).available()).isFalse();
+				.narrate(diagnostics(4, SampleConfidence.LOW, true), "ip-1").available()).isFalse();
 
 		// 5건: 비율을 공개하는 경계 → AI도 결론 가능
 		FakeClient client = replying(validResponse());
 		assertThat(serviceWith(client)
-				.narrate(diagnostics(5, SampleConfidence.MODERATE, true)).available()).isTrue();
+				.narrate(diagnostics(5, SampleConfidence.MODERATE, true), "ip-1").available()).isTrue();
 		assertThat(client.calls).isEqualTo(1);
 	}
 
@@ -157,7 +198,7 @@ class AiDiagnosisServiceTest {
 	@DisplayName("키가 없으면 부르지 않고, 그건 오류가 아니다")
 	void treatsMissingKeyAsANormalState() {
 		AiDiagnosis result = serviceWith(new page.usetaehwan.gak.external.anthropic
-				.DisabledAnthropicClient()).narrate(healthy());
+				.DisabledAnthropicClient()).narrate(healthy(), "ip-1");
 
 		assertThat(result.available()).isFalse();
 		assertThat(result.unavailableReason()).isNotBlank();
@@ -171,7 +212,7 @@ class AiDiagnosisServiceTest {
 		AiDiagnosis result = serviceWith(replying("""
 				{"headline":"일정이 팀을 갉아먹고 있다","sub":"빡빡했다.",
 				 "evidence":[],"unknowns":[]}
-				""")).narrate(healthy());
+				""")).narrate(healthy(), "ip-1");
 
 		assertThat(result.available()).isFalse();
 		assertThat(result.unavailableReason()).contains("근거");
@@ -183,7 +224,7 @@ class AiDiagnosisServiceTest {
 		AiDiagnosis result = serviceWith(replying("""
 				{"headline":"","sub":"...","evidence":[{"claim":"a","metric":"b","value":"c"}],
 				 "unknowns":[]}
-				""")).narrate(healthy());
+				""")).narrate(healthy(), "ip-1");
 
 		assertThat(result.available()).isFalse();
 	}
@@ -191,7 +232,7 @@ class AiDiagnosisServiceTest {
 	@Test
 	@DisplayName("근거가 붙은 결론은 그대로 통과시킨다")
 	void acceptsAConclusionThatCarriesItsNumbers() {
-		AiDiagnosis result = serviceWith(replying(validResponse())).narrate(healthy());
+		AiDiagnosis result = serviceWith(replying(validResponse())).narrate(healthy(), "ip-1");
 
 		assertThat(result.available()).isTrue();
 		assertThat(result.headline()).isEqualTo("2일 간격 3연전 뒤 승점이 끊겼다");
@@ -215,7 +256,7 @@ class AiDiagnosisServiceTest {
 				{"headline":"placeholder","sub":"placeholder",
 				 "evidence":[{"claim":"시즌 전반기에 밀집 구간이 집중됐다","metric":"","value":""}],
 				 "unknowns":[]}
-				""")).narrate(healthy());
+				""")).narrate(healthy(), "ip-1");
 
 		assertThat(result.available()).isFalse();
 		assertThat(result.unavailableReason()).isNotBlank();
@@ -227,7 +268,7 @@ class AiDiagnosisServiceTest {
 		// 모든 키가 있고 타입도 맞다. 스키마 검증은 통과하는 응답이다.
 		AiDiagnosis result = serviceWith(replying("""
 				{"headline":"","sub":"","evidence":[],"unknowns":[]}
-				""")).narrate(healthy());
+				""")).narrate(healthy(), "ip-1");
 
 		assertThat(result.available()).isFalse();
 	}
@@ -238,7 +279,7 @@ class AiDiagnosisServiceTest {
 		AiDiagnosis result = serviceWith(replying("""
 				{"headline":"밀집은 시즌 전반부에 몰렸다","sub":"구간 3개가 9~12월에 있다.",
 				 "evidence":[],"unknowns":[]}
-				""")).narrate(healthy());
+				""")).narrate(healthy(), "ip-1");
 
 		assertThat(result.available()).isFalse();
 		assertThat(result.unavailableReason()).contains("근거");
@@ -251,7 +292,7 @@ class AiDiagnosisServiceTest {
 			AiDiagnosis result = serviceWith(replying("""
 					{"headline":"%s","sub":"밀집 구간 3개가 전반부에 몰려 있다.",
 					 "evidence":[{"claim":"a","metric":"b","value":"c"}],"unknowns":[]}
-					""".formatted(filler))).narrate(healthy());
+					""".formatted(filler))).narrate(healthy(), "ip-1");
 
 			assertThat(result.available()).as("결론이 %s", filler).isFalse();
 		}
@@ -263,7 +304,7 @@ class AiDiagnosisServiceTest {
 		AiDiagnosis result = serviceWith(replying("""
 				{"headline":"일정이 빡빡했다","sub":"일정이 빡빡했다",
 				 "evidence":[{"claim":"a","metric":"b","value":"c"}],"unknowns":[]}
-				""")).narrate(healthy());
+				""")).narrate(healthy(), "ip-1");
 
 		assertThat(result.available()).isFalse();
 	}
@@ -278,7 +319,7 @@ class AiDiagnosisServiceTest {
 				   {"claim":"지표 없는 근거","metric":"","value":"3일"},
 				   {"claim":"제대로 된 근거","metric":"밀집 구간 수","value":"3개"}
 				 ],"unknowns":[]}
-				""")).narrate(healthy());
+				""")).narrate(healthy(), "ip-1");
 
 		// 온전한 것 하나가 남았으므로 결론은 살린다
 		assertThat(result.available()).isTrue();
@@ -295,7 +336,7 @@ class AiDiagnosisServiceTest {
 				   {"claim":"a","metric":"최단 간격","value":""},
 				   {"claim":"b","metric":"","value":"3일"}
 				 ],"unknowns":[]}
-				""")).narrate(healthy());
+				""")).narrate(healthy(), "ip-1");
 
 		assertThat(result.available()).isFalse();
 		assertThat(result.unavailableReason()).contains("근거");
@@ -308,7 +349,7 @@ class AiDiagnosisServiceTest {
 				{"headline":"밀집 구간이 전반부에 몰렸다","sub":"9~12월에 3개가 집중됐다.",
 				 "evidence":[{"claim":"a","metric":"b","value":"c"}],
 				 "unknowns":["상대 강도",""," ","N/A"]}
-				""")).narrate(healthy());
+				""")).narrate(healthy(), "ip-1");
 
 		assertThat(result.available()).isTrue();
 		assertThat(result.unknowns()).containsExactly("상대 강도");
@@ -326,7 +367,7 @@ class AiDiagnosisServiceTest {
 		AiDiagnosis result = serviceWith(replying("""
 				{"headline":"밀집이 전반기에 몰렸다","sub":"9~12월에 구간 3개가 집중됐다.",
 				 "evidence":[%s],"unknowns":[]}
-				""".formatted(items))).narrate(healthy());
+				""".formatted(items))).narrate(healthy(), "ip-1");
 
 		assertThat(result.available()).isTrue();
 		assertThat(result.evidence()).hasSize(5);
@@ -348,7 +389,7 @@ class AiDiagnosisServiceTest {
 				   {"claim":"e","metric":"","value":""},
 				   {"claim":"살아남는 근거","metric":"밀집 구간 수","value":"3개"}
 				 ],"unknowns":[]}
-				""")).narrate(healthy());
+				""")).narrate(healthy(), "ip-1");
 
 		// 반쪽 5건이 앞자리를 다 먹었지만, 버려진 뒤라 온전한 것이 살아남는다
 		assertThat(result.available()).isTrue();
@@ -363,7 +404,7 @@ class AiDiagnosisServiceTest {
 	void everyFailureDegradesQuietly() {
 		for (AnthropicResult.Failure failure : AnthropicResult.Failure.values()) {
 			AiDiagnosis result = serviceWith(new FakeClient(AnthropicResult.failed(failure)))
-					.narrate(healthy());
+					.narrate(healthy(), "ip-1");
 
 			assertThat(result.available())
 					.as("실패 사유 %s", failure).isFalse();
@@ -376,7 +417,7 @@ class AiDiagnosisServiceTest {
 	@Test
 	@DisplayName("응답이 JSON이 아니어도 터지지 않는다")
 	void survivesGarbage() {
-		AiDiagnosis result = serviceWith(replying("설명: 이 팀은...")).narrate(healthy());
+		AiDiagnosis result = serviceWith(replying("설명: 이 팀은...")).narrate(healthy(), "ip-1");
 
 		assertThat(result.available()).isFalse();
 	}
@@ -387,7 +428,7 @@ class AiDiagnosisServiceTest {
 	@DisplayName("프롬프트에는 계산된 지표만 들어가고 경기 원본은 들어가지 않는다")
 	void sendsComputedMetricsNotRawFixtures() {
 		FakeClient client = replying(validResponse());
-		serviceWith(client).narrate(healthy());
+		serviceWith(client).narrate(healthy(), "ip-1");
 
 		String prompt = client.lastUserPrompt;
 		// 계산 결과는 있다
@@ -402,7 +443,7 @@ class AiDiagnosisServiceTest {
 	@DisplayName("우리가 수집하지 않는 것을 프롬프트가 명시한다 — 지어낼 재료를 주지 않는다")
 	void namesWhatWeDoNotHave() {
 		FakeClient client = replying(validResponse());
-		serviceWith(client).narrate(healthy());
+		serviceWith(client).narrate(healthy(), "ip-1");
 
 		assertThat(client.lastUserPrompt)
 				.contains("우리가 갖고 있지 않은 정보")
@@ -415,7 +456,7 @@ class AiDiagnosisServiceTest {
 	@DisplayName("결장 데이터가 없으면 '0명'이 아니라 '모름'이라고 넘긴다")
 	void tellsTheModelThatMissingAbsenceDataIsNotZero() {
 		FakeClient client = replying(validResponse());
-		serviceWith(client).narrate(healthy());
+		serviceWith(client).narrate(healthy(), "ip-1");
 
 		assertThat(client.lastUserPrompt).contains("'결장 0명'이 아니라 '모름'");
 	}
@@ -427,7 +468,7 @@ class AiDiagnosisServiceTest {
 		// 게이트는 통과하지만 pointsRate 가 null 인 경계를 만든다
 		var thin = diagnostics(5, SampleConfidence.MODERATE, true, null);
 
-		serviceWith(client).narrate(thin);
+		serviceWith(client).narrate(thin, "ip-1");
 
 		assertThat(client.lastUserPrompt).contains("비율로 말하지 마세요");
 	}
@@ -443,5 +484,42 @@ class AiDiagnosisServiceTest {
 				  "unknowns": ["선수 개개인의 기여도"]
 				}
 				""";
+	}
+
+	// --- 호출 한도 (DG 8절) -----------------------------------------------------
+
+	@Test
+	@DisplayName("한도 초과면 모델을 부르지 않고 사유를 담아 unavailable — 전역/IP 문구가 다르다")
+	void rateLimitBlocksBeforeModelCall() {
+		FakeClient client = replying(validResponse());
+		// 전역 1건 — 첫 호출이 예산을 소진한다.
+		AiRateLimiter tight = new AiRateLimiter(
+				new AiRateLimitProperties(true, 1, 1, null), FIXED_CLOCK);
+		AiDiagnosisService service =
+				new AiDiagnosisService(client, objectMapper, new EmptyArchive(), FIXED_CLOCK, tight);
+
+		assertThat(service.narrate(healthy(), "ip-1").available()).isTrue();
+
+		AiDiagnosis blocked = service.narrate(healthy(), "ip-2");
+		assertThat(blocked.available()).isFalse();
+		assertThat(blocked.unavailableReason())
+				.isEqualTo(AiRateLimiter.Decision.GLOBAL_EXCEEDED.message());
+		// 거부된 요청은 모델까지 가지 않는다 — 소모 지점이 호출 직전이라는 계약.
+		assertThat(client.calls).isEqualTo(1);
+	}
+
+	@Test
+	@DisplayName("표본 게이트로 끝난 요청은 한도를 소모하지 않는다 — 지출이 없으면 세지 않는다")
+	void gatedRequestDoesNotConsumeBudget() {
+		FakeClient client = replying(validResponse());
+		AiRateLimiter tight = new AiRateLimiter(
+				new AiRateLimitProperties(true, 1, 1, null), FIXED_CLOCK);
+		AiDiagnosisService service =
+				new AiDiagnosisService(client, objectMapper, new EmptyArchive(), FIXED_CLOCK, tight);
+
+		// 표본 부족 — 게이트에서 끝난다. 예산 1은 그대로 남아야 한다.
+		service.narrate(diagnostics(3, SampleConfidence.LOW, true), "ip-1");
+
+		assertThat(service.narrate(healthy(), "ip-1").available()).isTrue();
 	}
 }

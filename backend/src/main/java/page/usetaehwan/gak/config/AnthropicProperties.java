@@ -29,7 +29,7 @@ public record AnthropicProperties(
 
 	public AnthropicProperties {
 		baseUrl = orDefault(baseUrl, "https://api.anthropic.com");
-		model = orDefault(model, "claude-opus-5");
+		model = orDefault(model, "claude-sonnet-5");
 		effort = orDefault(effort, "medium");
 		// 이 모델은 사고가 기본으로 켜져 있고, maxTokens 는 사고와 응답을 함께 덮는다.
 		// 짧은 진단 문장이라도 사고에 쓸 자리를 남기지 않으면 답이 중간에 잘린다.

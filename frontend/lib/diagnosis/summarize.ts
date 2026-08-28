@@ -57,7 +57,7 @@ const STRUCTURAL_UNKNOWNS: UnknownItem[] = [
 ];
 
 /** 결장 갈래 라벨. "부상"으로 뭉뚱그리지 않는다 — 징계·질병이 섞여 있다. */
-const REASON_LABEL: Record<AbsenceReason, string> = {
+export const REASON_LABEL: Record<AbsenceReason, string> = {
   INJURY: "부상",
   SUSPENSION: "징계",
   ILLNESS: "질병",
@@ -259,5 +259,11 @@ function cards(t: Timeline): DiagnosisCard[] {
     });
   }
 
+  // 축의 표시 순서 — 승인 문서(DG 1절)가 근거 축을 나열한 순서를 계약으로 고정한다:
+  // 밀집도(간격은 그 보조) → 폼 → 상대 강도 → 결장 → 이동거리 (DG-OQ-17 확정,
+  // 2026-08-25 오너 위임). 만든 순서가 아니라 여기서 정렬해, 위 빌더의 추가·삭제가
+  // 순서 계약을 조용히 바꾸지 못하게 한다.
+  const AXIS_ORDER = ["congestion", "gap", "form", "opponents", "absence", "travel"];
+  out.sort((a, b) => AXIS_ORDER.indexOf(a.key) - AXIS_ORDER.indexOf(b.key));
   return out;
 }

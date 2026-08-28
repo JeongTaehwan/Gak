@@ -179,12 +179,28 @@ gak:
     base-url: ${ANTHROPIC_BASE_URL:https://api.anthropic.com}
     # 비어 있으면 AI 진단이 꺼진다. 앱은 정상 기동하고 진단은 규칙 기반으로 동작한다.
     key: ${ANTHROPIC_API_KEY:}
-    model: claude-opus-5
+    # 계산된 지표를 인용해 문장으로 옮기는 일이라 Opus 급 추론이 필요 없다.
+    # Opus 5 + medium 실측 26초가 질문 화면에서 너무 길어 Sonnet 5 로 내렸다.
+    model: claude-sonnet-5
     # low 로 두면 사고 토큰이 0 이 되어 모델이 한 번에 훑고 답을 뱉는다 — 그때
     # 근거 없는 결론(evidence: [])이 나왔다. medium 이 근거를 먼저 모으게 한다.
     effort: medium
     # 사고(thinking) + 응답을 합친 상한이다. 짧은 문장이라도 사고 자리를 남겨야 한다.
-    max-tokens: 4096
-    # effort: medium 실측이 26초였다. 30초로 두면 정상 응답이 타임아웃으로 버려진다.
-    # 화면은 규칙 기반 문장으로 이미 완성돼 있으므로 여기서 오래 기다려도 사용자는 안 기다린다.
+    # Sonnet 5 는 토크나이저가 바뀌어 같은 글에 토큰을 ~30% 더 쓴다 — 상한도 그만큼 올렸다.
+    # (상한은 한도일 뿐이라 올려도 실제 사용량·비용은 늘지 않는다)
+    max-tokens: 8192
+    # Opus 5 + medium 실측이 26초였다(Sonnet 은 이보다 짧다). 30초로 두면 정상 응답이
+    # 타임아웃으로 버려질 수 있어 여유를 둔다. 실측 후 줄여도 된다.
     timeout: 60s
+
+  # AI 경로(AI 진단·자유 질문) 호출 한도 — 유료 API 경로라 전역 상한이 지출을 막고,
+  # IP당 상한이 개인 남용을 막는다. 로그인은 도입하지 않는다 (DG 8절).
+  # 값은 확정(DG-OQ-21, 2026-08-25 오너 위임): 전역 200/일 · IP당 20/일. 조정은 여기(환경변수)만.
+  ai-limit:
+    enabled: ${AI_LIMIT_ENABLED:true}
+    global-daily: ${AI_LIMIT_GLOBAL_DAILY:200}
+    per-ip-daily: ${AI_LIMIT_PER_IP_DAILY:20}
+    # X-Forwarded-For 를 인정할 프록시 주소. 목록 밖에서 온 요청의 XFF 는 위조로
+    # 간주하고 소켓 IP 로 센다. 기본은 루프백(로컬 Next 프록시) — 배포 시 프록시
+    # 주소를 추가하고, 앞단 프록시가 XFF 를 덮어쓰는지 함께 확인한다 (DG-OQ-20).
+    trusted-proxies: ${AI_LIMIT_TRUSTED_PROXIES:127.0.0.1,0:0:0:0:0:0:0:1,::1}
